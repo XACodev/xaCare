@@ -253,7 +253,7 @@ $searchDoctor = function () {
 
     $this->doctor_id = null;
 
-    // Búsqueda insensible a acentos en PHP (más robusto que depender de la collation de la DB)
+    // Búsqueda insensible a acentos
     $allDoctors = User::query()
         ->where('role', 'doctor')
         ->orderBy('name')

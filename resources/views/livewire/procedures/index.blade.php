@@ -29,7 +29,7 @@ $instrumentists = computed(function () {
 
 $procedures = computed(function () {
     $query = Procedure::query()
-        ->with(['instrumentist:id,name']) // ajusta relación si tu modelo lo llama distinto
+        ->with(['instrumentist:id,name'])
         ->orderByDesc('procedure_date')
         ->orderByDesc('id');
 

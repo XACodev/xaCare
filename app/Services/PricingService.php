@@ -60,7 +60,7 @@ class PricingService
         }
 
         // Regla 1: Video
-        if ($isVideosurgery) {
+        if ($isVideosurgery && $usePayScheme) {
             $amount = (float) $settings->video_rate;
             $rule = 'video_rate';
             $candidates['video_rate'] = $amount;
@@ -69,7 +69,7 @@ class PricingService
         // Regla 2: largo
         $isLong = $durationMinutes >= (int) $settings->long_case_threshold_minutes;
 
-        if ($isLong) {
+        if ($isLong && $usePayScheme) {
             $amount = (float) $settings->long_case_rate;
             $rule = 'long_case_rate';
             $candidates['long_case_rate'] = $amount;
@@ -82,7 +82,7 @@ class PricingService
             (string) $settings->night_end
         );
 
-        if ($isNight) {
+        if ($isNight && $usePayScheme) {
             $amount = (float) $settings->night_rate;
             $rule = 'night_rate';
             $candidates['night_rate'] = $amount;
