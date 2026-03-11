@@ -19,6 +19,7 @@ state([
     'patient_name' => '',
     'procedure_type' => '',
     'is_videosurgery' => false,
+    'is_courtesy' => false,
 
     // Doctor: puede ser usuario o texto libre
     'doctor_id' => null,
@@ -41,6 +42,7 @@ rules([
     'patient_name' => ['required', 'string', 'max:255'],
     'procedure_type' => ['required', 'string', 'max:255'],
     'is_videosurgery' => ['boolean'],
+    'is_courtesy' => ['boolean'],
 
     'doctor_id' => ['nullable', 'integer', 'exists:users,id'],
     'doctor_query' => ['nullable', 'string', 'max:255'],
@@ -97,13 +99,14 @@ $amount_preview = computed(function () {
     if (!is_int($mins) || $mins <= 0)
         return null;
 
-    $pricing = app(PricingService::class)->calculate(
-        instrumentist: $user,
-        isVideosurgery: (bool) $this->is_videosurgery,
-        durationMinutes: $mins,
-        startTimeHHMM: $this->start_time,
-        endTimeHHMM: $this->end_time,
-    );
+        $pricing = app(PricingService::class)->calculate(
+            instrumentist: $user,
+            isVideosurgery: (bool) $this->is_videosurgery,
+            isCourtesy: (bool) $this->is_courtesy,
+            durationMinutes: $mins,
+            startTimeHHMM: $this->start_time,
+            endTimeHHMM: $this->end_time,
+        );
 
     return $pricing['amount'] ?? null;
 });
@@ -157,6 +160,7 @@ $save = function () {
     $pricing = app(PricingService::class)->calculate(
         instrumentist: $user,
         isVideosurgery: (bool) $data['is_videosurgery'],
+        isCourtesy: (bool) $data['is_courtesy'],
         durationMinutes: $durationMinutes,
         startTimeHHMM: $data['start_time'],
         endTimeHHMM: $data['end_time'],
@@ -409,9 +413,9 @@ updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculat
         <hr class="border-indigo-300 dark:border-zinc-600">
 
         <div class="w-full flex flex-col md:flex-row justify-center md:justify-between sm:px-6 gap-10 md:w-auto">
-            <flux:checkbox wire:model="is_videosurgery" label="{{ __('Videosurgery') }}"
+            <flux:checkbox wire:model.change="is_videosurgery" label="{{ __('Videosurgery') }}"
                 description="{{ __('Check if the procedure was by video.') }}" />
-            <flux:checkbox wire:model="is_courtesy" label="{{ __('Courtesy') }}"
+            <flux:checkbox wire:model.change="is_courtesy" label="{{ __('Courtesy') }}"
                 description="{{ __('Check if the procedure was by courtesy.') }}" />
         </div>
 

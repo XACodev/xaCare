@@ -8,7 +8,6 @@ use App\Support\TimeHelper;
 
 class PricingService
 {
-
     /**
      * Calcula el pago de un procedimiento.
      *
@@ -18,6 +17,7 @@ class PricingService
     public function calculate(
         User $instrumentist,
         bool $isVideosurgery,
+        bool $isCourtesy,
         int $durationMinutes,
         string $startTimeHHMM, // HH:MM
         string $endTimeHHMM, // HH:MM
@@ -35,7 +35,7 @@ class PricingService
 
         $rule = 'default_rate';
 
-        //Settings usados (auditoria)
+        // Settings usados (auditoria)
         $rates = [
             'default_rate' => (float) $base,
             'video_rate' => (float) $settings->video_rate,
@@ -50,7 +50,7 @@ class PricingService
         ];
 
         $candidates = [
-            'default_rate' => $base
+            'default_rate' => $base,
         ];
 
         // Regla 1: Video
@@ -74,23 +74,33 @@ class PricingService
             $candidates['night_rate'] = (float) $settings->night_rate;
         }
 
+        // Regla 4: cortesía
+        if ($isCourtesy) {
+            $candidates['courtesy'] = (float) 0.00;
+        }
+
         // Determinar monto y regla a aplicar
         if ($usePayScheme) {
             // Escoger el candidato con el mayor monto
-            foreach ($candidates as $candidateRule => $candidateAmount) {
-                if ($candidateAmount > $amount) {
-                    $amount = $candidateAmount;
-                    $rule = $candidateRule;
+            if ($isCourtesy) {
+                $amount = 0.00;
+                $rule = 'courtesy';
+            } else {
+                foreach ($candidates as $candidateRule => $candidateAmount) {
+                    if ($candidateAmount > $amount) {
+                        $amount = $candidateAmount;
+                        $rule = $candidateRule;
+                    }
                 }
             }
         } else {
             // Si no usa esquema de pagos, siempre es el monto base
-            $amount = $base;
-            $rule = 'default_rate';
+            $amount = $isCourtesy ? (float) 0.00 : $base;
+            $rule = $isCourtesy ? 'courtesy_rate' : 'default_rate';
         }
 
         $snapshot = [
-            'version' => 3,
+            'version' => 4,
             'rule' => $rule,
             'amount' => $amount,
             'use_pay_scheme' => $usePayScheme,
@@ -104,6 +114,7 @@ class PricingService
             'flags' => [
                 'is_night' => $isNight,
                 'is_long' => $isLong,
+                'is_courtesy' => $isCourtesy,
             ],
             'user_data' => [
                 'name' => $instrumentist->name,
@@ -116,7 +127,7 @@ class PricingService
         return compact('amount', 'snapshot');
     }
 
-
+    // BASURA
     private function calculateBeforeScheme(
         User $instrumentist,
         bool $isVideosurgery,
@@ -124,7 +135,7 @@ class PricingService
         string $startTimeHHMM, // HH:MM
         string $endTimeHHMM, // HH:MM
     ): array {
-        //Todos 200
+        // Todos 200
         $amount = (float) config('qxlog.default_rate', 200.00);
 
         $snapshot = [
@@ -140,7 +151,7 @@ class PricingService
 
         return compact('amount', 'snapshot');
 
-        //Regla 1: Video
+        // Regla 1: Video
         if ($isVideosurgery) {
             $amount = (float) config('qxlog.special.rates.video', 300.00);
             $snapshot['rule'] = 'video';
