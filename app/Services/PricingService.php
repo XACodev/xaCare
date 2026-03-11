@@ -107,6 +107,7 @@ class PricingService
             'rates' => $rates,
             'thresholds' => $thresholds,
             'is_videosurgery' => $isVideosurgery,
+            'is_courtesy' => $isCourtesy,
             'duration_minutes' => $durationMinutes,
             'start_time' => $startTimeHHMM,
             'end_time' => $endTimeHHMM,

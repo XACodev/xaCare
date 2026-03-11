@@ -21,6 +21,7 @@ state([
     'patient_name' => '',
     'procedure_type' => '',
     'is_videosurgery' => false,
+    'is_courtesy' => false,
 
     'doctor_id' => null,
     'doctor_query' => '',
@@ -52,6 +53,7 @@ mount(function (Procedure $procedure) {
     $this->is_videosurgery = (bool) $procedure->is_videosurgery;
     $this->duration_minutes = $procedure->duration_minutes;
     $this->amount_preview = $procedure->calculated_amount;
+    $this->is_courtesy = (bool) $procedure->pricing_snapshot['is_courtesy'] ?? false;
 
     $this->doctor_id = $procedure->doctor_id;
     $this->doctor_query = $procedure->doctor_name ?? '';
@@ -74,19 +76,19 @@ $calculateDurationAndPrice = function () {
         $this->duration_minutes = 0;
     }
 
-    $user = $this->procedure->instrumentist ?? User::find($this->procedure->instrumentist_id);
+    $user = User::role('instrumentist')->findOrFail($this->procedure->instrumentist_id);
 
     if ($this->duration_minutes > 0 && $user) {
         $pricing = app(PricingService::class)->calculate(
             instrumentist: $user,
             isVideosurgery: (bool) $this->is_videosurgery,
+            isCourtesy: (bool) $this->is_courtesy,
             durationMinutes: $this->duration_minutes,
             startTimeHHMM: $this->start_time,
             endTimeHHMM: $this->end_time,
         );
+
         $this->amount_preview = $pricing['amount'] ?? 0;
-    } else {
-        $this->amount_preview = 0;
     }
 };
 
@@ -178,6 +180,7 @@ updated([
     'end_time' => $calculateDurationAndPrice,
     'procedure_date' => $calculateDurationAndPrice,
     'is_videosurgery' => $calculateDurationAndPrice,
+    'is_courtesy' => $calculateDurationAndPrice,
 ]);
 
 $save = function () {
@@ -226,6 +229,7 @@ $save = function () {
     $calc = app(PricingService::class)->calculate(
         $instrumentist,
         (bool) $this->is_videosurgery,
+        (bool) $this->is_courtesy,
         (int) $duration,
         (string) $this->start_time,
         (string) $this->end_time,
@@ -265,7 +269,7 @@ $save = function () {
 ?>
 
 <div class="max-w-6xl mx-auto p-4 space-y-6">
-    <flux:button href="{{ route('procedures.index') }}" icon="arrow-left" variant="subtle">{{ __('Back') }}
+    <flux:button href="{{ route('procedures.index') }}" icon="arrow-left" variant="subtle">{{ __('Return') }}
     </flux:button>
     <div>
         <flux:heading size="xl">{{ __('Edit Procedure') }}</flux:heading>
@@ -286,8 +290,7 @@ $save = function () {
                 <flux:label>
                     {{ __('Date') }}
                 </flux:label>
-                <flux:input type="date" max="{{ now()->format('Y-m-d') }}"
-                    min="{{ now()->subWeeks(4)->format('Y-m-d') }}" wire:model.live="procedure_date" clearable />
+                <flux:input type="date" wire:model.live="procedure_date" clearable />
 
                 @error('procedure_date') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
                 @enderror
@@ -325,15 +328,19 @@ $save = function () {
                     {{ __('Procedure') }}
                 </flux:label>
                 <flux:input type="text" wire:model="procedure_type" clearable
-                    placeholder="{{ __('C-Section, Appendectomy...') }}" />
+                    placeholder="{{ __('Procedure Name') }}" />
                 @error('procedure_type') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
                 @enderror
             </flux:field>
         </div>
 
-        <div class="w-full flex justify-center md:justify-start">
-            <flux:checkbox wire:model.live="is_videosurgery" label="{{ __('Videosurgery') }}"
+        <hr class="border-indigo-300 dark:border-zinc-600">
+
+        <div class="w-full flex flex-col md:flex-row justify-center md:justify-between gap-10 md:px-6 md:w-auto">
+            <flux:checkbox wire:model.change="is_videosurgery" label="{{ __('Videosurgery') }}" class="cursor-pointer"
                 description="{{ __('Check if the procedure was by video.') }}" />
+            <flux:checkbox wire:model.change="is_courtesy" label="{{ __('Courtesy') }}" class="cursor-pointer"
+                description="{{ __('Check if the procedure was by courtesy.') }}" />
         </div>
 
         <hr class="border-indigo-300 dark:border-zinc-600">
@@ -412,6 +419,7 @@ $save = function () {
                         {{ $message }}
                     </p>
                 @enderror
+
                 @error('circulating_query')
                     <p class="text-sm text-red-600 dark:text-red-400">
                         {{ $message }}
@@ -420,12 +428,10 @@ $save = function () {
             </div>
         </div>
 
-        <hr class="border-indigo-300 dark:border-zinc-600">
-
         <div
             class="flex flex-col sm:flex-row items-center justify-between gap-6 bg-indigo-100 dark:bg-indigo-900/40 p-4 rounded-lg border border-indigo-100 dark:border-indigo-700/50">
-            <div class="flex flex-row items-center justify-center gap-8 w-full sm:w-auto">
-                <div class="flex flex-col items-start">
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 w-full sm:w-auto">
+                <div class="flex flex-col items-center sm:items-start">
                     <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                         {{ __('Duration') }}
                     </span>
@@ -433,9 +439,9 @@ $save = function () {
                         {{ is_int($this->duration_minutes) ? $this->duration_minutes . ' min' : '--' }}
                     </span>
                 </div>
-                <div class="w-px h-12 bg-indigo-300 dark:bg-indigo-600"></div>
+                <div class="w-full sm:w-px h-px sm:h-12 bg-indigo-300 dark:bg-indigo-600"></div>
 
-                <div class="flex flex-col items-start">
+                <div class="flex flex-col items-center sm:items-start">
                     <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                         {{ __('Amount') }}
                     </span>
@@ -445,14 +451,12 @@ $save = function () {
                 </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                <flux:button href="{{ route('procedures.index') }}" variant="subtle" class="w-full sm:w-auto">
-                    {{ __('Cancel') }}
+            <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-1/3">
+                <flux:button wire:click="save" wire:target="save" wire:loading.class="opacity-50 cursor-not-allowed" wire:loading.class.remove="opacity-50 cursor-not-allowed" color="indigo" loading="save" variant="primary" class="w-full sm:w-3/4 font-bold cursor-pointer uppercase">
+                    {{ __('Update') }}
                 </flux:button>
-                <flux:button wire:click="save" variant="primary" loading="save" class="w-full sm:w-auto">
-                    <span class="text-lg font-bold">
-                        {{ __('Update') }}
-                    </span>
+                <flux:button href="{{ route('procedures.index') }}" variant="subtle" class="w-full sm:w-1/4">
+                    {{ __('Cancel') }}
                 </flux:button>
             </div>
         </div>

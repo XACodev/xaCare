@@ -624,6 +624,9 @@ updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculat
                                             @if ($p->is_videosurgery)
                                                 <flux:badge color="indigo" size="sm">{{ __('Video') }}</flux:badge>
                                             @endif
+                                            @if (data_get($p, 'pricing_snapshot.is_courtesy'))
+                                                <flux:badge color="lime" size="sm">{{ __('Courtesy') }}</flux:badge>
+                                            @endif
                                         @endif
                                     </div>
                                 </td>
@@ -694,6 +697,10 @@ updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculat
                                 <x-procedure-rule-badge :rule="data_get($p, 'pricing_snapshot.rule')"
                                     :videosurgery="$p->is_videosurgery" />
                             </div>
+                            @else
+                                @if (data_get($p, 'pricing_snapshot.is_courtesy'))
+                                    <flux:badge color="lime" size="sm">{{ __('Courtesy') }}</flux:badge>
+                                @endif
                         @endif
                     </div>
                 @empty

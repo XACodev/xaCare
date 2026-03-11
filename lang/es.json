@@ -48,7 +48,7 @@
     "Close": "Cerrar",
     "Save": "Guardar",
     "Submit": "Enviar",
-    "Back": "Volver",
+    "Back": "Atrás",
     "Next": "Siguiente",
     "Previous": "Anterior",
     "First": "Primero",
@@ -267,5 +267,11 @@
     "Procedure Name": "Nombre del Procedimiento",
     "Procedure Type": "Tipo de Procedimiento",
     "Procedure Date": "Fecha del Procedimiento",
-    "Check if the procedure was by video": "Marcar si el procedimiento fue por video"
+    "Check if the procedure was by video": "Marcar si el procedimiento fue por video",
+    "Check if the procedure was by courtesy": "Marcar si el procedimiento fue por cortesía",
+    "Check if the procedure was by courtesy.": "Marcar si el procedimiento fue por cortesía.",
+    "Procedure Duration": "Duración del Procedimiento",
+    "Procedure Duration (minutes)": "Duración del Procedimiento (minutos)",
+    "Procedure Duration (hours)": "Duración del Procedimiento (horas)",
+    "Return": "Volver"
 }
