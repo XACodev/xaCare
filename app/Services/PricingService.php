@@ -53,26 +53,15 @@ class PricingService
             'default_rate' => $base
         ];
 
-        // Si NO es especial: siempre base
-        if (!$usePayScheme) {
-            $amount = $base;
-            $rule = 'default_rate';
-        }
-
         // Regla 1: Video
-        if ($isVideosurgery && $usePayScheme) {
-            $amount = (float) $settings->video_rate;
-            $rule = 'video_rate';
-            $candidates['video_rate'] = $amount;
+        if ($isVideosurgery) {
+            $candidates['video_rate'] = (float) $settings->video_rate;
         }
 
         // Regla 2: largo
         $isLong = $durationMinutes >= (int) $settings->long_case_threshold_minutes;
-
-        if ($isLong && $usePayScheme) {
-            $amount = (float) $settings->long_case_rate;
-            $rule = 'long_case_rate';
-            $candidates['long_case_rate'] = $amount;
+        if ($isLong) {
+            $candidates['long_case_rate'] = (float) $settings->long_case_rate;
         }
 
         // Regla 3: madrugada
@@ -81,18 +70,23 @@ class PricingService
             (string) $settings->night_start,
             (string) $settings->night_end
         );
-
-        if ($isNight && $usePayScheme) {
-            $amount = (float) $settings->night_rate;
-            $rule = 'night_rate';
-            $candidates['night_rate'] = $amount;
+        if ($isNight) {
+            $candidates['night_rate'] = (float) $settings->night_rate;
         }
 
-        foreach ($candidates as $candidateRule => $candidateAmount) {
-            if ($candidateAmount > $amount) {
-                $amount = $candidateAmount;
-                $rule = $candidateRule;
+        // Determinar monto y regla a aplicar
+        if ($usePayScheme) {
+            // Escoger el candidato con el mayor monto
+            foreach ($candidates as $candidateRule => $candidateAmount) {
+                if ($candidateAmount > $amount) {
+                    $amount = $candidateAmount;
+                    $rule = $candidateRule;
+                }
             }
+        } else {
+            // Si no usa esquema de pagos, siempre es el monto base
+            $amount = $base;
+            $rule = 'default_rate';
         }
 
         $snapshot = [
