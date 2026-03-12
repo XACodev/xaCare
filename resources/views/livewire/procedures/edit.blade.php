@@ -53,7 +53,7 @@ mount(function (Procedure $procedure) {
     $this->is_videosurgery = (bool) $procedure->is_videosurgery;
     $this->duration_minutes = $procedure->duration_minutes;
     $this->amount_preview = $procedure->calculated_amount;
-    $this->is_courtesy = (bool) $procedure->pricing_snapshot['is_courtesy'] ?? false;
+    $this->is_courtesy = (bool) ($procedure->pricing_snapshot['is_courtesy'] ?? false);
 
     $this->doctor_id = $procedure->doctor_id;
     $this->doctor_query = $procedure->doctor_name ?? '';
@@ -452,7 +452,9 @@ $save = function () {
             </div>
 
             <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-1/3">
-                <flux:button wire:click="save" wire:target="save" wire:loading.class="opacity-50 cursor-not-allowed" wire:loading.class.remove="opacity-50 cursor-not-allowed" color="indigo" loading="save" variant="primary" class="w-full sm:w-3/4 font-bold cursor-pointer uppercase">
+                <flux:button wire:click="save" wire:target="save" wire:loading.class="opacity-50 cursor-not-allowed"
+                    wire:loading.class.remove="opacity-50 cursor-not-allowed" color="indigo" loading="save"
+                    variant="primary" class="w-full sm:w-3/4 font-bold cursor-pointer uppercase">
                     {{ __('Update') }}
                 </flux:button>
                 <flux:button href="{{ route('procedures.index') }}" variant="subtle" class="w-full sm:w-1/4">
