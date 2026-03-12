@@ -178,28 +178,30 @@ class QxLogTestSeeder extends Seeder
             $inst = fake()->randomElement($instrumentists);
             $doc = fake()->randomElement($doctors);
             $circ = fake()->randomElement($circulators);
-            
+
             $startHour = rand(6, 22);
             $durationMinutes = fake()->randomElement([45, 60, 90, 120, 150, 180]);
-            
+
             $startTime = sprintf('%02d:00', $startHour);
             $endHour = $startHour + floor($durationMinutes / 60);
             $endMin = $durationMinutes % 60;
-            
+
             // Fix overflow over 24 hours
             if ($endHour >= 24) {
                 $endHour = $endHour % 24;
             }
 
             $endTime = sprintf('%02d:%02d', $endHour, $endMin);
-            
+
             $date = now()->subDays(rand(1, 60))->toDateString();
             $isVideosurgery = fake()->boolean(30);
+            $isCourtesy = fake()->boolean(10);
 
             // Calcular monto y snapshot usando el servicio real
             $pricingResult = $pricingService->calculate(
                 $inst,
                 $isVideosurgery,
+                $isCourtesy,
                 $durationMinutes,
                 $startTime,
                 $endTime
@@ -213,7 +215,6 @@ class QxLogTestSeeder extends Seeder
                 'patient_name' => fake()->name(),
                 'procedure_type' => fake()->randomElement($procedureTypes),
                 'is_videosurgery' => $isVideosurgery,
-
                 'instrumentist_id' => $inst->id,
                 'instrumentist_name' => $inst->name,
 
@@ -233,7 +234,7 @@ class QxLogTestSeeder extends Seeder
         // ======================
         // PAGOS YA REALIZADOS
         // ======================
-        
+
         // Pago a Ana (inst1)
         $batch1 = PayoutBatch::create([
             'instrumentist_id' => $inst1->id,
