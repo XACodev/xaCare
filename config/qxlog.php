@@ -3,12 +3,12 @@
 return [
     'version' => '1.0.0',
 
-    'voucher_legend' => 'Por honorarios correspondientes a servicios de instrumentación prestados en procedimientos quirúrgicos.',
-    'org_name' => 'Hospital Nuestra Señora del Carmen',
+    'voucher_legend' => env('QXLOG_VOUCHER_LEGEND', 'Por honorarios correspondientes a servicios prestados en procedimientos quirúrgicos.'),
+    'org_name' => env('QXLOG_ORG_NAME', 'Mi Hospital'),
 
-    'default_rate' => 200.00,
+    'default_rate' => (float) env('QXLOG_DEFAULT_RATE', 200.00),
 
-    //Condiciones de pago "Schema"
+    //Condiciones de pago
     'conditions_payment' => [
         'cash' => 'Efectivo',
         'check' => 'Cheque',
@@ -16,28 +16,28 @@ return [
         'other' => 'Otro',
     ],
 
-    //Roles
+    //Roles quirúrgicos
     'roles' => [
+        'surgeon' => 'Cirujano Principal',
+        'assistant' => 'Ayudante',
+        'anesthesiologist' => 'Anestesiólogo',
         'instrumentist' => 'Instrumentista',
-        'doctor' => 'Doctor',
         'circulating' => 'Circulante',
     ],
 
     'special' => [
-        'enabled' => true,
+        'enabled' => (bool) env('QXLOG_SPECIAL_ENABLED', true),
 
-        //Horario especial
         'business_hours' => [
-            'start' => '05:00',
-            'end' => '21:00',
+            'start' => env('QXLOG_BH_START', '05:00'),
+            'end' => env('QXLOG_BH_END', '21:00'),
         ],
 
-        //Place Holders
         'rates' => [
-            'business_hours' => 200.00,
-            'night' => 250.00,
-            'over_2hours' => 300.00,
-            'video' => 300.00,
+            'business_hours' => (float) env('QXLOG_RATE_BH', 200.00),
+            'night' => (float) env('QXLOG_RATE_NIGHT', 250.00),
+            'over_2hours' => (float) env('QXLOG_RATE_OVER2H', 300.00),
+            'video' => (float) env('QXLOG_RATE_VIDEO', 300.00),
         ],
     ],
 
