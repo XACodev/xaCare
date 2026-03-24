@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
     class="h-full bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>QxLog - Control Quirúrgico</title>
+    <title>{{ config('app.name', 'xaCare') }} - {{ config('app.description', 'Sistema de Gestión Hospitalaria') }}</title>
 
     <script>
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -36,7 +35,7 @@
                     </svg>
                 </div>
                 <span
-                    class="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight transition-colors">QxLog</span>
+                    class="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight transition-colors">{{ config('app.name', 'xaCare') }}</span>
             </div>
 
             <div class="flex items-center gap-4">
@@ -62,12 +61,12 @@
                     @auth
                         <a href="{{ url('/dashboard') }}"
                             class="text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
-                            Dashboard
+                            {{ __('Dashboard') }}
                         </a>
                     @else
                         <a href="{{ route('login') }}"
                             class="text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
-                            Iniciar Sesión
+                            {{ __('Login') }}
                         </a>
                     @endauth
                 @endif
@@ -107,7 +106,7 @@
                         @if (Route::has('login'))
                             <a href="{{ route('login') }}"
                                 class="inline-flex justify-center items-center px-6 py-3 text-base font-medium text-white bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-500 rounded-lg shadow-lg shadow-teal-600/20 transition-all transform hover:-translate-y-0.5">
-                                Ingresar al Sistema
+                                {{ __('Ingresar al Sistema') }}
                             </a>
                         @endif
                     </div>
@@ -168,7 +167,7 @@
         </main>
 
         <footer class="py-6 text-center text-sm text-slate-500 dark:text-slate-600 transition-colors">
-            &copy; {{ date('Y') }} QxLog. Sistema de Gestión Hospitalaria.
+            &copy; {{ date('Y') }} {{ config('app.name', 'xaCare') }}. {{ __('All rights reserved') }}.
         </footer>
     </div>
 
