@@ -74,7 +74,7 @@
         </nav>
 
         <!-- Hero Section -->
-        <main class="flex-grow flex items-center justify-center relative overflow-hidden">
+        <main class="grow flex items-center justify-center relative overflow-hidden">
             <!-- Background decorative blobs -->
             <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
                 <div
