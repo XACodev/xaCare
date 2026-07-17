@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Admission;
+use App\Models\Patient;
 use App\Models\Procedure;
 use App\Models\User;
 use App\Services\PricingService;
@@ -16,7 +18,12 @@ state([
     'procedure_date' => now()->toDateString(),
     'start_time' => now()->subHour()->format('H:i'),
     'end_time' => now()->format('H:i'),
-    'patient_name' => '',
+
+    // Paciente: se selecciona del maestro (marcado va_a_quirofano)
+    'patient_id' => null,
+    'patient_query' => '',
+    'patient_name' => '', // snapshot legacy del nombre seleccionado
+
     'procedure_type' => '',
     'is_videosurgery' => false,
     'is_courtesy' => false,
@@ -39,7 +46,9 @@ rules([
     'procedure_date' => ['required', 'date'],
     'start_time' => ['required', 'date_format:H:i'],
     'end_time' => ['required', 'date_format:H:i'],
-    'patient_name' => ['required', 'string', 'max:255'],
+    'patient_id' => ['required', 'integer', 'exists:patients,id'],
+    'patient_query' => ['nullable', 'string', 'max:255'],
+    'patient_name' => ['nullable', 'string', 'max:255'],
     'procedure_type' => ['required', 'string', 'max:255'],
     'is_videosurgery' => ['boolean'],
     'is_courtesy' => ['boolean'],
@@ -173,6 +182,7 @@ $save = function () {
             'end_time' => $data['end_time'],
             'duration_minutes' => $durationMinutes,
 
+            'patient_id' => $data['patient_id'],
             'patient_name' => $data['patient_name'],
             'procedure_type' => $data['procedure_type'],
             'is_videosurgery' => (bool) $data['is_videosurgery'],
@@ -195,6 +205,8 @@ $save = function () {
 
     // Reset parcial para facilidad en tablet
     $this->procedure_date = now()->toDateString();
+    $this->patient_id = null;
+    $this->patient_query = '';
     $this->patient_name = '';
     $this->procedure_type = '';
     $this->start_time = now()->subHour()->format('H:i');
@@ -325,6 +337,40 @@ $selectCirculating = function (int $id) {
     $this->circulating_suggestions = [];
 };
 
+$patient_suggestions = computed(function () {
+    $q = trim((string) $this->patient_query);
+    if ($q === '') {
+        return [];
+    }
+
+    $normalizedQ = Str::ascii(Str::lower($q));
+
+    // Solo pacientes con un ingreso marcado va_a_quirofano
+    $patientIds = Admission::query()
+        ->where('va_a_quirofano', true)
+        ->pluck('patient_id')
+        ->unique();
+
+    return Patient::query()
+        ->whereIn('id', $patientIds)
+        ->get()
+        ->filter(fn($p) => str_contains(Str::ascii(Str::lower($p->nombreCompleto())), $normalizedQ))
+        ->take(8)
+        ->map(fn($p) => ['id' => $p->id, 'name' => $p->nombreCompleto()])
+        ->values()
+        ->all();
+});
+
+$selectPatient = function (int $id) {
+    $p = Patient::find($id);
+    if (!$p) {
+        return;
+    }
+    $this->patient_id = $p->id;
+    $this->patient_query = $p->nombreCompleto();
+    $this->patient_name = $p->nombreCompleto(); // snapshot legacy
+};
+
 updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculating]);
 
 ?>
@@ -385,13 +431,34 @@ updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculat
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
+            <div class="space-y-2">
                 <flux:label>
                     {{ __('Patient') }}
                 </flux:label>
-                <input type="text" wire:model="patient_name" placeholder="{{ __('Patient Name') }}"
-                    class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 dark:placeholder-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
-                @error('patient_name') <p class="text-sm text-red-600 dark:text-red-400 mt-1">
+
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-zinc-400">
+                        <flux:icon.magnifying-glass class="size-5" />
+                    </div>
+                    <input type="text" wire:model.live.debounce.200ms="patient_query"
+                        placeholder="{{ __('Search admitted patient...') }}"
+                        class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 pl-10 pr-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 dark:placeholder-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
+
+                    @if(!empty($this->patient_suggestions))
+                        <div
+                            class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-indigo-400 overflow-hidden">
+                            @foreach($this->patient_suggestions as $s)
+                                <button type="button"
+                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-indigo-400/50 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-indigo-400 last:border-0"
+                                    wire:click="selectPatient({{ $s['id'] }})">
+                                    {{ $s['name'] }}
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+                @error('patient_id') <p class="text-sm text-red-600 dark:text-red-400 mt-1">
                         {{ $message }}
                     </p>
                 @enderror
