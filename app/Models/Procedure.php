@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Procedure extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, BelongsToTenant;
 
     /**
      * Estandarizar textos a Title Case al guardar.
@@ -50,6 +51,9 @@ class Procedure extends Model
     }
 
     protected $fillable = [
+        'hospital_id',
+        'patient_id',
+        'admission_id',
         'procedure_date',
         'start_time',
         'end_time',
@@ -94,5 +98,15 @@ class Procedure extends Model
     public function circulating()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function patient()
+    {
+        return $this->belongsTo(Patient::class);
+    }
+
+    public function admission()
+    {
+        return $this->belongsTo(Admission::class);
     }
 }
