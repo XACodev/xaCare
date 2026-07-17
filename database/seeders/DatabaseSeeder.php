@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
+        $this->call(HospitalSeeder::class);
         // $this->call(QxLogInitialAdminsSeeder::class);
         $this->call(QxLogTestSeeder::class);
         $this->call(RolesAndPermissionsSeeder::class);
