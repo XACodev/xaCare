@@ -33,6 +33,10 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Volt::route('procedures/create', 'procedures.create')->name('procedures.create');
 
+    Volt::route('patients', 'patients.index')->name('patients.index');
+    Volt::route('patients/create', 'patients.create')->name('patients.create');
+    Volt::route('admissions/create', 'admissions.create')->name('admissions.create');
+
     Volt::route('instrumentist/payouts', 'instrumentist.payouts')->name('instrumentist.payouts');
     Volt::route('instrumentist/payouts/{batch}/voucher', 'payouts.voucher')->name('instrumentist.payouts.voucher');
 });
