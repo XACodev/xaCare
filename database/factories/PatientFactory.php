@@ -14,9 +14,9 @@ class PatientFactory extends Factory
     {
         return [
             'hospital_id' => Hospital::factory(),
-            'primer_apellido' => $this->faker->lastName(),
-            'segundo_apellido' => $this->faker->lastName(),
-            'primer_nombre' => $this->faker->firstName(),
+            'primer_apellido' => ucfirst($this->faker->word()),
+            'segundo_apellido' => ucfirst($this->faker->word()),
+            'primer_nombre' => ucfirst($this->faker->word()),
             'dpi' => (string) $this->faker->numerify('#############'),
             'fecha_nacimiento' => $this->faker->date(),
             'sexo' => $this->faker->randomElement(['M', 'F']),

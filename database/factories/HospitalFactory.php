@@ -12,7 +12,7 @@ class HospitalFactory extends Factory
 
     public function definition(): array
     {
-        $name = $this->faker->company();
+        $name = 'Hospital '.ucwords($this->faker->words(2, true));
 
         return [
             'name' => $name,
