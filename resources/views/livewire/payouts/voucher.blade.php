@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\PayoutBatch;
+use App\Models\Procedure;
 use Illuminate\Support\Facades\Auth;
 
 use function Livewire\Volt\{state, mount};
@@ -14,6 +15,7 @@ state([
     'longThreshold' => null,
     'items' => [],
     'usePayScheme' => false,
+    'remaining_pending_count' => 0,
 ]);
 
 mount(function (string|int $batch) {
@@ -63,6 +65,11 @@ mount(function (string|int $batch) {
     $this->items = $b->items;
     $this->year = optional($this->batch->paid_at)->format('Y') ?? now()->format('Y');
     $this->folio = 'QX-' . $this->year . '-' . str_pad((string) $this->batch->id, 6, '0', STR_PAD_LEFT);
+
+    $this->remaining_pending_count = Procedure::query()
+        ->where('instrumentist_id', $b->instrumentist_id)
+        ->where('status', 'pending')
+        ->count();
 
     $rates = data_get($this->items, '0.snapshot.pricing_snapshot.rates');
 
@@ -171,6 +178,14 @@ mount(function (string|int $batch) {
                 <flux:icon.printer class="size-4 mr-2" />
                 {{ __('Print') }}
             </flux:button>
+
+            @if($this->remaining_pending_count > 0 && Auth::user()->can('payouts.create'))
+                <flux:button
+                    href="{{ route('payouts.create', ['instrumentist_id' => $this->batch->instrumentist_id]) }}"
+                    variant="primary">
+                    {{ __('Liquidate again') }} ({{ $this->remaining_pending_count }})
+                </flux:button>
+            @endif
         </div>
     </div>
 
