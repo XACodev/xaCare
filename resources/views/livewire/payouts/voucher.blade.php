@@ -158,6 +158,13 @@ mount(function (string|int $batch) {
             box-shadow: none !important;
         }
     }
+
+    /* El atajo de teclado solo tiene sentido con teclado fisico (no touch/movil) */
+    @media (pointer: coarse) {
+        .print-shortcut-hint {
+            display: none;
+        }
+    }
 </style>
 
 <div id="print-content" class="max-w-4xl mx-auto p-4 print-wrap print:text-black print:visible">
@@ -184,6 +191,8 @@ mount(function (string|int $batch) {
             <flux:button onclick="window.print()" variant="primary">
                 <flux:icon.printer class="size-4 mr-2" />
                 {{ __('Print') }}
+                <span class="print-shortcut-hint ms-1 text-xs opacity-70" x-data="{ mac: /Mac|iPhone|iPad|iPod/.test(navigator.userAgent) }"
+                    x-text="mac ? '(⌘P)' : '(Ctrl+P)'"></span>
             </flux:button>
 
             @if($this->remaining_pending_count > 0 && Auth::user()->can('payouts.create'))
