@@ -14,10 +14,10 @@
                 </span>
                 <span class="sr-only">{{ config('app.name', 'Laravel') }}</span>
             </a> -->
-            <flux:brand href="{{ route('home') }}" name="QxLog" class="justify-center">
+            <flux:brand href="{{ route('home') }}" name="xaCare" class="justify-center">
                 <x-slot name="logo" class="bg-accent text-accent-foreground">
-                    <i class="font-serif font-bold">A</i>
-                    <span class="sr-only">{{ config('app.name', 'QxLog') }}</span>
+                    <x-app-logo-icon class="size-4 fill-none" />
+                    <span class="sr-only">{{ config('app.name', 'xaCare') }}</span>
                 </x-slot>
             </flux:brand>
 
