@@ -19,6 +19,7 @@ state([
     'remaining_pending_count' => 0,
     'org_name' => null,
     'voucher_legend' => null,
+    'org_logo_url' => null,
 ]);
 
 mount(function (string|int $batch) {
@@ -77,6 +78,7 @@ mount(function (string|int $batch) {
     $orgSettings = OrganizationSetting::current();
     $this->org_name = $orgSettings->org_name;
     $this->voucher_legend = $orgSettings->voucher_legend;
+    $this->org_logo_url = $orgSettings->logoUrl();
 
     $rates = data_get($this->items, '0.snapshot.pricing_snapshot.rates');
 
@@ -265,6 +267,21 @@ mount(function (string|int $batch) {
         .voucher-total-row {
             background: transparent !important;
         }
+
+        /*
+         * El total en pantalla usa text-lg/text-xl para destacar; impreso
+         * eso se veia desproporcionado frente al resto de la tabla. Se
+         * iguala al tamano de las filas normales y la jerarquia se logra
+         * con un filete doble en vez de tamano de fuente.
+         */
+        .voucher-total-amount {
+            font-size: 13px !important;
+            border-bottom: 3px double var(--ink);
+        }
+
+        .voucher-logo {
+            filter: grayscale(1);
+        }
     }
 
     /* El atajo de teclado solo tiene sentido con teclado fisico (no touch/movil) */
@@ -320,16 +337,23 @@ mount(function (string|int $batch) {
 
     <div class="voucher-card rounded-xl p-8 shadow-sm print:shadow-none print:rounded-none">
         <div class="flex flex-col md:flex-row items-center justify-between gap-6 pb-6">
-            <div class="items-center text-center md:text-left md:items-start">
-                <h1 class="voucher-serif text-3xl font-semibold tracking-tight" style="color: var(--ink)">
-                    {{ __('Payment Voucher') }}
-                </h1>
-                <h2 class="text-lg font-medium" style="color: var(--ink-soft)">
-                    {{ $this->org_name }}
-                </h2>
-                <p class="text-sm no-print" style="color: var(--ink-soft)">
-                   {{ __('Surgery Registry') }}
-                </p>
+            <div class="flex items-center gap-4">
+                @if($this->org_logo_url)
+                    <img src="{{ $this->org_logo_url }}" alt="{{ $this->org_name }}"
+                        class="voucher-logo size-14 object-contain shrink-0" />
+                @endif
+
+                <div class="items-center text-center md:text-left md:items-start">
+                    <h1 class="voucher-serif text-3xl font-semibold tracking-tight" style="color: var(--ink)">
+                        {{ __('Payment Voucher') }}
+                    </h1>
+                    <h2 class="text-lg font-medium" style="color: var(--ink-soft)">
+                        {{ $this->org_name }}
+                    </h2>
+                    <p class="text-sm no-print" style="color: var(--ink-soft)">
+                       {{ __('Surgery Registry') }}
+                    </p>
+                </div>
             </div>
 
             <div class="flex flex-col items-center md:items-end gap-2 print:flex-row print:justify-between print:w-full">
@@ -446,7 +470,7 @@ mount(function (string|int $batch) {
                                 {{ __('Total') }}
                             </td>
                             <td colspan="1"
-                                class="{{ $this->usePayScheme ? 'py-3' : 'py-4' }} px-6 text-right voucher-mono font-bold text-lg"
+                                class="voucher-total-amount {{ $this->usePayScheme ? 'py-3' : 'py-4' }} px-6 text-right voucher-mono font-bold text-lg"
                                 style="color: var(--ink); border-top: 2px solid var(--ink)">
                                 Q{{ number_format((float) $this->batch->total_amount, 2) }}
                             </td>
@@ -527,7 +551,7 @@ mount(function (string|int $batch) {
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="5" class="text-right voucher-mono font-bold text-xl" style="color: var(--ink)">
+                            <td colspan="5" class="voucher-total-amount text-right voucher-mono font-bold text-xl" style="color: var(--ink)">
                                 Q{{ number_format((float) $this->batch->total_amount, 2) }}
                             </td>
                         </tr>

@@ -2,6 +2,8 @@
 
 use App\Models\OrganizationSetting;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Volt\Volt;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -37,4 +39,46 @@ test('admin without settings.manage permission cannot access the page', function
     $this->actingAs($admin)
         ->get(route('settings.organization'))
         ->assertForbidden();
+});
+
+test('admin can upload an organization logo', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create(['role' => 'admin']);
+    $admin->assignRole('admin');
+    $admin->givePermissionTo('settings.manage');
+
+    $this->actingAs($admin);
+
+    $logo = UploadedFile::fake()->image('logo.png');
+
+    Volt::test('settings.organization')
+        ->set('logo', $logo)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $path = OrganizationSetting::current()->logo_path;
+
+    expect($path)->not->toBeNull();
+    Storage::disk('public')->assertExists($path);
+});
+
+test('admin can remove the organization logo', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->create(['role' => 'admin']);
+    $admin->assignRole('admin');
+    $admin->givePermissionTo('settings.manage');
+
+    $this->actingAs($admin);
+
+    $existingPath = UploadedFile::fake()->image('logo.png')->store('org-logos', 'public');
+    OrganizationSetting::current()->update(['logo_path' => $existingPath]);
+
+    Volt::test('settings.organization')
+        ->call('removeLogo')
+        ->assertHasNoErrors();
+
+    expect(OrganizationSetting::current()->logo_path)->toBeNull();
+    Storage::disk('public')->assertMissing($existingPath);
 });
