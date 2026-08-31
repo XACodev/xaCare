@@ -191,10 +191,24 @@ mount(function (string|int $batch) {
         mask-composite: exclude;
     }
 
+    .voucher-stamp-label {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .voucher-stamp-value {
+        color: #ffffff;
+    }
+
     .voucher-total-row {
         background: linear-gradient(90deg, rgba(31, 157, 134, 0.08), rgba(63, 111, 214, 0.08));
     }
 
+    /*
+     * El voucher se imprime en blanco y negro para ahorrar tinta: en @media print
+     * se anula todo lo que dependa de --accent-teal/--accent-blue/--stamp y se
+     * recrea la jerarquia visual (barra superior, sello de folio, fila de total)
+     * con negro/gris solamente.
+     */
     @media print {
         .no-print {
             display: none !important;
@@ -216,19 +230,40 @@ mount(function (string|int $batch) {
             width: 100%;
             height: 100%;
             --paper: #ffffff;
-            --ink: #14181f;
+            --ink: #000000;
             --ink-soft: #3f3f46;
-            --line: #14181f;
+            --line: #000000;
         }
 
         .voucher-card {
             box-shadow: none !important;
         }
 
+        .voucher-card::before {
+            background: var(--ink) !important;
+            height: 3px;
+        }
+
+        .voucher-stamp {
+            background: var(--paper) !important;
+            border: 2px solid var(--ink);
+            border-radius: 6px;
+        }
+
+        .voucher-stamp::before {
+            content: none;
+        }
+
+        .voucher-stamp-label {
+            color: var(--ink-soft) !important;
+        }
+
+        .voucher-stamp-value {
+            color: var(--ink) !important;
+        }
+
         .voucher-total-row {
             background: transparent !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
         }
     }
 
@@ -299,10 +334,10 @@ mount(function (string|int $batch) {
 
             <div class="flex flex-col items-center md:items-end gap-2 print:flex-row print:justify-between print:w-full">
                 <div class="voucher-stamp relative rounded-lg px-4 py-2 text-center shadow-sm print:shadow-none">
-                    <div class="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                    <div class="voucher-stamp-label text-[10px] font-semibold uppercase tracking-widest">
                         {{ __('Folio') }}
                     </div>
-                    <div class="voucher-mono text-base font-semibold text-white">
+                    <div class="voucher-stamp-value voucher-mono text-base font-semibold">
                         {{ $this->folio }}
                     </div>
                 </div>
