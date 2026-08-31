@@ -181,7 +181,7 @@ mount(function (string|int $batch) {
                 </flux:button>
             </a>
 
-            <flux:button onclick="window.print()">
+            <flux:button onclick="window.print()" variant="primary">
                 <flux:icon.printer class="size-4 mr-2" />
                 {{ __('Print') }}
             </flux:button>
@@ -189,7 +189,7 @@ mount(function (string|int $batch) {
             @if($this->remaining_pending_count > 0 && Auth::user()->can('payouts.create'))
                 <flux:button
                     href="{{ route('payouts.create', ['instrumentist_id' => $this->batch->instrumentist_id]) }}"
-                    variant="primary">
+                    variant="ghost" class="ms-2 border-s border-zinc-200 ps-4 dark:border-zinc-700">
                     {{ __('Liquidate again') }} ({{ $this->remaining_pending_count }})
                 </flux:button>
             @endif
