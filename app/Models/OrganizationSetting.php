@@ -32,7 +32,7 @@ class OrganizationSetting extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->logo_path);
+        return Storage::disk('r2')->url($this->logo_path);
     }
 
     protected static function booted(): void

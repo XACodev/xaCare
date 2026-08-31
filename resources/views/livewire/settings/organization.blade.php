@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\OrganizationSetting;
+use App\Support\ImageCompressor;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\WithFileUploads;
 
 use function Livewire\Volt\{state, mount, rules, uses};
@@ -31,7 +33,7 @@ mount(function () {
 rules([
     'org_name' => ['required', 'string', 'max:255'],
     'voucher_legend' => ['required', 'string', 'max:1000'],
-    'logo' => ['nullable', 'image', 'max:2048'],
+    'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,bmp,webp', 'max:5120'],
 ]);
 
 $save = function () {
@@ -45,10 +47,15 @@ $save = function () {
 
     if ($this->logo) {
         if ($settings->logo_path) {
-            Storage::disk('public')->delete($settings->logo_path);
+            Storage::disk('r2')->delete($settings->logo_path);
         }
 
-        $data['logo_path'] = $this->logo->store('org-logos', 'public');
+        $webp = ImageCompressor::compressToWebp($this->logo);
+        $path = 'org-logos/'.Str::uuid().'.webp';
+
+        Storage::disk('r2')->put($path, $webp, 'public');
+
+        $data['logo_path'] = $path;
     }
 
     $settings->update($data);
@@ -64,7 +71,7 @@ $removeLogo = function () {
     $settings = OrganizationSetting::current();
 
     if ($settings->logo_path) {
-        Storage::disk('public')->delete($settings->logo_path);
+        Storage::disk('r2')->delete($settings->logo_path);
         $settings->update(['logo_path' => null]);
     }
 
@@ -97,6 +104,7 @@ $removeLogo = function () {
             <flux:label>{{ __('Organization Logo') }}</flux:label>
             <flux:description>
                 {{ __('Shown on the payment voucher header. Leave empty to print the voucher without a logo.') }}
+                {{ __('Accepted formats: JPG, PNG, GIF, BMP, WebP (no HEIC/HEIF).') }}
             </flux:description>
 
             <div class="flex items-center gap-4">
@@ -114,7 +122,7 @@ $removeLogo = function () {
                 @endif
 
                 <div class="flex-1 space-y-1">
-                    <input type="file" wire:model="logo" accept="image/*"
+                    <input type="file" wire:model="logo" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp"
                         class="block w-full text-sm text-zinc-600 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-100 file:text-zinc-700 dark:file:bg-zinc-800 dark:file:text-zinc-200 hover:file:bg-zinc-200 dark:hover:file:bg-zinc-700" />
                     <flux:error name="logo" />
                 </div>
