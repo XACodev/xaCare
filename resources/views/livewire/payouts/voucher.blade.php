@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\OrganizationSetting;
 use App\Models\PayoutBatch;
 use App\Models\Procedure;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,8 @@ state([
     'items' => [],
     'usePayScheme' => false,
     'remaining_pending_count' => 0,
+    'org_name' => null,
+    'voucher_legend' => null,
 ]);
 
 mount(function (string|int $batch) {
@@ -70,6 +73,10 @@ mount(function (string|int $batch) {
         ->where('instrumentist_id', $b->instrumentist_id)
         ->where('status', 'pending')
         ->count();
+
+    $orgSettings = OrganizationSetting::current();
+    $this->org_name = $orgSettings->org_name;
+    $this->voucher_legend = $orgSettings->voucher_legend;
 
     $rates = data_get($this->items, '0.snapshot.pricing_snapshot.rates');
 
@@ -197,7 +204,7 @@ mount(function (string|int $batch) {
                     {{ __('Payment Voucher') }}
                 </h1>
                 <h2 class="text-lg font-semibold text-zinc-500 print:text-zinc-700 dark:text-zinc-400">
-                    {{ config('qxlog.org_name') }}
+                    {{ $this->org_name }}
                 </h2>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400 no-print">
                    {{ __('Surgery Registry') }}
@@ -299,7 +306,7 @@ mount(function (string|int $batch) {
                         <tr>
                             <td colspan="1"
                                 class="{{ $this->usePayScheme ? 'py-3' : 'py-6' }} pl-6 pr-2 text-justify font-mono text-zinc-800 dark:text-zinc-300">
-                                {{ config('qxlog.voucher_legend') }}
+                                {{ $this->voucher_legend }}
                             </td>
                         </tr>
                         @foreach($this->summaryRows as $key => $row)

@@ -101,6 +101,14 @@
                         {{ __('Pricing') }}
                     </flux:navbar.item>
                 </flux:tooltip>
+                @can('settings.manage')
+                    <flux:tooltip :content="__('General Settings')" position="bottom">
+                        <flux:navbar.item icon="building-office" :href="route('settings.organization')"
+                            :current="request()->routeIs('settings.organization')" wire:navigate>
+                            {{ __('General Settings') }}
+                        </flux:navbar.item>
+                    </flux:tooltip>
+                @endcan
             @endif
         </flux:navbar>
 
