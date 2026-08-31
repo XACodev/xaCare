@@ -8,7 +8,6 @@ use function Livewire\Volt\{state, mount, rules};
 state([
     'org_name' => '',
     'voucher_legend' => '',
-    'flat_default_rate' => 0,
     'success' => null,
 ]);
 
@@ -20,13 +19,11 @@ mount(function () {
 
     $this->org_name = $s->org_name;
     $this->voucher_legend = $s->voucher_legend;
-    $this->flat_default_rate = (float) $s->flat_default_rate;
 });
 
 rules([
     'org_name' => ['required', 'string', 'max:255'],
     'voucher_legend' => ['required', 'string', 'max:1000'],
-    'flat_default_rate' => ['required', 'numeric', 'min:0'],
 ]);
 
 $save = function () {
@@ -58,9 +55,6 @@ $save = function () {
         <flux:input label="{{ __('Organization Name') }}" wire:model.live="org_name" clearable />
 
         <flux:textarea label="{{ __('Voucher Legend') }}" wire:model.live="voucher_legend" rows="3" />
-
-        <flux:input label="{{ __('Flat Rate (Q)') }}" type="number" step="0.01" wire:model.live="flat_default_rate"
-            clearable />
 
         <div class="pt-2 flex justify-end">
             <flux:button wire:click="save" variant="primary">

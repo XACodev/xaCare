@@ -15,11 +15,6 @@ class OrganizationSetting extends Model
     protected $fillable = [
         'org_name',
         'voucher_legend',
-        'flat_default_rate',
-    ];
-
-    protected $casts = [
-        'flat_default_rate' => 'decimal:2',
     ];
 
     public static function current(): self

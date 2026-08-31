@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\OrganizationSetting;
 use App\Models\PricingSetting;
 use App\Models\User;
 use App\Support\TimeHelper;
@@ -138,8 +137,8 @@ class PricingService
         string $startTimeHHMM, // HH:MM
         string $endTimeHHMM, // HH:MM
     ): array {
-        // Todos la tarifa plana
-        $amount = (float) OrganizationSetting::current()->flat_default_rate;
+        // Todos 200
+        $amount = (float) config('qxlog.default_rate', 200.00);
 
         $snapshot = [
             'version' => config('qxlog.version'),

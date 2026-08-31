@@ -24,7 +24,6 @@ test('admin can view and save organization settings', function () {
         ->assertSet('org_name', OrganizationSetting::current()->org_name)
         ->set('org_name', 'Hospital de Prueba')
         ->set('voucher_legend', 'Leyenda de prueba')
-        ->set('flat_default_rate', 250)
         ->call('save')
         ->assertHasNoErrors();
 
