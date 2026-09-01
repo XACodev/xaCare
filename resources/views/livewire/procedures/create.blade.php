@@ -46,7 +46,7 @@ rules([
     'procedure_date' => ['required', 'date'],
     'start_time' => ['required', 'date_format:H:i'],
     'end_time' => ['required', 'date_format:H:i'],
-    'patient_id' => ['required', 'integer', 'exists:patients,id'],
+    'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
     'patient_query' => ['nullable', 'string', 'max:255'],
     'patient_name' => ['nullable', 'string', 'max:255'],
     'procedure_type' => ['required', 'string', 'max:255'],
@@ -129,6 +129,17 @@ $save = function () {
     // Validación base (rules())
     $data = $this->validate();
 
+    // Validación "al menos uno": paciente del maestro (patient_id) o nombre libre
+    // (patient_query) para registros de emergencia sin ingreso previo.
+    $patientId = $data['patient_id'] ?? null;
+    $patientName = $patientId ? $data['patient_name'] : trim((string) ($data['patient_query'] ?? ''));
+
+    if (!$patientId && $patientName === '') {
+        throw ValidationException::withMessages([
+            'patient_query' => 'Selecciona un paciente ingresado o escribe el nombre (registro de emergencia).',
+        ]);
+    }
+
     // Validación "al menos uno": doctor_id o doctor_query
     $doctorId = $data['doctor_id'] ?? null;
     $doctorName = trim((string) ($data['doctor_query'] ?? ''));
@@ -175,15 +186,15 @@ $save = function () {
         endTimeHHMM: $data['end_time'],
     );
 
-    DB::transaction(function () use ($user, $data, $doctorId, $doctorName, $circulatingId, $circulatingName, $durationMinutes, $pricing) {
+    DB::transaction(function () use ($user, $data, $patientId, $patientName, $doctorId, $doctorName, $circulatingId, $circulatingName, $durationMinutes, $pricing) {
         Procedure::create([
             'procedure_date' => $data['procedure_date'],
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
             'duration_minutes' => $durationMinutes,
 
-            'patient_id' => $data['patient_id'],
-            'patient_name' => $data['patient_name'],
+            'patient_id' => $patientId,
+            'patient_name' => $patientName,
             'procedure_type' => $data['procedure_type'],
             'is_videosurgery' => (bool) $data['is_videosurgery'],
 
@@ -441,7 +452,7 @@ updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculat
                         <flux:icon.magnifying-glass class="size-5" />
                     </div>
                     <input type="text" wire:model.live.debounce.200ms="patient_query"
-                        placeholder="{{ __('Search admitted patient...') }}"
+                        placeholder="{{ __('Search admitted patient or type name for emergency cases...') }}"
                         class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 pl-10 pr-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 dark:placeholder-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
 
                     @if(!empty($this->patient_suggestions))
