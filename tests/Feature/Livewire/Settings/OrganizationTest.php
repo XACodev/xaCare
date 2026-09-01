@@ -42,7 +42,7 @@ test('admin without settings.manage permission cannot access the page', function
 });
 
 test('admin can upload an organization logo', function () {
-    Storage::fake('r2');
+    Storage::fake(OrganizationSetting::logoDisk());
 
     $admin = User::factory()->create(['role' => 'admin']);
     $admin->assignRole('admin');
@@ -61,11 +61,11 @@ test('admin can upload an organization logo', function () {
 
     expect($path)->not->toBeNull();
     expect($path)->toEndWith('.webp');
-    Storage::disk('r2')->assertExists($path);
+    Storage::disk(OrganizationSetting::logoDisk())->assertExists($path);
 });
 
 test('admin can remove the organization logo', function () {
-    Storage::fake('r2');
+    Storage::fake(OrganizationSetting::logoDisk());
 
     $admin = User::factory()->create(['role' => 'admin']);
     $admin->assignRole('admin');
@@ -73,7 +73,7 @@ test('admin can remove the organization logo', function () {
 
     $this->actingAs($admin);
 
-    $existingPath = UploadedFile::fake()->image('logo.png')->store('org-logos', 'r2');
+    $existingPath = UploadedFile::fake()->image('logo.png')->store('org-logos', OrganizationSetting::logoDisk());
     OrganizationSetting::current()->update(['logo_path' => $existingPath]);
 
     Volt::test('settings.organization')
@@ -81,5 +81,5 @@ test('admin can remove the organization logo', function () {
         ->assertHasNoErrors();
 
     expect(OrganizationSetting::current()->logo_path)->toBeNull();
-    Storage::disk('r2')->assertMissing($existingPath);
+    Storage::disk(OrganizationSetting::logoDisk())->assertMissing($existingPath);
 });
