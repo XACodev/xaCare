@@ -54,7 +54,16 @@ class OrganizationSetting extends Model
             return null;
         }
 
-        return Storage::disk('r2')->url($this->logo_path);
+        return Storage::disk(self::logoDisk())->url($this->logo_path);
+    }
+
+    /**
+     * R2 no tiene credenciales en entornos locales, asi que el logo cae
+     * al disco publico local para poder probar la subida sin depender de R2.
+     */
+    public static function logoDisk(): string
+    {
+        return filled(config('filesystems.disks.r2.key')) ? 'r2' : 'public';
     }
 
     protected static function cacheKey(int $hospitalId): string
