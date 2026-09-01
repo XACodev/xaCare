@@ -16,7 +16,9 @@ return new class extends Migration
             $table->id();
 
             $table->string('org_name')->default('Hospital Nuestra Señora del Carmen');
-            $table->text('voucher_legend')->default('Por honorarios correspondientes a servicios de instrumentación prestados en procedimientos quirúrgicos.');
+            // MySQL no admite DEFAULT en columnas TEXT (error 1101); el valor
+            // real lo pone el INSERT de abajo.
+            $table->text('voucher_legend');
             $table->decimal('flat_default_rate', 10, 2)->default(200.00);
 
             $table->timestamps();
