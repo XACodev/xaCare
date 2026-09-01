@@ -47,13 +47,13 @@ $save = function () {
 
     if ($this->logo) {
         if ($settings->logo_path) {
-            Storage::disk('r2')->delete($settings->logo_path);
+            Storage::disk(OrganizationSetting::logoDisk())->delete($settings->logo_path);
         }
 
         $webp = ImageCompressor::compressToWebp($this->logo);
         $path = 'org-logos/'.Str::uuid().'.webp';
 
-        Storage::disk('r2')->put($path, $webp, 'public');
+        Storage::disk(OrganizationSetting::logoDisk())->put($path, $webp, 'public');
 
         $data['logo_path'] = $path;
     }
@@ -71,7 +71,7 @@ $removeLogo = function () {
     $settings = OrganizationSetting::current();
 
     if ($settings->logo_path) {
-        Storage::disk('r2')->delete($settings->logo_path);
+        Storage::disk(OrganizationSetting::logoDisk())->delete($settings->logo_path);
         $settings->update(['logo_path' => null]);
     }
 
