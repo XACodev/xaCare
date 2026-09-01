@@ -5,7 +5,7 @@ use App\Models\Patient;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
-use function Livewire\Volt\{state, rules, computed};
+use function Livewire\Volt\{state, mount, rules, computed};
 
 state([
     'patient_id' => null,
@@ -36,6 +36,11 @@ rules([
     'impresion_clinica' => ['nullable', 'string'],
     'medico_responsable' => ['nullable', 'string', 'max:255'],
 ]);
+
+mount(function () {
+    abort_unless(Auth::check(), 401);
+    abort_unless((bool) Auth::user()->hasRole('admin'), 403);
+});
 
 $patient_suggestions = computed(function () {
     $q = trim((string) $this->patient_query);

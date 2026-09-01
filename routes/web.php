@@ -33,15 +33,15 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Volt::route('procedures/create', 'procedures.create')->name('procedures.create');
 
-    Volt::route('patients', 'patients.index')->name('patients.index');
-    Volt::route('patients/create', 'patients.create')->name('patients.create');
-    Volt::route('admissions/create', 'admissions.create')->name('admissions.create');
-
     Volt::route('instrumentist/payouts', 'instrumentist.payouts')->name('instrumentist.payouts');
     Volt::route('instrumentist/payouts/{batch}/voucher', 'payouts.voucher')->name('instrumentist.payouts.voucher');
 });
 
 Route::middleware(['auth', 'admin'])->group(function () {
+    Volt::route('patients', 'patients.index')->name('patients.index');
+    Volt::route('patients/create', 'patients.create')->name('patients.create');
+    Volt::route('admissions/create', 'admissions.create')->name('admissions.create');
+
     Volt::route('payouts/create', 'payouts.create')->name('payouts.create');
     Volt::route('payouts/{batch}/voucher', 'payouts.voucher')->name('payouts.voucher');
     Volt::route('payouts', 'payouts.index')->name('payouts.index');
@@ -56,6 +56,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
 });
 
 Route::middleware(['auth', 'superadmin'])->group(function () {
+    Volt::route('hospitals', 'hospitals.index')->name('hospitals.index');
+    Volt::route('hospitals/create', 'hospitals.create')->name('hospitals.create');
+    Volt::route('hospitals/{hospital}/edit', 'hospitals.edit')->name('hospitals.edit');
+
     Volt::route('users', 'users.index')->name('users.index');
     Volt::route('users/create', 'users.create')->name('users.create');
     Volt::route('users/{user}/edit', 'users.edit')->name('users.edit');

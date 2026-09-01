@@ -91,6 +91,10 @@
 
         <flux:navlist variant="outline">
             @if(auth()->user()->is_super_admin)
+                <flux:navlist.item icon="building-office-2" :href="route('hospitals.index')"
+                    :current="request()->routeIs('hospitals.*')" wire:navigate>
+                    {{ __('Hospitals') }}
+                </flux:navlist.item>
                 <flux:navlist.item icon="user" :href="route('users.index')" :current="request()->routeIs('users.index')"
                     wire:navigate>
                     {{ __('Users') }}

@@ -25,9 +25,7 @@ class PricingService
 
         $usePayScheme = (bool) $instrumentist->use_pay_scheme;
 
-        $settings = PricingSetting::firstOrCreate([
-            'id' => 1,
-        ]);
+        $settings = PricingSetting::current();
 
         $base = (float) $settings->default_rate;
 

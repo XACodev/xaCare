@@ -5,10 +5,17 @@ use App\Models\Hospital;
 use App\Models\Patient;
 use App\Models\User;
 use Livewire\Volt\Volt;
+use Spatie\Permission\Models\Role;
 
-test('nurse can register an admission selecting a patient', function () {
+beforeEach(function () {
+    app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+});
+
+test('admin can register an admission selecting a patient', function () {
     $hospital = Hospital::factory()->create();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
     $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
     $this->actingAs($user);
 
@@ -27,7 +34,8 @@ test('nurse can register an admission selecting a patient', function () {
 });
 
 test('admission requires a patient', function () {
-    $user = User::factory()->create(['hospital_id' => Hospital::factory()->create()->id]);
+    $user = User::factory()->create(['hospital_id' => Hospital::factory()->create()->id, 'role' => 'admin']);
+    $user->assignRole('admin');
     $this->actingAs($user);
 
     Volt::test('admissions.create')

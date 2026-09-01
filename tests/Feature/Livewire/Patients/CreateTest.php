@@ -4,10 +4,17 @@ use App\Models\Hospital;
 use App\Models\Patient;
 use App\Models\User;
 use Livewire\Volt\Volt;
+use Spatie\Permission\Models\Role;
 
-test('authenticated user can create a patient scoped to their hospital', function () {
+beforeEach(function () {
+    app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+});
+
+test('authenticated admin can create a patient scoped to their hospital', function () {
     $hospital = Hospital::factory()->create();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
     $this->actingAs($user);
 
     Volt::test('patients.create')
@@ -24,7 +31,8 @@ test('authenticated user can create a patient scoped to their hospital', functio
 });
 
 test('creating a patient requires names', function () {
-    $user = User::factory()->create(['hospital_id' => Hospital::factory()->create()->id]);
+    $user = User::factory()->create(['hospital_id' => Hospital::factory()->create()->id, 'role' => 'admin']);
+    $user->assignRole('admin');
     $this->actingAs($user);
 
     Volt::test('patients.create')

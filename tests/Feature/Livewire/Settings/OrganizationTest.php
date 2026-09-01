@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Hospital;
 use App\Models\OrganizationSetting;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -16,7 +17,7 @@ beforeEach(function () {
 });
 
 test('admin can view and save organization settings', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create(['role' => 'admin', 'hospital_id' => Hospital::factory()->create()->id]);
     $admin->assignRole('admin');
     $admin->givePermissionTo('settings.manage');
 
@@ -33,7 +34,7 @@ test('admin can view and save organization settings', function () {
 });
 
 test('admin without settings.manage permission cannot access the page', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create(['role' => 'admin', 'hospital_id' => Hospital::factory()->create()->id]);
     $admin->assignRole('admin');
 
     $this->actingAs($admin)
@@ -44,7 +45,7 @@ test('admin without settings.manage permission cannot access the page', function
 test('admin can upload an organization logo', function () {
     Storage::fake('r2');
 
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create(['role' => 'admin', 'hospital_id' => Hospital::factory()->create()->id]);
     $admin->assignRole('admin');
     $admin->givePermissionTo('settings.manage');
 
@@ -67,7 +68,7 @@ test('admin can upload an organization logo', function () {
 test('admin can remove the organization logo', function () {
     Storage::fake('r2');
 
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create(['role' => 'admin', 'hospital_id' => Hospital::factory()->create()->id]);
     $admin->assignRole('admin');
     $admin->givePermissionTo('settings.manage');
 

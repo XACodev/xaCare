@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Hospital;
 use App\Models\PayoutBatch;
 use App\Models\PayoutItem;
 use App\Models\Procedure;
@@ -21,18 +22,21 @@ beforeEach(function () {
 function makePaidBatchWithItem(User $instrumentist, User $admin): PayoutBatch
 {
     $procedure = Procedure::factory()->create([
+        'hospital_id' => $instrumentist->hospital_id,
         'instrumentist_id' => $instrumentist->id,
         'status' => 'paid',
         'calculated_amount' => 100,
     ]);
 
     $batch = PayoutBatch::factory()->create([
+        'hospital_id' => $instrumentist->hospital_id,
         'instrumentist_id' => $instrumentist->id,
         'paid_by_id' => $admin->id,
         'total_amount' => 100,
     ]);
 
     PayoutItem::create([
+        'hospital_id' => $instrumentist->hospital_id,
         'payout_batch_id' => $batch->id,
         'procedure_id' => $procedure->id,
         'amount' => 100,
@@ -63,15 +67,18 @@ function makePaidBatchWithItem(User $instrumentist, User $admin): PayoutBatch
 }
 
 test('shows liquidate again button when instrumentist still has pending procedures', function () {
-    $admin = User::factory()->create();
+    $hospital = Hospital::factory()->create();
+
+    $admin = User::factory()->create(['hospital_id' => $hospital->id]);
     $admin->assignRole('admin');
 
-    $instrumentist = User::factory()->create();
+    $instrumentist = User::factory()->create(['hospital_id' => $hospital->id]);
     $instrumentist->assignRole('instrumentist');
 
     $batch = makePaidBatchWithItem($instrumentist, $admin);
 
     Procedure::factory()->create([
+        'hospital_id' => $instrumentist->hospital_id,
         'instrumentist_id' => $instrumentist->id,
         'status' => 'pending',
     ]);
@@ -84,10 +91,12 @@ test('shows liquidate again button when instrumentist still has pending procedur
 });
 
 test('hides liquidate again button when instrumentist has no pending procedures', function () {
-    $admin = User::factory()->create();
+    $hospital = Hospital::factory()->create();
+
+    $admin = User::factory()->create(['hospital_id' => $hospital->id]);
     $admin->assignRole('admin');
 
-    $instrumentist = User::factory()->create();
+    $instrumentist = User::factory()->create(['hospital_id' => $hospital->id]);
     $instrumentist->assignRole('instrumentist');
 
     $batch = makePaidBatchWithItem($instrumentist, $admin);

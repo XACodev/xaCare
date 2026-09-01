@@ -1,10 +1,16 @@
 <?php
 
 use App\Models\Patient;
+use Illuminate\Support\Facades\Auth;
 
-use function Livewire\Volt\{state, computed};
+use function Livewire\Volt\{state, mount, computed};
 
 state(['q' => '']);
+
+mount(function () {
+    abort_unless(Auth::check(), 401);
+    abort_unless((bool) Auth::user()->hasRole('admin'), 403);
+});
 
 $patients = computed(function () {
     return Patient::query()
