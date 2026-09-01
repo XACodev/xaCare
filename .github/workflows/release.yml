@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   release:
@@ -25,6 +26,20 @@ jobs:
           default_bump: patch
           tag_prefix: v
 
+      # El release se crea justo despues del tag, sin depender de si el PR
+      # del version bump (mas abajo) tiene exito o no: main esta protegida
+      # ("changes must be made through a pull request") y el GITHUB_TOKEN
+      # ambiental de las Actions no se puede agregar al bypass list de esa
+      # regla (esa opcion es solo para GitHub Apps instaladas), asi que un
+      # push directo a composer.json en main siempre fallaria.
+      - name: Create GitHub Release
+        if: steps.tag_version.outputs.new_tag
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          name: ${{ steps.tag_version.outputs.new_tag }}
+          generate_release_notes: true
+
       - name: Update composer.json version
         if: steps.tag_version.outputs.new_tag
         run: |
@@ -35,17 +50,16 @@ jobs:
             file_put_contents($file, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
           '
 
-      - name: Commit composer.json version bump
+      # No se puede pushear directo a main (regla "solo via PR"), asi que
+      # se abre un PR con el bump de version para que se apruebe y mergee
+      # a mano.
+      - name: Open PR with composer.json version bump
         if: steps.tag_version.outputs.new_tag
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: peter-evans/create-pull-request@v6
         with:
-          commit_message: "chore(release): ${{ steps.tag_version.outputs.new_tag }} [skip ci]"
-          file_pattern: composer.json
-
-      - name: Create GitHub Release
-        if: steps.tag_version.outputs.new_tag
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag_version.outputs.new_tag }}
-          name: ${{ steps.tag_version.outputs.new_tag }}
-          generate_release_notes: true
+          commit-message: "chore(release): ${{ steps.tag_version.outputs.new_tag }}"
+          title: "chore(release): ${{ steps.tag_version.outputs.new_tag }}"
+          body: "Actualiza `composer.json` con la version del tag `${{ steps.tag_version.outputs.new_tag }}`."
+          branch: "chore/release-${{ steps.tag_version.outputs.new_tag }}"
+          base: main
+          add-paths: composer.json
