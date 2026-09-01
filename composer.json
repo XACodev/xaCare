@@ -11,7 +11,6 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "cknow/laravel-money": "^8.4",
         "intervention/image": "^4.3",
         "laravel/fortify": "^1.30",
         "laravel/framework": "^12.0",
