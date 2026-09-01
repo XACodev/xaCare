@@ -75,7 +75,7 @@ mount(function (string|int $batch) {
         ->where('status', 'pending')
         ->count();
 
-    $orgSettings = OrganizationSetting::current();
+    $orgSettings = OrganizationSetting::forHospital($b->hospital_id);
     $this->org_name = $orgSettings->org_name;
     $this->voucher_legend = $orgSettings->voucher_legend;
     $this->org_logo_url = $orgSettings->logoUrl();

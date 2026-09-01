@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Carbon\Carbon;
 
 class PricingSetting extends Model
 {
-    use SoftDeletes;
+    use BelongsToTenant, SoftDeletes;
 
     protected $fillable = [
+        'hospital_id',
         'default_rate',
         'video_rate',
         'night_rate',
@@ -29,6 +31,11 @@ class PricingSetting extends Model
         'night_start' => 'string',
         'night_end' => 'string',
     ];
+
+    public static function current(): self
+    {
+        return static::query()->firstOrCreate([]);
+    }
 
     public function getNightStartAttribute($value)
     {

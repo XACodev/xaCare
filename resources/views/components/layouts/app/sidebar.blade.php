@@ -42,6 +42,16 @@
             @endif
 
             @if(auth()->user()->role === 'admin')
+                <flux:navlist.group :heading="__('Ingresos')" class="grid">
+                    <flux:navlist.item icon="identification" :href="route('patients.index')"
+                        :current="request()->routeIs('patients.*')" wire:navigate>
+                        {{ __('Pacientes') }}
+                    </flux:navlist.item>
+                    <flux:navlist.item icon="inbox-arrow-down" :href="route('admissions.create')"
+                        :current="request()->routeIs('admissions.*')" wire:navigate>
+                        {{ __('Nuevo Ingreso') }}
+                    </flux:navlist.item>
+                </flux:navlist.group>
                 <flux:navlist.group :heading="__('Payouts')" class="grid">
                     <flux:navlist.item icon="home" :href="route('payouts.create')"
                         :current="request()->routeIs('payouts.create')" wire:navigate>
@@ -81,6 +91,10 @@
 
         <flux:navlist variant="outline">
             @if(auth()->user()->is_super_admin)
+                <flux:navlist.item icon="building-office-2" :href="route('hospitals.index')"
+                    :current="request()->routeIs('hospitals.*')" wire:navigate>
+                    {{ __('Hospitals') }}
+                </flux:navlist.item>
                 <flux:navlist.item icon="user" :href="route('users.index')" :current="request()->routeIs('users.index')"
                     wire:navigate>
                     {{ __('Users') }}

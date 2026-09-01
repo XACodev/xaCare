@@ -35,7 +35,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            \Spatie\Permission\Models\Permission::create(['name' => $permission]);
+            \Spatie\Permission\Models\Permission::firstOrCreate(['name' => $permission]);
         }
 
         // Assign permissions to admin role

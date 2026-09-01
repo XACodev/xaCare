@@ -20,7 +20,7 @@ mount(function () {
     abort_unless(Auth::check(), 401);
     abort_unless((bool) Auth::user()->can('pricing.manage'), 403);
 
-    $s = PricingSetting::firstOrCreate(['id' => 1]);
+    $s = PricingSetting::current();
 
     $this->default_rate = (float) $s->default_rate;
     $this->video_rate = (float) $s->video_rate;
@@ -46,7 +46,7 @@ $save = function () {
 
     $data = $this->validate();
 
-    PricingSetting::updateOrCreate(['id' => 1], $data);
+    PricingSetting::current()->update($data);
 
     $this->success = __('Prices saved.');
 };

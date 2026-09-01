@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 
 class PayoutItem extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
+        'hospital_id',
         'payout_batch_id',
         'procedure_id',
         'amount',
