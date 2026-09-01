@@ -16,10 +16,10 @@ class RolesAndPermissionsSeeder extends Seeder
         app()['cache']->forget('spatie.permission.cache');
 
         // Create roles
-        $adminRole = \Spatie\Permission\Models\Role::create(['name' => 'admin']);
-        $instrumentistRole = \Spatie\Permission\Models\Role::create(['name' => 'instrumentist']);
-        $doctorRole = \Spatie\Permission\Models\Role::create(['name' => 'doctor']);
-        $circulatingRole = \Spatie\Permission\Models\Role::create(['name' => 'circulating']);
+        $adminRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin']);
+        $instrumentistRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'instrumentist']);
+        $doctorRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'doctor']);
+        $circulatingRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'circulating']);
 
         // Create permissions
         $permissions = [
