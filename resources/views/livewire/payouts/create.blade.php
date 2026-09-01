@@ -16,9 +16,6 @@ state([
 
     // IDs de procedures seleccionados
     'selected' => [],
-
-    // UX
-    'success_message' => null,
 ]);
 
 rules([
@@ -36,6 +33,11 @@ mount(function () {
         ->orderBy('name')
         ->get(['id', 'name'])
         ->map(fn($u) => ['id' => $u->id, 'name' => $u->name]);
+
+    $preselected = request()->integer('instrumentist_id');
+    if ($preselected && $this->instrumentists->contains('id', $preselected)) {
+        $this->instrumentist_id = $preselected;
+    }
 });
 
 updated(['instrumentist_id'], function () {
@@ -74,6 +76,14 @@ $selected_total = computed(function () {
         ->where('status', 'pending')
         ->whereIn('id', $ids)
         ->sum('calculated_amount');
+});
+
+$pending_count = computed(function () {
+    return $this->pending_procedures->count();
+});
+
+$selected_count = computed(function () {
+    return count(array_filter(array_map('intval', (array) $this->selected)));
 });
 
 $toggleAll = function () {
@@ -124,7 +134,7 @@ $liquidate = function () {
 
     $total = (float) $procedures->sum('calculated_amount');
 
-    DB::transaction(function () use ($admin, $data, $procedures, $total) {
+    $batch = DB::transaction(function () use ($admin, $data, $procedures, $total) {
         $batch = PayoutBatch::create([
             'instrumentist_id' => (int) $data['instrumentist_id'],
             'paid_by_id' => $admin->id,
@@ -159,12 +169,11 @@ $liquidate = function () {
                 'payout_batch_id' => $batch->id,
             ]);
         }
+
+        return $batch;
     });
 
-    $this->selected = [];
-    $this->success_message = __('Liquidated successfully.');
-
-    $this->dispatch('$refresh');
+    $this->redirectRoute('payouts.voucher', ['batch' => $batch->id], navigate: true);
 };
 
 ?>
@@ -174,13 +183,6 @@ $liquidate = function () {
         <flux:heading size="xl">{{ __('Liquidate Procedures') }}</flux:heading>
         <flux:subheading>{{ __('Generate payout batch') }}</flux:subheading>
     </div>
-
-    @if($success_message)
-        <div
-            class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-800 dark:bg-green-900/30 dark:border-green-800 dark:text-green-300">
-            {{ $success_message }}
-        </div>
-    @endif
 
     <div class="rounded-xl border bg-white p-6 dark:bg-zinc-900 dark:border-zinc-700 space-y-6">
         <div>
@@ -204,6 +206,9 @@ $liquidate = function () {
                     <div class="text-xl font-bold text-emerald-600 dark:text-emerald-400">
                         Q{{ number_format($this->pending_total ?? 0, 2) }}
                     </div>
+                    <div class="text-xs text-zinc-500 dark:text-zinc-400">
+                        {{ __(':count procedures', ['count' => $this->pending_count]) }}
+                    </div>
                 </div>
 
                 <div class="space-y-1">
@@ -212,6 +217,9 @@ $liquidate = function () {
                     </div>
                     <div class="text-xl font-bold text-emerald-600 dark:text-emerald-400">
                         Q{{ number_format($this->selected_total ?? 0, 2) }}
+                    </div>
+                    <div class="text-xs text-zinc-500 dark:text-zinc-400">
+                        {{ __(':count selected', ['count' => $this->selected_count]) }}
                     </div>
                 </div>
 

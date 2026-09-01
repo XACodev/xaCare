@@ -1,2 +1,45 @@
+# xaCare - Sistema de Gestión Hospitalaria
+# Robots.txt - Bloquear rastreo de áreas privadas
+
+# Bloquear todos los bots de las rutas protegidas
 User-agent: *
-Disallow:
+
+# Autenticación y sesión
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /email/verify
+Disallow: /two-factor-challenge
+
+# Dashboard y configuración de usuario
+Disallow: /dashboard
+Disallow: /settings
+
+# Módulos del sistema
+Disallow: /procedures
+Disallow: /payouts
+Disallow: /instrumentist
+Disallow: /pricing
+Disallow: /users
+Disallow: /roles
+Disallow: /permissions
+
+# Rutas internas de Laravel y Livewire
+Disallow: /livewire
+Disallow: /sanctum
+Disallow: /api
+Disallow: /_debugbar
+Disallow: /_ignition
+Disallow: /telescope
+Disallow: /horizon
+
+# Recursos del build (no indexables)
+Disallow: /build/
+
+# Permitir archivos estáticos públicos
+Allow: /favicon.ico
+Allow: /favicon.svg
+Allow: /apple-touch-icon.png
+
+Sitemap: https://xacares.com/sitemap.xml

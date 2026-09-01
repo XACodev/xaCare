@@ -14,7 +14,7 @@
         <flux:sidebar.brand href="{{ route('dashboard') }}" name="{{ config('app.name') }}"
             class="flex items-center rtl:space-x-reverse" wire:navigate>
             <x-slot name="logo" class="bg-accent text-accent-foreground border-indigo-600 dark:border-indigo-600">
-                <i class="font-serif font-bold text-lg">A</i>
+                <x-app-logo-icon class="size-4 fill-none" />
             </x-slot>
         </flux:sidebar.brand>
 
@@ -67,6 +67,12 @@
                         :current="request()->routeIs('pricing.settings')" wire:navigate>
                         {{ __('Instrumentist Pricing') }}
                     </flux:navlist.item>
+                    @can('settings.manage')
+                        <flux:navlist.item icon="building-office" :href="route('settings.organization')"
+                            :current="request()->routeIs('settings.organization')" wire:navigate>
+                            {{ __('General Settings') }}
+                        </flux:navlist.item>
+                    @endcan
                 </flux:navlist.group>
             @endif
         </flux:navlist>

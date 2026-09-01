@@ -11,10 +11,10 @@
             class="lg:hidden ml-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg"
             icon="bars-3" inset="left" />
 
-        <flux:brand href="{{ route('dashboard') }}" name="QxLog" class="me-5 flex items-center rtl:space-x-reverse"
+        <flux:brand href="{{ route('dashboard') }}" name="xaCare" class="me-5 flex items-center rtl:space-x-reverse"
             wire:navigate>
             <x-slot name="logo" class="bg-accent text-accent-foreground">
-                <i class="font-serif font-bold">A</i>
+                <x-app-logo-icon class="size-4 fill-none" />
             </x-slot>
         </flux:brand>
 
@@ -101,6 +101,14 @@
                         {{ __('Pricing') }}
                     </flux:navbar.item>
                 </flux:tooltip>
+                @can('settings.manage')
+                    <flux:tooltip :content="__('General Settings')" position="bottom">
+                        <flux:navbar.item icon="building-office" :href="route('settings.organization')"
+                            :current="request()->routeIs('settings.organization')" wire:navigate>
+                            {{ __('General Settings') }}
+                        </flux:navbar.item>
+                    </flux:tooltip>
+                @endcan
             @endif
         </flux:navbar>
 

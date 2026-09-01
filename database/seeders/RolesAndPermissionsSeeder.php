@@ -13,7 +13,7 @@ class RolesAndPermissionsSeeder extends Seeder
     public function run(): void
     {
         // Reset cached roles and permissions
-        app()["cache"]->forget('spatie.permission.cache');
+        app()['cache']->forget('spatie.permission.cache');
 
         // Create roles
         $adminRole = \Spatie\Permission\Models\Role::create(['name' => 'admin']);
@@ -29,6 +29,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'payouts.create',
             'payouts.view',
             'pricing.manage',
+            'settings.manage',
             'users.manage',
             'roles.manage',
         ];
@@ -45,6 +46,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'payouts.create',
             'payouts.view',
             'pricing.manage',
+            'settings.manage',
         ]);
 
         // Assign permissions to instrumentist role

@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\OrganizationSetting;
 use App\Models\PayoutBatch;
+use App\Models\Procedure;
 use Illuminate\Support\Facades\Auth;
 
 use function Livewire\Volt\{state, mount};
@@ -14,6 +16,10 @@ state([
     'longThreshold' => null,
     'items' => [],
     'usePayScheme' => false,
+    'remaining_pending_count' => 0,
+    'org_name' => null,
+    'voucher_legend' => null,
+    'org_logo_url' => null,
 ]);
 
 mount(function (string|int $batch) {
@@ -64,6 +70,16 @@ mount(function (string|int $batch) {
     $this->year = optional($this->batch->paid_at)->format('Y') ?? now()->format('Y');
     $this->folio = 'QX-' . $this->year . '-' . str_pad((string) $this->batch->id, 6, '0', STR_PAD_LEFT);
 
+    $this->remaining_pending_count = Procedure::query()
+        ->where('instrumentist_id', $b->instrumentist_id)
+        ->where('status', 'pending')
+        ->count();
+
+    $orgSettings = OrganizationSetting::current();
+    $this->org_name = $orgSettings->org_name;
+    $this->voucher_legend = $orgSettings->voucher_legend;
+    $this->org_logo_url = $orgSettings->logoUrl();
+
     $rates = data_get($this->items, '0.snapshot.pricing_snapshot.rates');
 
     $unit = [
@@ -113,36 +129,91 @@ mount(function (string|int $batch) {
 ?>
 
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap');
+
     @page {
         size: letter portrait;
-        margin: 1.25cm;
     }
 
+    #print-content {
+        --paper: #ffffff;
+        --ink: #14181f;
+        --ink-soft: #5a6472;
+        --line: #d8dee2;
+        --accent-teal: #1f9d86;
+        --accent-blue: #3f6fd6;
+        --stamp: #0d1420;
+    }
+
+    .dark #print-content {
+        --paper: #18181b;
+        --ink: #f4f4f5;
+        --ink-soft: #a1a1aa;
+        --line: #3f3f46;
+    }
+
+    .voucher-serif {
+        font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    }
+
+    .voucher-mono {
+        font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .voucher-card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        position: relative;
+    }
+
+    .voucher-card::before {
+        content: '';
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent-teal), var(--accent-blue));
+    }
+
+    .voucher-stamp {
+        background: linear-gradient(135deg, var(--stamp), #1b2534);
+        border: 1px solid transparent;
+        background-clip: padding-box;
+    }
+
+    .voucher-stamp::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        padding: 1px;
+        background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+    }
+
+    .voucher-stamp-label {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .voucher-stamp-value {
+        color: #ffffff;
+    }
+
+    .voucher-total-row {
+        background: linear-gradient(90deg, rgba(31, 157, 134, 0.08), rgba(63, 111, 214, 0.08));
+    }
+
+    /*
+     * El voucher se imprime en blanco y negro para ahorrar tinta: en @media print
+     * se anula todo lo que dependa de --accent-teal/--accent-blue/--stamp y se
+     * recrea la jerarquia visual (barra superior, sello de folio, fila de total)
+     * con negro/gris solamente.
+     */
     @media print {
         .no-print {
             display: none !important;
-        }
-
-        .print-wrap {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: none !important;
-        }
-
-        html,
-        body {
-            height: auto !important;
-            overflow: visible !important;
-        }
-
-        .avoid-break {
-            break-inside: avoid;
-        }
-
-        body {
-            background: #fff !important;
-            color: #000 !important;
-            -webkit-print-color-adjust: exact;
         }
 
         body * {
@@ -159,204 +230,249 @@ mount(function (string|int $batch) {
             left: 0;
             top: 0;
             width: 100%;
+            height: 100%;
+            --paper: #ffffff;
+            --ink: #000000;
+            --ink-soft: #3f3f46;
+            --line: #000000;
         }
 
-        * {
-            -webkit-print-color-adjust: economy;
-            print-color-adjust: economy;
-            background: transparent !important;
+        .voucher-card {
             box-shadow: none !important;
         }
 
-        .dark-mode-override {
-            background-color: #fff !important;
-            color: #000 !important;
-            border-color: #e5e7eb !important;
+        .voucher-card::before {
+            background: var(--ink) !important;
+            height: 3px;
+        }
+
+        .voucher-stamp {
+            background: var(--paper) !important;
+            border: 2px solid var(--ink);
+            border-radius: 6px;
+        }
+
+        .voucher-stamp::before {
+            content: none;
+        }
+
+        .voucher-stamp-label {
+            color: var(--ink-soft) !important;
+        }
+
+        .voucher-stamp-value {
+            color: var(--ink) !important;
+        }
+
+        .voucher-total-row {
+            background: transparent !important;
+        }
+
+        /*
+         * El total en pantalla usa text-lg/text-xl para destacar; impreso
+         * eso se veia desproporcionado frente al resto de la tabla. Se
+         * iguala al tamano de las filas normales y la jerarquia se logra
+         * con un filete doble en vez de tamano de fuente.
+         */
+        .voucher-total-amount {
+            font-size: 13px !important;
+            border-bottom: 3px double var(--ink);
+        }
+
+        .voucher-logo {
+            filter: grayscale(1);
+        }
+    }
+
+    /* El atajo de teclado solo tiene sentido con teclado fisico (no touch/movil) */
+    @media (pointer: coarse) {
+        .print-shortcut-hint {
+            display: none;
         }
     }
 </style>
 
-<div id="print-content" class="max-w-4xl mx-auto p-4 print-wrap print:text-black">
-    <div class="no-print mb-6 flex items-center justify-between gap-2">
+<div id="print-content" class="max-w-4xl mx-auto p-4 print-wrap print:text-black print:visible">
+    <div
+        class="no-print sticky top-0 z-10 -mx-4 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/90">
         <a href="{{ route('payouts.index') }}"
             class="text-md text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors flex items-center gap-1">
             <flux:icon.arrow-left size="sm" class="mr-2" />
             {{ __('Back') }}
         </a>
 
-        <div class="flex gap-2">
-            <a href="{{ route('payouts.voucher', ['batch' => $this->batch->id, 'mode' => 'summary']) }}">
-                <flux:button variant="{{ $this->mode === 'summary' ? 'primary' : 'outline' }}">
-                    {{ __('Summary') }}
-                </flux:button>
-            </a>
+        <div class="flex flex-wrap items-center gap-4">
+            <div class="flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-700 dark:bg-zinc-800">
+                <a href="{{ route('payouts.voucher', ['batch' => $this->batch->id, 'mode' => 'summary']) }}">
+                    <flux:button size="sm" variant="{{ $this->mode === 'summary' ? 'primary' : 'ghost' }}">
+                        {{ __('Summary') }}
+                    </flux:button>
+                </a>
 
-            <a href="{{ route('payouts.voucher', ['batch' => $this->batch->id, 'mode' => 'detailed']) }}">
-                <flux:button variant="{{ $this->mode === 'detailed' ? 'primary' : 'outline' }}">
-                    {{ __('Detailed') }}
-                </flux:button>
-            </a>
+                <a href="{{ route('payouts.voucher', ['batch' => $this->batch->id, 'mode' => 'detailed']) }}">
+                    <flux:button size="sm" variant="{{ $this->mode === 'detailed' ? 'primary' : 'ghost' }}">
+                        {{ __('Detailed') }}
+                    </flux:button>
+                </a>
+            </div>
 
-            <flux:button onclick="window.print()">
-                <flux:icon.printer class="size-4 mr-2" />
-                {{ __('Print') }}
-            </flux:button>
+            <div class="flex items-center gap-2 border-l border-zinc-200 pl-4 dark:border-zinc-700">
+                <flux:button onclick="window.print()" variant="primary">
+                    <flux:icon.printer class="size-4 mr-2" />
+                    {{ __('Print') }}
+                    <span class="print-shortcut-hint ms-1 text-xs opacity-70" x-data="{ mac: /Mac|iPhone|iPad|iPod/.test(navigator.userAgent) }"
+                        x-text="mac ? '(⌘P)' : '(Ctrl+P)'"></span>
+                </flux:button>
+
+                @if($this->remaining_pending_count > 0 && Auth::user()->can('payouts.create'))
+                    <flux:button
+                        href="{{ route('payouts.create', ['instrumentist_id' => $this->batch->instrumentist_id]) }}"
+                        variant="ghost">
+                        {{ __('Liquidate again') }} ({{ $this->remaining_pending_count }})
+                    </flux:button>
+                @endif
+            </div>
         </div>
     </div>
 
-    <div
-        class="rounded-xl border bg-white p-8 dark:bg-zinc-900 border-zinc-400 print:border-zinc-900 dark:border-zinc-700">
+    <div class="voucher-card rounded-xl p-8 shadow-sm print:shadow-none print:rounded-none">
         <div class="flex flex-col md:flex-row items-center justify-between gap-6 pb-6">
-            <div class="items-center text-center md:text-left md:items-start">
-                <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                    {{ __('Payment Voucher') }}
-                </h1>
-                <h2 class="text-lg font-semibold text-zinc-500 print:text-zinc-700 dark:text-zinc-400">
-                    {{ config('qxlog.org_name') }}
-                </h2>
-                <p class="text-sm text-zinc-500 dark:text-zinc-400 no-print">
-                    {{ __('Surgery Registry') }}
-                </p>
+            <div class="flex items-center gap-4">
+                @if($this->org_logo_url)
+                    <img src="{{ $this->org_logo_url }}" alt="{{ $this->org_name }}"
+                        class="voucher-logo size-14 object-contain shrink-0" />
+                @endif
+
+                <div class="items-center text-center md:text-left md:items-start">
+                    <h1 class="voucher-serif text-3xl font-semibold tracking-tight" style="color: var(--ink)">
+                        {{ __('Payment Voucher') }}
+                    </h1>
+                    <h2 class="text-lg font-medium" style="color: var(--ink-soft)">
+                        {{ $this->org_name }}
+                    </h2>
+                    <p class="text-sm no-print" style="color: var(--ink-soft)">
+                       {{ __('Surgery Registry') }}
+                    </p>
+                </div>
             </div>
 
-            <div
-                class="print:w-full flex flex-col print:flex-row print:justify-between justify-between items-center md:items-end">
-                <div>
-                    <span class="text-zinc-700 dark:text-zinc-400">
-                        {{ __('Folio') }}:
-                    </span>
-                    <span class="font-semibold text-zinc-900 dark:text-zinc-100">
+            <div class="flex flex-col items-center md:items-end gap-2 print:flex-row print:justify-between print:w-full">
+                <div class="voucher-stamp relative rounded-lg px-4 py-2 text-center shadow-sm print:shadow-none">
+                    <div class="voucher-stamp-label text-[10px] font-semibold uppercase tracking-widest">
+                        {{ __('Folio') }}
+                    </div>
+                    <div class="voucher-stamp-value voucher-mono text-base font-semibold">
                         {{ $this->folio }}
-                    </span>
+                    </div>
                 </div>
 
-                <div>
-                    <span class="text-zinc-700 dark:text-zinc-400">
+                <div class="flex flex-col items-center md:items-end text-sm print:flex-row print:gap-2">
+                    <span style="color: var(--ink-soft)">
                         {{ __('Payment Date') }}:
                     </span>
-                    <span class="font-semibold text-zinc-900 dark:text-zinc-100">
+                    <span class="voucher-mono font-semibold" style="color: var(--ink)">
                         {{ optional($this->batch->paid_at)->format('Y-m-d') ?? Carbon\Carbon::parse($this->batch->paid_at)->format('Y-m-d') }}
                     </span>
                 </div>
 
-                <div class="no-print">
-                    <span class="text-zinc-700 dark:text-zinc-400">
+                <div class="no-print text-sm">
+                    <span style="color: var(--ink-soft)">
                         {{ __('Time') }}:
                     </span>
-                    <span class="font-semibold text-zinc-900 dark:text-zinc-100">
+                    <span class="voucher-mono font-semibold" style="color: var(--ink)">
                         {{ optional($this->batch->paid_at)->format('H:i') ?? Carbon\Carbon::parse($this->batch->paid_at)->format('H:i a') }}
                     </span>
                 </div>
             </div>
         </div>
 
-        <div
-            class="flex flex-col gap-2 justify-between py-6 px-6 border border-zinc-400 print:border-zinc-900 dark:border-zinc-700">
-            <div class="flex gap-2">
-                <flux:label class="w-2/6">
+        <div class="flex flex-col gap-3 justify-between rounded-lg py-6 px-6" style="border: 1px solid var(--line)">
+            <div class="flex gap-1">
+                <flux:label class="min-w-3/12">
                     {{ __('Pay to') }}:
                 </flux:label>
-                <flux:label class="w-4/6 text-zinc-900 dark:text-zinc-300 capitalize">
+                <span class="min-w-9/12 font-medium capitalize" style="color: var(--ink)">
                     {{ $this->batch->instrumentist->name }}
-                </flux:label>
+                </span>
             </div>
-            <div class="flex gap-2">
-                <flux:label class="w-2/6">
-                    {{ __('The amount of') }} ({{ __('In letters') }}):
+            <div class="flex gap-1">
+                <flux:label class="min-w-3/12">
+                    {{ __('Amount') }} ({{ __('In letters') }}):
                 </flux:label>
-                <flux:label class="w-4/6 text-zinc-900 dark:text-zinc-300 capitalize">
-                    {{ Illuminate\Support\Number::spell($this->batch->total_amount, 'es') }}
-                </flux:label>
+                <span class="voucher-serif min-w-9/12 italic" style="color: var(--ink)">
+                    {{ App\Support\MoneyToWords::spell((float) $this->batch->total_amount) }}
+                </span>
             </div>
-            <div class="flex gap-2">
-                <flux:label class="w-2/6">
+            <div class="flex gap-1">
+                <flux:label class="min-w-3/12">
                     {{ __('Payment Method') }}:
                 </flux:label>
-                <flux:label
-                    class="w-2/6 text-zinc-900 dark:text-zinc-300 border-b border-zinc-900 dark:border-zinc-300 capitalize">
+                <span class="min-w-9/12 font-medium capitalize pb-1 border-b" style="color: var(--ink); border-color: var(--line)">
                     {{ $this->batch->payment_method }}
-                </flux:label>
+                </span>
             </div>
         </div>
 
         @if($this->mode === 'summary')
 
             <!-- Tabla resumida -->
-            <div class="mt-6 rounded-lg border border-zinc-400 print:border-zinc-900 dark:border-zinc-700">
+            <div class="mt-6 rounded-lg overflow-hidden" style="border: 1px solid var(--line)">
                 <table class="w-full text-sm">
-                    <thead
-                        class="text-left text-zinc-500 print:text-black dark:text-zinc-400 border-b border-zinc-400 print:border-zinc-900 dark:border-zinc-700">
+                    <thead style="border-bottom: 1px solid var(--line); color: var(--ink-soft)">
                         <tr>
-                            <th class="py-4 px-6 font-medium">
-                                <flux:label>
-                                    {{ __('Concept') }}
-                                </flux:label>
+                            <th class="py-4 px-6 text-left text-xs font-semibold uppercase tracking-wider">
+                                {{ __('Concept') }}
                             </th>
-                            <th class="py-4 px-6 font-medium text-center">
-                                <flux:label>
-                                    {{ __('Quantity') }}
-                                </flux:label>
+                            <th class="py-4 px-6 text-center text-xs font-semibold uppercase tracking-wider">
+                                {{ __('Quantity') }}
                             </th>
-                            <th class="py-4 px-6 font-medium text-right">
-                                <flux:label>
-                                    {{ __('Unit Price') }}
-                                </flux:label>
+                            <th class="py-4 px-6 text-right text-xs font-semibold uppercase tracking-wider">
+                                {{ __('Unit Price') }}
                             </th>
-                            <th class="py-4 px-6 font-medium text-right">
-                                <flux:label>
-                                    {{ __('Subtotal') }}
-                                </flux:label>
+                            <th class="py-4 px-6 text-right text-xs font-semibold uppercase tracking-wider">
+                                {{ __('Subtotal') }}
                             </th>
                         </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-zinc-300 dark:divide-zinc-700 print:text-black">
+                    <tbody>
                         <tr>
-                            <td colspan="1"
-                                class="{{ $this->usePayScheme ? 'py-3' : 'py-6' }} pl-6 pr-2 text-justify font-mono text-zinc-800 dark:text-zinc-300">
-                                {{ config('qxlog.voucher_legend') }}
+                            <td colspan="4"
+                                class="{{ $this->usePayScheme ? 'py-3' : 'py-6' }} px-6 text-justify text-sm italic"
+                                style="color: var(--ink-soft); border-bottom: 1px solid var(--line)">
+                                {{ $this->voucher_legend }}
                             </td>
                         </tr>
                         @foreach($this->summaryRows as $key => $row)
-                            <tr>
-                                <td class="{{ $this->usePayScheme ? 'py-3' : 'py-6' }} px-6 text-zinc-800 dark:text-zinc-300">
+                            <tr style="border-bottom: 1px solid var(--line)">
+                                <td class="{{ $this->usePayScheme ? 'py-3' : 'py-6' }} px-6" style="color: var(--ink)">
                                     {{ $row['label'] }}
                                 </td>
-                                <td
-                                    class="{{ $this->usePayScheme ? 'py-3' : 'py-6' }} px-6 text-center text-zinc-800 dark:text-zinc-300">
+                                <td class="{{ $this->usePayScheme ? 'py-3' : 'py-6' }} px-6 text-center voucher-mono" style="color: var(--ink)">
                                     {{ $row['count'] }}
                                 </td>
-                                <td
-                                    class="{{ $this->usePayScheme ? 'py-3' : 'py-6' }} px-6 text-right text-zinc-800 dark:text-zinc-300">
+                                <td class="{{ $this->usePayScheme ? 'py-3' : 'py-6' }} px-6 text-right voucher-mono" style="color: var(--ink)">
                                     Q{{ number_format((float) $row['unit'], 2) }}
                                 </td>
-                                <td
-                                    class="{{ $this->usePayScheme ? 'py-3' : 'py-6' }} px-6 text-right text-zinc-800 dark:text-zinc-300">
+                                <td class="{{ $this->usePayScheme ? 'py-3' : 'py-6' }} px-6 text-right voucher-mono" style="color: var(--ink)">
                                     Q{{ number_format((float) $row['amount'], 2) }}
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
 
-                    <tfoot class="items-center">
-                        <tr>
-                            <td colspan="4" class="{{ $this->usePayScheme ? 'py-4' : 'py-6' }} px-6"></td>
-                        </tr>
-                        <tr>
-                            <td colspan="2"
-                                class="{{ $this->usePayScheme ? 'py-2' : 'py-4' }} px-6 border-t border-zinc-400 print:border-zinc-900 dark:border-zinc-700">
+                    <tfoot>
+                        <tr class="voucher-total-row">
+                            <td colspan="2" class="{{ $this->usePayScheme ? 'py-3' : 'py-4' }} px-6" style="border-top: 2px solid var(--ink)"></td>
+                            <td colspan="1"
+                                class="{{ $this->usePayScheme ? 'py-3' : 'py-4' }} px-6 text-center font-semibold uppercase tracking-wide text-xs"
+                                style="color: var(--ink); border-top: 2px solid var(--ink)">
+                                {{ __('Total') }}
                             </td>
                             <td colspan="1"
-                                class="{{ $this->usePayScheme ? 'py-2' : 'py-4' }} px-6 text-center items-center font-bold text-zinc-900 dark:text-zinc-200 border-t border-zinc-400 print:border-zinc-900 dark:border-zinc-700">
-                                <flux:label>
-                                    {{ __('Total') }}
-                                </flux:label>
-                            </td>
-                            <td colspan="1"
-                                class="{{ $this->usePayScheme ? 'py-2' : 'py-4' }} px-6 text-right font-bold text-zinc-900 dark:text-zinc-200 border-t border-zinc-400 print:border-zinc-900 dark:border-zinc-700">
-                                <flux:label>
-                                    Q{{ number_format((float) $this->batch->total_amount, 2) }}
-                                </flux:label>
+                                class="voucher-total-amount {{ $this->usePayScheme ? 'py-3' : 'py-4' }} px-6 text-right voucher-mono font-bold text-lg"
+                                style="color: var(--ink); border-top: 2px solid var(--ink)">
+                                Q{{ number_format((float) $this->batch->total_amount, 2) }}
                             </td>
                         </tr>
                     </tfoot>
@@ -367,52 +483,42 @@ mount(function (string|int $batch) {
             <!-- Tabla detallada -->
             <div class="mt-6 overflow-x-auto">
                 <table class="min-w-full text-sm">
-                    <thead class="text-left text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-700">
+                    <thead style="border-bottom: 1px solid var(--line); color: var(--ink-soft)">
                         <tr>
-                            <th class="py-2 pr-3 font-medium">
-                                <flux:label>
-                                    {{ __('Date') }}
-                                </flux:label>
+                            <th class="py-3 pr-3 text-left text-xs font-semibold uppercase tracking-wider">
+                                {{ __('Date') }}
                             </th>
-                            <th class="py-2 pr-3 font-medium no-print text-center">
-                                <flux:label>
-                                    {{ __('Duration') }}
-                                </flux:label>
+                            <th class="py-3 pr-3 font-semibold uppercase tracking-wider text-xs no-print text-center">
+                                {{ __('Duration') }}
                             </th>
-                            <th class="py-2 pr-3 font-medium text-center">
-                                <flux:label>
-                                    {{ __('Patient') }}
-                                </flux:label>
+                            <th class="py-3 pr-3 text-center text-xs font-semibold uppercase tracking-wider">
+                                {{ __('Patient') }}
                             </th>
-                            <th class="py-2 pr-3 font-medium text-center">
-                                <flux:label>
-                                    {{ __('Surgery') }}
-                                </flux:label>
+                            <th class="py-3 pr-3 text-center text-xs font-semibold uppercase tracking-wider">
+                                {{ __('Surgery') }}
                             </th>
-                            <th class="py-2 font-medium text-right">
-                                <flux:label>
-                                    {{ __('Subtotal') }}
-                                </flux:label>
+                            <th class="py-3 text-right text-xs font-semibold uppercase tracking-wider">
+                                {{ __('Subtotal') }}
                             </th>
                         </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                    <tbody>
                         @foreach($this->items as $it)
                             @php
                                 $p = $it->procedure;
                             @endphp
-                            <tr>
-                                <td class="py-3 pr-3 text-zinc-600 dark:text-zinc-300">
+                            <tr style="border-bottom: 1px solid var(--line)">
+                                <td class="py-3 pr-3" style="color: var(--ink-soft)">
                                     {{ $p->procedure_date->format('d/m/Y') ?? '-' }}
                                 </td>
-                                <td class="py-3 pr-3 text-zinc-600 dark:text-zinc-300 no-print text-center">
+                                <td class="py-3 pr-3 no-print text-center voucher-mono" style="color: var(--ink-soft)">
                                     {{ $p->duration_minutes ?? '-' }} min
                                 </td>
-                                <td class="py-3 pr-3 text-zinc-900 dark:text-zinc-100 font-medium text-center">
+                                <td class="py-3 pr-3 font-medium text-center" style="color: var(--ink)">
                                     {{ $p->patient_name ?? '-' }}
                                 </td>
-                                <td class="py-3 pr-3 text-zinc-600 dark:text-zinc-300">
+                                <td class="py-3 pr-3" style="color: var(--ink-soft)">
                                     {{ $p->procedure_type ?? '-' }}
                                     @if(($p->is_videosurgery ?? false) === true)
                                         <span
@@ -421,7 +527,7 @@ mount(function (string|int $batch) {
                                         </span>
                                     @endif
                                 </td>
-                                <td class="py-3 text-right font-mono font-medium text-zinc-900 dark:text-zinc-100">
+                                <td class="py-3 text-right voucher-mono font-medium" style="color: var(--ink)">
                                     Q{{ number_format((float) $it->amount, 2) }}
                                 </td>
                             </tr>
@@ -432,20 +538,20 @@ mount(function (string|int $batch) {
                         <tr>
                             <td colspan="4" class="print:hidden"></td>
                             <td colspan="3" class="print:table-cell hidden"></td>
-                            <td colspan="1" class="pt-8 border-b border-zinc-200 dark:border-zinc-700 print:table-cell">
+                            <td colspan="1" class="pt-8 print:table-cell" style="border-bottom: 1px solid var(--line)">
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="5" class="pt-4 text-right font-bold text-zinc-900 dark:text-zinc-100 no-print">
+                            <td colspan="5" class="pt-4 text-right font-semibold uppercase tracking-wide text-xs no-print" style="color: var(--ink-soft)">
                                 {{ __('Total') }}
                             </td>
                             <td colspan="4"
-                                class="pt-4 text-right font-bold text-zinc-900 dark:text-zinc-100 hidden print:table-cell">
+                                class="pt-4 text-right font-semibold uppercase tracking-wide text-xs hidden print:table-cell" style="color: var(--ink-soft)">
                                 {{ __('Total') }}
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="5" class="text-right font-bold text-xl text-zinc-900 dark:text-zinc-100">
+                            <td colspan="5" class="voucher-total-amount text-right voucher-mono font-bold text-xl" style="color: var(--ink)">
                                 Q{{ number_format((float) $this->batch->total_amount, 2) }}
                             </td>
                         </tr>
@@ -459,31 +565,28 @@ mount(function (string|int $batch) {
         <div
             class="grid grid-cols-3 gap-12 text-center items-center text-xs {{ $this->usePayScheme ? 'mt-12' : 'mt-16' }}">
             <div>
-                <div class="text-zinc-500 print:text-black dark:text-zinc-400 mb-12">
+                <div class="mb-12" style="color: var(--ink-soft)">
                     {{ __('Received by') }}
                 </div>
-                <div
-                    class="border-t border-zinc-300 print:border-zinc-900 dark:border-zinc-600 pt-2 text-zinc-900 dark:text-zinc-100">
+                <div class="pt-2" style="border-top: 1px solid var(--line); color: var(--ink)">
                     {{ $this->batch->instrumentist->name ?? '' }}
                 </div>
             </div>
 
             <div>
-                <div class="text-zinc-500 print:text-black dark:text-zinc-400 mb-12">
+                <div class="mb-12" style="color: var(--ink-soft)">
                     {{ __('Paid by') }} ({{ __('Administration') }})
                 </div>
-                <div
-                    class="border-t border-zinc-300 print:border-zinc-900 dark:border-zinc-600 pt-2 text-zinc-900 dark:text-zinc-100">
+                <div class="pt-2" style="border-top: 1px solid var(--line); color: var(--ink)">
                     {{ $this->batch->paidByUser->name ?? '' }}
                 </div>
             </div>
 
             <div>
-                <div class="text-zinc-500 print:text-black dark:text-zinc-400 mb-12">
+                <div class="mb-12" style="color: var(--ink-soft)">
                     {{ __('Authorized Signature') }}
                 </div>
-                <div
-                    class="border-t border-zinc-300 print:border-zinc-900 dark:border-zinc-600 pt-2 text-zinc-900 dark:text-zinc-100">
+                <div class="pt-2" style="border-top: 1px solid var(--line); color: var(--ink)">
                     {{ __('Medical Director') }}
                 </div>
             </div>
@@ -491,7 +594,7 @@ mount(function (string|int $batch) {
 
         <!-- Footer note -->
         <p
-            class="hidden print:block {{ $this->usePayScheme ? 'mt-10' : 'mt-18' }} text-xs text-zinc-400 print:text-black dark:text-zinc-500 text-center">
+            class="hidden print:block {{ $this->usePayScheme ? 'mt-10' : 'mt-18' }} text-xs text-zinc-400 dark:text-zinc-500 text-center">
             {{ __('Generated by ' . config('app.name') . '. Keep for internal control.') }}
         </p>
     </div>

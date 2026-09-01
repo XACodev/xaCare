@@ -17,6 +17,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Description
+    |--------------------------------------------------------------------------
+    |
+    | This value is the description of your application, which will be used when the
+    | framework needs to place the application's description in a notification or
+    | other UI elements where an application description needs to be displayed.
+    |
+    */
+
+    'description' => env('APP_DESCRIPTION', 'Sistema de Gestión Hospitalaria'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |
@@ -125,4 +138,44 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Application Logo
+    |--------------------------------------------------------------------------
+    |
+    | This value is the path to the application logo, which will be used when the
+    | framework needs to place the application logo in a notification or
+    | other UI elements where an application logo needs to be displayed.
+    |
+    */
+
+    'logo' => env('APP_LOGO', 'img/logo.png'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Favicon
+    |--------------------------------------------------------------------------
+    |
+    | This value is the path to the application favicon, which will be used when the
+    | framework needs to place the application favicon in a notification or
+    | other UI elements where an application favicon needs to be displayed.
+    |
+    */
+
+    'favicon' => env('APP_FAVICON', 'img/favicon.ico'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | xaCare / QxLog Configuration
+    |--------------------------------------------------------------------------
+    |
+    | These configuration options determine the settings for xaCare / QxLog.
+    |
+    */
+
+    'qxlog' => [
+        'org_name' => env('QXLOG_ORG_NAME', 'xHospital'),
+        'voucher_legend' => env('QXLOG_VOUCHER_LEGEND', 'Por honorarios correspondientes a servicios prestados en procedimientos quirúrgicos.'),
+        'default_rate' => env('QXLOG_DEFAULT_RATE', 200.00),
+    ],
 ];

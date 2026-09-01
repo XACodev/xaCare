@@ -47,6 +47,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Volt::route('pricing/settings', 'pricing.settings')->name('pricing.settings');
     Volt::route('pricing/instrumentists', 'pricing.instrumentist')->name('pricing.instrumentists');
+
+    Volt::route('settings/organization', 'settings.organization')->name('settings.organization');
 });
 
 Route::middleware(['auth', 'superadmin'])->group(function () {

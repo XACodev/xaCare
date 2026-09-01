@@ -332,7 +332,7 @@ updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculat
 <div class="max-w-6xl mx-auto p-4 space-y-6">
     <div class="mb-4">
         <flux:heading size="xl">{{ __('Register Procedure') }}</flux:heading>
-        <flux:subheading>QxLog • Registro de intervenciones quirúrgicas • (Instrumentista)</flux:subheading>
+        <flux:subheading>xaCare • Registro de intervenciones quirúrgicas • (Instrumentista)</flux:subheading>
     </div>
 
     @if($success_message)
