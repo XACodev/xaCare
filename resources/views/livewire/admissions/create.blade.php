@@ -40,6 +40,7 @@ rules([
 mount(function () {
     abort_unless(Auth::check(), 401);
     abort_unless((bool) Auth::user()->hasRole('admin'), 403);
+    abort_if((bool) Auth::user()->is_super_admin, 403, 'Super admin es de solo lectura; usa una cuenta de hospital para operar.');
 });
 
 $patient_suggestions = computed(function () {

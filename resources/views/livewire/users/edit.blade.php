@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Hospital;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +16,7 @@ state([
     'username' => '',
     'email' => '',
     'role' => '',
+    'hospital_id' => '',
     'is_super_admin' => false,
     'use_pay_scheme' => false,
 
@@ -24,6 +26,7 @@ state([
     'success_message' => null,
 
     'availableRoles' => [],
+    'availableHospitals' => [],
 ]);
 
 mount(function (string|int $user) {
@@ -33,12 +36,14 @@ mount(function (string|int $user) {
     $u = User::withTrashed()->findOrFail($user);
 
     $this->availableRoles = Role::pluck('name', 'id')->toArray();
+    $this->availableHospitals = Hospital::orderBy('name')->pluck('name', 'id')->toArray();
 
     $this->user = $u;
     $this->name = $u->name;
     $this->username = $u->username;
     $this->email = $u->email;
     $this->role = $u->getRoleNames()->first() ?? '';
+    $this->hospital_id = $u->hospital_id ?? '';
     $this->is_super_admin = $u->is_super_admin;
     $this->use_pay_scheme = $u->use_pay_scheme;
 });
@@ -48,6 +53,7 @@ rules(fn() => [
     'username' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users', 'username')->ignore($this->user->id)],
     'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->user->id)],
     'role' => ['required', 'string', 'max:50'],
+    'hospital_id' => [Rule::requiredIf(! $this->is_super_admin), 'nullable', 'integer', 'exists:hospitals,id'],
     'password' => ['nullable', 'string', 'min:6', 'confirmed'],
     'is_super_admin' => ['boolean'],
     'use_pay_scheme' => ['boolean'],
@@ -76,6 +82,7 @@ $save = function () {
         'username' => $data['username'],
         'email' => $data['email'],
         'role' => $data['role'],
+        'hospital_id' => $data['is_super_admin'] ? null : $data['hospital_id'],
         'is_super_admin' => $data['is_super_admin'],
         'use_pay_scheme' => $data['use_pay_scheme'],
     ]);
@@ -166,8 +173,20 @@ $toggleDelete = function () {
             @endforeach
         </select>
 
+        @unless($is_super_admin)
+            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Hospital') }}</label>
+            <select wire:model="hospital_id"
+                class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-200 focus:ring-0 focus:border-zinc-500 p-2.5">
+                <option value="">-- {{ __('Select') }} --</option>
+                @foreach($availableHospitals as $id => $hospitalName)
+                    <option value="{{ $id }}">{{ $hospitalName }}</option>
+                @endforeach
+            </select>
+            @error('hospital_id') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+        @endunless
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <flux:checkbox wire:model.live="is_super_admin" label="{{ __('Super Admin') }}" />
+            <flux:checkbox wire:model.live="is_super_admin" label="{{ __('Super Admin (platform-only, read-only across hospitals)') }}" />
             <flux:checkbox wire:model.live="use_pay_scheme" label="{{ __('Use Pay Scheme') }}" />
         </div>
 

@@ -1,8 +1,9 @@
 <?php
 
+use App\Models\Hospital;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
 use Livewire\Volt\Volt;
+use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
     app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
@@ -37,7 +38,7 @@ test('non super admin cannot view user edit page', function () {
 
 test('can update user details and role', function () {
     $admin = User::factory()->create(['is_super_admin' => true]);
-    $userToEdit = User::factory()->create(['name' => 'Old Name', 'role' => 'doctor']);
+    $userToEdit = User::factory()->create(['name' => 'Old Name', 'role' => 'doctor', 'hospital_id' => Hospital::factory()->create()->id]);
     $userToEdit->assignRole('doctor');
 
     $this->actingAs($admin);

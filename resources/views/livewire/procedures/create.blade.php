@@ -66,6 +66,7 @@ mount(function () {
     abort_unless((bool) Auth::check(), 401, 'Unauthorized');
 
     abort_unless(in_array(Auth::user()->role, ['instrumentist', 'admin'], true), 403, 'Unauthorized');
+    abort_if((bool) Auth::user()->is_super_admin, 403, 'Super admin es de solo lectura; usa una cuenta de hospital para operar.');
 
     // Cargar listas para selects (si existen)
     $this->doctors = User::query()

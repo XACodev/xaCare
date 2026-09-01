@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Hospital;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +14,7 @@ state([
     'username' => '',
     'email' => '',
     'role' => '',
+    'hospital_id' => '',
     'password' => '',
     'password_confirmation' => '',
     'is_super_admin' => false,
@@ -20,6 +22,7 @@ state([
     'phone' => '',
     'success_message' => null,
     'availableRoles' => [],
+    'availableHospitals' => [],
 ]);
 
 mount(function () {
@@ -28,13 +31,15 @@ mount(function () {
         abort(403);
 
     $this->availableRoles = Role::pluck('name', 'id')->toArray();
+    $this->availableHospitals = Hospital::orderBy('name')->pluck('name', 'id')->toArray();
 });
 
-rules([
+rules(fn () => [
     'name' => ['required', 'string', 'max:255'],
     'username' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users', 'username')],
     'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
     'role' => ['required', 'string', 'max:50'],
+    'hospital_id' => [Rule::requiredIf(! $this->is_super_admin), 'nullable', 'integer', 'exists:hospitals,id'],
     'availableRoles' => ['required', 'array'],
     'password' => ['required', 'string', 'min:6', 'confirmed'],
     'is_super_admin' => ['boolean'],
@@ -55,6 +60,7 @@ $save = function () {
         'username' => $data['username'],
         'email' => $data['email'],
         'password' => Hash::make($data['password']),
+        'hospital_id' => $data['is_super_admin'] ? null : $data['hospital_id'],
         'is_super_admin' => $data['is_super_admin'],
         'use_pay_scheme' => $data['use_pay_scheme'],
         'phone' => $data['phone'],
@@ -71,6 +77,7 @@ $save = function () {
         'email',
         'phone',
         'role',
+        'hospital_id',
         'availableRoles',
         'password',
         'password_confirmation',
@@ -115,13 +122,27 @@ $save = function () {
             @endif
         </select>
 
+        @unless($is_super_admin)
+            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Hospital') }}</label>
+            <select wire:model.live="hospital_id"
+                class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
+                <option value="">-- {{ __('Select') }} --</option>
+                @forelse($availableHospitals as $id => $hospitalName)
+                    <option value="{{ $id }}">{{ $hospitalName }}</option>
+                @empty
+                    <option value="">{{ __('No hospitals found.') }}</option>
+                @endforelse
+            </select>
+            @error('hospital_id') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+        @endunless
+
         <flux:input wire:model.live="password" type="password" label="{{ __('Password') }}"
             placeholder="{{ __('Password') }}" />
 
         <flux:input wire:model.live="password_confirmation" type="password" label="{{ __('Confirm Password') }}"
             placeholder="{{ __('Confirm Password') }}" />
 
-        <flux:checkbox wire:model.live="is_super_admin" label="{{ __('Super Admin') }}" />
+        <flux:checkbox wire:model.live="is_super_admin" label="{{ __('Super Admin (platform-only, read-only across hospitals)') }}" />
 
         <flux:checkbox wire:model.live="use_pay_scheme" label="{{ __('Use Pay Scheme') }}" />
 
