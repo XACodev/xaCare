@@ -109,4 +109,9 @@ class SurgicalCase extends Model
     {
         return $this->belongsTo(Admission::class);
     }
+
+    public function assignments()
+    {
+        return $this->hasMany(SurgicalAssignment::class);
+    }
 }
