@@ -44,4 +44,9 @@ class SurgicalAssignment extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function payoutItem()
+    {
+        return $this->belongsTo(PayoutItem::class);
+    }
 }

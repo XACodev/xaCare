@@ -18,7 +18,7 @@ class PayoutBatchFactory extends Factory
     public function definition(): array
     {
         return [
-            'instrumentist_id' => User::factory(),
+            'payee_id' => User::factory(),
             'paid_by_id' => User::factory(),
             'paid_at' => now(),
             'total_amount' => $this->faker->randomFloat(2, 100, 1000),

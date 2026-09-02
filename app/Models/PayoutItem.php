@@ -3,16 +3,17 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PayoutItem extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, HasFactory;
 
     protected $fillable = [
         'hospital_id',
         'payout_batch_id',
-        'procedure_id',
+        'surgical_assignment_id',
         'amount',
         'snapshot',
     ];
@@ -27,8 +28,8 @@ class PayoutItem extends Model
         return $this->belongsTo(PayoutBatch::class);
     }
 
-    public function procedure()
+    public function surgicalAssignment()
     {
-        return $this->belongsTo(SurgicalCase::class);
+        return $this->belongsTo(SurgicalAssignment::class);
     }
 }
