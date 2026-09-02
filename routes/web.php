@@ -14,7 +14,7 @@ Route::get('/', function () {
 Volt::route('invitaciones/{token}', 'hospital-invitations.accept')->name('hospital-invitations.accept');
 
 Volt::route('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'hospital.subscribed'])
     ->name('dashboard');
 
 Route::middleware(['auth'])->group(function () {
@@ -35,14 +35,14 @@ Route::middleware(['auth'])->group(function () {
         ->name('two-factor.show');
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'hospital.subscribed'])->group(function () {
     Volt::route('procedures/create', 'procedures.create')->name('procedures.create');
 
     Volt::route('instrumentist/payouts', 'instrumentist.payouts')->name('instrumentist.payouts');
     Volt::route('instrumentist/payouts/{batch}/voucher', 'payouts.voucher')->name('instrumentist.payouts.voucher');
 });
 
-Route::middleware(['auth', 'admin'])->group(function () {
+Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
     Volt::route('patients', 'patients.index')->name('patients.index');
     Volt::route('patients/create', 'patients.create')->name('patients.create');
     Volt::route('admissions/create', 'admissions.create')->name('admissions.create');
@@ -58,6 +58,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Volt::route('pricing/instrumentists', 'pricing.instrumentist')->name('pricing.instrumentists');
 
     Volt::route('settings/organization', 'settings.organization')->name('settings.organization');
+
+    Volt::route('seguros', 'modules.insurance')
+        ->middleware('hospital.feature:insurance')
+        ->name('modules.insurance');
 });
 
 Route::middleware(['auth', 'superadmin'])->group(function () {

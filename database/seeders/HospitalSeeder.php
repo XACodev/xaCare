@@ -11,7 +11,13 @@ class HospitalSeeder extends Seeder
     {
         Hospital::firstOrCreate(
             ['slug' => 'hnsc'],
-            ['name' => 'Centro Médico y Hospital Nuestra Señora del Carmen', 'plan' => 'basic', 'features' => [], 'is_active' => true],
+            [
+                'name' => 'Centro Médico y Hospital Nuestra Señora del Carmen',
+                'plan' => 'basic',
+                'features' => config('billing.plans.basic.features', []),
+                'is_active' => true,
+                'subscription_status' => 'active',
+            ],
         );
     }
 }

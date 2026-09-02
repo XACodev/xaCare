@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\Hospital;
+use App\Services\HospitalPlanService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 use function Livewire\Volt\{state, mount, rules};
 
@@ -18,7 +20,7 @@ mount(function () {
 
 rules([
     'name' => ['required', 'string', 'max:255'],
-    'plan' => ['required', 'string', 'max:50'],
+    'plan' => ['required', 'string', Rule::in(array_keys(config('billing.plans')))],
 ]);
 
 $save = function () {
@@ -33,13 +35,15 @@ $save = function () {
         $slug = $baseSlug.'-'.++$i;
     }
 
-    Hospital::create([
+    $hospital = Hospital::create([
         'name' => $data['name'],
         'slug' => $slug,
         'plan' => $data['plan'],
         'features' => [],
         'is_active' => true,
     ]);
+
+    app(HospitalPlanService::class)->startTrial($hospital, $data['plan']);
 
     $this->success_message = __('Hospital created.');
     $this->reset(['name', 'plan']);
@@ -66,8 +70,9 @@ $save = function () {
         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Plan') }}</label>
         <select wire:model.live="plan"
             class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
-            <option value="basic">{{ __('Basic') }}</option>
-            <option value="pro">{{ __('Pro') }}</option>
+            @foreach(config('billing.plans') as $planKey => $plan)
+                <option value="{{ $planKey }}">{{ $plan['name'] }}</option>
+            @endforeach
         </select>
 
         <div class="pt-2 flex justify-end">

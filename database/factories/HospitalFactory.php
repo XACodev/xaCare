@@ -18,8 +18,10 @@ class HospitalFactory extends Factory
             'name' => $name,
             'slug' => Str::slug($name).'-'.$this->faker->unique()->numberBetween(1, 99999),
             'plan' => 'basic',
-            'features' => [],
+            'features' => config('billing.plans.basic.features', []),
             'is_active' => true,
+            'subscription_status' => 'active',
+            'trial_ends_at' => null,
         ];
     }
 }

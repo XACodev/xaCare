@@ -83,6 +83,12 @@
                             {{ __('General Settings') }}
                         </flux:navlist.item>
                     @endcan
+                    @if(auth()->user()->hospital?->hasFeature('insurance'))
+                        <flux:navlist.item icon="shield-check" :href="route('modules.insurance')"
+                            :current="request()->routeIs('modules.insurance')" wire:navigate>
+                            {{ __('Seguros') }}
+                        </flux:navlist.item>
+                    @endif
                 </flux:navlist.group>
             @endif
         </flux:navlist>

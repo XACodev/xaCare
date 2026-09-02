@@ -18,6 +18,7 @@ test('super admin can create a hospital and it gets its own organization setting
     $hospital = Hospital::where('name', 'Hospital Nuevo')->first();
     expect($hospital)->not->toBeNull();
     expect($hospital->slug)->toBe('hospital-nuevo');
+    expect($hospital->subscription_status->value)->toBe('trialing');
     expect(OrganizationSetting::where('hospital_id', $hospital->id)->exists())->toBeTrue();
 });
 

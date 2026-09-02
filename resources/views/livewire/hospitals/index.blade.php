@@ -49,6 +49,7 @@ $toggleActive = function (int $id) {
                     <th class="px-4 py-4 text-left text-xs font-semibold text-zinc-500 tracking-wider">{{ __('Name') }}</th>
                     <th class="px-4 py-4 text-left text-xs font-semibold text-zinc-500 tracking-wider">{{ __('Slug') }}</th>
                     <th class="px-4 py-4 text-left text-xs font-semibold text-zinc-500 tracking-wider">{{ __('Plan') }}</th>
+                    <th class="px-4 py-4 text-left text-xs font-semibold text-zinc-500 tracking-wider">{{ __('Subscription') }}</th>
                     <th class="px-4 py-4 text-center text-xs font-semibold text-zinc-500 tracking-wider">{{ __('Users') }}</th>
                     <th class="px-4 py-4 text-center text-xs font-semibold text-zinc-500 tracking-wider">{{ __('Status') }}</th>
                     <th class="px-4 py-4 text-center text-xs font-semibold text-zinc-500 tracking-wider">{{ __('Actions') }}</th>
@@ -60,6 +61,7 @@ $toggleActive = function (int $id) {
                         <td class="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-100">{{ $hospital->name }}</td>
                         <td class="px-4 py-3 text-sm text-zinc-500 font-mono">{{ $hospital->slug }}</td>
                         <td class="px-4 py-3 text-sm text-zinc-500 capitalize">{{ $hospital->plan }}</td>
+                        <td class="px-4 py-3 text-sm text-zinc-500">{{ $hospital->subscription_status->value }}</td>
                         <td class="px-4 py-3 text-center text-sm text-zinc-500">{{ $hospital->users_count }}</td>
                         <td class="px-4 py-3 text-center">
                             <flux:badge size="sm" color="{{ $hospital->is_active ? 'green' : 'red' }}">
@@ -77,7 +79,7 @@ $toggleActive = function (int $id) {
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-6 text-center text-sm text-zinc-500">{{ __('No hospitals.') }}</td>
+                        <td colspan="7" class="px-4 py-6 text-center text-sm text-zinc-500">{{ __('No hospitals.') }}</td>
                     </tr>
                 @endforelse
             </tbody>

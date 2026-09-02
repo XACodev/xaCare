@@ -1,8 +1,12 @@
 <?php
 
+use App\Enums\SubscriptionStatus;
 use App\Models\Hospital;
 use App\Models\HospitalInvitation;
+use App\Services\HospitalPlanService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 use function Livewire\Volt\{state, mount, rules};
 
@@ -11,6 +15,8 @@ state([
     'name' => '',
     'plan' => 'basic',
     'is_active' => true,
+    'subscription_status' => 'active',
+    'trial_ends_at' => '',
     'success_message' => null,
     'invitations' => [],
     'invitation_note' => '',
@@ -26,14 +32,18 @@ mount(function (string|int $hospital) {
     $this->name = $h->name;
     $this->plan = $h->plan;
     $this->is_active = $h->is_active;
+    $this->subscription_status = $h->subscription_status->value;
+    $this->trial_ends_at = $h->trial_ends_at?->format('Y-m-d\TH:i') ?? '';
 
     $this->loadInvitations();
 });
 
 rules([
     'name' => ['required', 'string', 'max:255'],
-    'plan' => ['required', 'string', 'max:50'],
+    'plan' => ['required', 'string', Rule::in(array_keys(config('billing.plans')))],
     'is_active' => ['boolean'],
+    'subscription_status' => ['required', 'string', Rule::in(array_column(SubscriptionStatus::cases(), 'value'))],
+    'trial_ends_at' => ['nullable', 'string'],
 ]);
 
 $save = function () {
@@ -41,8 +51,20 @@ $save = function () {
 
     $data = $this->validate();
 
-    $this->hospital->update($data);
+    $this->hospital->update([
+        'name' => $data['name'],
+        'is_active' => $data['is_active'],
+    ]);
 
+    $plans = app(HospitalPlanService::class);
+    $plans->applyPlan($this->hospital, $data['plan']);
+    $plans->setStatus(
+        $this->hospital,
+        SubscriptionStatus::from($data['subscription_status']),
+        filled($data['trial_ends_at']) ? Carbon::parse($data['trial_ends_at']) : null,
+    );
+
+    $this->hospital->refresh();
     $this->success_message = __('Hospital updated.');
 };
 
@@ -100,9 +122,20 @@ $revokeInvitation = function (int $invitationId) {
         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Plan') }}</label>
         <select wire:model.live="plan"
             class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
-            <option value="basic">{{ __('Basic') }}</option>
-            <option value="pro">{{ __('Pro') }}</option>
+            @foreach(config('billing.plans') as $planKey => $plan)
+                <option value="{{ $planKey }}">{{ $plan['name'] }}</option>
+            @endforeach
         </select>
+
+        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Subscription') }}</label>
+        <select wire:model.live="subscription_status"
+            class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
+            @foreach(\App\Enums\SubscriptionStatus::cases() as $status)
+                <option value="{{ $status->value }}">{{ $status->value }}</option>
+            @endforeach
+        </select>
+
+        <flux:input type="datetime-local" wire:model="trial_ends_at" label="{{ __('Trial ends at') }}" />
 
         <flux:checkbox wire:model.live="is_active" label="{{ __('Active') }}" />
 
