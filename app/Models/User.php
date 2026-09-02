@@ -63,6 +63,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Asignaciones quirurgicas del usuario como beneficiario.
+     */
+    public function assignments()
+    {
+        return $this->hasMany(SurgicalAssignment::class);
+    }
+
+    /**
      * Get the user's initials
      */
     public function initials(): string

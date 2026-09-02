@@ -2,19 +2,20 @@
 
 use Livewire\Volt\Volt;
 use App\Models\User;
-use App\Models\Procedure;
+use App\Models\SurgicalAssignment;
 
 test('earnings are hidden by default and toggle works', function () {
-    $user = User::factory()->create(['role' => 'instrumentist']);
+    $hospital = \App\Models\Hospital::factory()->create();
+    $user = User::factory()->create(['role' => 'instrumentist', 'hospital_id' => $hospital->id]);
+    $this->actingAs($user);
 
     // Create some data so we can verify the amount is actually hidden/shown
-    Procedure::factory()->create([
-        'instrumentist_id' => $user->id,
+    SurgicalAssignment::factory()->create([
+        'hospital_id' => $hospital->id,
+        'user_id' => $user->id,
         'status' => 'paid',
         'calculated_amount' => 500,
     ]);
-
-    $this->actingAs($user);
 
     Volt::test('dashboard')
         ->assertSet('showEarnings', false)

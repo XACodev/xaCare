@@ -12,7 +12,7 @@ class PayoutBatch extends Model
 
     protected $fillable = [
         'hospital_id',
-        'instrumentist_id',
+        'payee_id',
         'paid_by_id',
         'paid_at',
         'total_amount',
@@ -24,9 +24,9 @@ class PayoutBatch extends Model
         'total_amount' => 'decimal:2',
     ];
 
-    public function instrumentist()
+    public function payee()
     {
-        return $this->belongsTo(User::class, 'instrumentist_id', 'id');
+        return $this->belongsTo(User::class, 'payee_id', 'id');
     }
 
     public function paidByUser()

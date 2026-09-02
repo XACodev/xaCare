@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Procedure extends Model
+class SurgicalCase extends Model
 {
     use HasFactory, SoftDeletes, BelongsToTenant;
 
@@ -108,5 +108,10 @@ class Procedure extends Model
     public function admission()
     {
         return $this->belongsTo(Admission::class);
+    }
+
+    public function assignments()
+    {
+        return $this->hasMany(SurgicalAssignment::class);
     }
 }

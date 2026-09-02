@@ -2,7 +2,7 @@
 
 use App\Models\OrganizationSetting;
 use App\Models\PayoutBatch;
-use App\Models\Procedure;
+use App\Models\SurgicalAssignment;
 use Illuminate\Support\Facades\Auth;
 
 use function Livewire\Volt\{state, mount};
@@ -28,9 +28,12 @@ mount(function (string|int $batch) {
 
     $b = PayoutBatch::query()
         ->with([
-            'instrumentist:id,name',
+            'payee:id,name',
             'paidByUser:id,name',
-            'items.procedure',
+            'items.surgicalAssignment.surgicalCase',
+            'items.surgicalAssignment.surgicalRole',
+            'items.surgicalAssignment.activities' => fn ($q) => $q->latest(),
+            'items.surgicalAssignment.activities.causer:id,name',
         ])
         ->findOrFail($batch);
 
@@ -70,8 +73,8 @@ mount(function (string|int $batch) {
     $this->year = optional($this->batch->paid_at)->format('Y') ?? now()->format('Y');
     $this->folio = 'QX-' . $this->year . '-' . str_pad((string) $this->batch->id, 6, '0', STR_PAD_LEFT);
 
-    $this->remaining_pending_count = Procedure::query()
-        ->where('instrumentist_id', $b->instrumentist_id)
+    $this->remaining_pending_count = SurgicalAssignment::query()
+        ->where('user_id', $b->payee_id)
         ->where('status', 'pending')
         ->count();
 
@@ -399,7 +402,7 @@ mount(function (string|int $batch) {
 
                 @if($this->remaining_pending_count > 0 && Auth::user()->can('payouts.create'))
                     <flux:button
-                        href="{{ route('payouts.create', ['instrumentist_id' => $this->batch->instrumentist_id]) }}"
+                        href="{{ route('payouts.create', ['payee_id' => $this->batch->payee_id]) }}"
                         variant="ghost">
                         {{ __('Liquidate again') }} ({{ $this->remaining_pending_count }})
                     </flux:button>
@@ -465,7 +468,15 @@ mount(function (string|int $batch) {
                     {{ __('Pay to') }}:
                 </flux:label>
                 <span class="min-w-9/12 font-medium capitalize" style="color: var(--ink)">
-                    {{ $this->batch->instrumentist->name }}
+                    {{ $this->batch->payee->name }}
+                </span>
+            </div>
+            <div class="flex gap-1">
+                <flux:label class="min-w-3/12">
+                    {{ __('Role') }}:
+                </flux:label>
+                <span class="min-w-9/12 font-medium capitalize" style="color: var(--ink)">
+                    {{ $this->batch->items->pluck('surgicalAssignment.surgicalRole.name')->unique()->implode(', ') }}
                 </span>
             </div>
             <div class="flex gap-1">
@@ -585,7 +596,7 @@ mount(function (string|int $batch) {
                     <tbody>
                         @foreach($this->items as $it)
                             @php
-                                $p = $it->procedure;
+                                $p = $it->surgicalAssignment->surgicalCase;
                             @endphp
                             <tr style="border-bottom: 1px solid var(--line)">
                                 <td class="py-3 pr-3" style="color: var(--ink-soft)">
@@ -638,6 +649,60 @@ mount(function (string|int $batch) {
                 </table>
             </div>
 
+            {{--
+                Historial de cambios (auditoría de honorarios): quién modificó el
+                monto/cortesía/nota de cada asignación, antes/después, y cuándo.
+                No debe aparecer en la impresión física del voucher (no-print,
+                mismo patrón usado en el resto del archivo).
+            --}}
+            @php
+                $itemsWithHistory = $this->items->filter(
+                    fn ($it) => $it->surgicalAssignment->activities->isNotEmpty()
+                );
+            @endphp
+            @if($itemsWithHistory->isNotEmpty())
+                <div class="no-print mt-6 rounded-lg overflow-hidden" style="border: 1px solid var(--line)">
+                    <div class="px-6 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--ink-soft); border-bottom: 1px solid var(--line)">
+                        {{ __('Change History') }}
+                    </div>
+
+                    <div class="divide-y" style="border-color: var(--line)">
+                        @foreach($itemsWithHistory as $it)
+                            @php
+                                $case = $it->surgicalAssignment->surgicalCase;
+                            @endphp
+                            <details class="px-6 py-3">
+                                <summary class="cursor-pointer text-sm font-medium" style="color: var(--ink)">
+                                    {{ $case->patient_name ?? '-' }} &mdash; {{ $case->procedure_type ?? '-' }}
+                                    <span class="text-xs font-normal" style="color: var(--ink-soft)">
+                                        ({{ $it->surgicalAssignment->activities->count() }} {{ __('changes') }})
+                                    </span>
+                                </summary>
+
+                                <ul class="mt-2 space-y-1 text-xs" style="color: var(--ink-soft)">
+                                    @foreach($it->surgicalAssignment->activities as $activity)
+                                        <li>
+                                            <span class="font-medium" style="color: var(--ink)">
+                                                {{ $activity->causer?->name ?? __('System') }}
+                                            </span>
+                                            &mdash;
+                                            @foreach(($activity->properties['attributes'] ?? []) as $field => $newValue)
+                                                <span class="voucher-mono">
+                                                    {{ $field }}: {{ $activity->properties['old'][$field] ?? '—' }} &rarr; {{ $newValue }}
+                                                </span>@if(!$loop->last), @endif
+                                            @endforeach
+                                            <span class="italic">
+                                                ({{ $activity->created_at->format('d/m/Y H:i') }})
+                                            </span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </details>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
         @endif
 
         <!-- Footer signature -->
@@ -648,7 +713,7 @@ mount(function (string|int $batch) {
                     {{ __('Received by') }}
                 </div>
                 <div class="pt-2" style="border-top: 1px solid var(--line); color: var(--ink)">
-                    {{ $this->batch->instrumentist->name ?? '' }}
+                    {{ $this->batch->payee->name ?? '' }}
                 </div>
             </div>
 

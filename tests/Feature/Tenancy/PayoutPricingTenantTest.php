@@ -4,7 +4,8 @@ use App\Models\Hospital;
 use App\Models\PayoutBatch;
 use App\Models\PayoutItem;
 use App\Models\PricingSetting;
-use App\Models\Procedure;
+use App\Models\SurgicalAssignment;
+use App\Models\SurgicalRole;
 use App\Models\User;
 
 test('payout batches and items are scoped to the authenticated user hospital', function () {
@@ -17,7 +18,9 @@ test('payout batches and items are scoped to the authenticated user hospital', f
     PayoutItem::create([
         'hospital_id' => $hospitalA->id,
         'payout_batch_id' => $batchA->id,
-        'procedure_id' => Procedure::factory()->create(['hospital_id' => $hospitalA->id])->id,
+        'surgical_assignment_id' => SurgicalAssignment::factory()
+            ->for(SurgicalRole::factory()->create(['hospital_id' => $hospitalA->id]), 'surgicalRole')
+            ->create(['hospital_id' => $hospitalA->id])->id,
         'amount' => 100,
         'snapshot' => [],
     ]);
@@ -35,7 +38,7 @@ test('creating a payout batch auto-assigns the current hospital', function () {
     $this->actingAs($user);
 
     $batch = PayoutBatch::create([
-        'instrumentist_id' => User::factory()->create(['hospital_id' => $hospital->id])->id,
+        'payee_id' => User::factory()->create(['hospital_id' => $hospital->id])->id,
         'paid_by_id' => $user->id,
         'paid_at' => now(),
         'total_amount' => 500,

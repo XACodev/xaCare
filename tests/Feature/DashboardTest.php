@@ -16,11 +16,12 @@ test('authenticated users can visit the dashboard', function () {
 });
 
 test('admins see admin shortcuts and stats on dashboard', function () {
-    $user = User::factory()->create(['role' => 'admin']);
+    $hospital = \App\Models\Hospital::factory()->create();
+    $user = User::factory()->create(['role' => 'admin', 'hospital_id' => $hospital->id]);
     $this->actingAs($user);
 
     // Create some data
-    \App\Models\Procedure::factory()->create(['status' => 'pending']);
+    \App\Models\SurgicalAssignment::factory()->create(['status' => 'pending', 'hospital_id' => $hospital->id]);
     \App\Models\PayoutBatch::factory()->create(['total_amount' => 500, 'status' => 'active']);
 
     $response = $this->get(route('dashboard'));

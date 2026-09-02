@@ -21,7 +21,8 @@ mount(function () {
     abort_unless((bool) $user, 401);
     abort_unless($user->can('payouts.view'), 403);
 
-    $this->instrumentists = User::role('instrumentist')
+    $this->instrumentists = User::query()
+        ->whereIn('id', PayoutBatch::query()->distinct()->pluck('payee_id'))
         ->orderBy('name')
         ->get(['id', 'name'])
         ->map(fn($u) => ['id' => $u->id, 'name' => $u->name]);
@@ -35,13 +36,13 @@ $batches = computed(function () {
 
     $q = PayoutBatch::query()
         ->with([
-            'instrumentist:id,name',
+            'payee:id,name',
             'paidByUser:id,name',
         ])
         ->orderByDesc('paid_at');
 
     if ($this->instrumentist_id !== 'all') {
-        $q->where('instrumentist_id', (int) $this->instrumentist_id);
+        $q->where('payee_id', (int) $this->instrumentist_id);
     }
 
     if ($this->date_from) {
@@ -115,7 +116,7 @@ $batches = computed(function () {
                                     {{ optional($b->paid_at)->format('Y-m-d H:i') ?? $b->paid_at }}
                                 </td>
                                 <td class="px-4 py-3 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                                    {{ $b->instrumentist->name ?? ('#' . $b->instrumentist_id) }}
+                                    {{ $b->payee->name ?? ('#' . $b->payee_id) }}
                                 </td>
                                 <td
                                     class="px-4 py-3 text-sm text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
@@ -153,7 +154,7 @@ $batches = computed(function () {
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <div class="font-medium text-zinc-900 dark:text-zinc-100">
-                                    {{ $b->instrumentist->name ?? ('#' . $b->instrumentist_id) }}
+                                    {{ $b->payee->name ?? ('#' . $b->payee_id) }}
                                 </div>
                                 <div class="text-xs text-zinc-500 dark:text-zinc-400">
                                     {{ optional($b->paid_at)->format('Y-m-d H:i') ?? $b->paid_at }}
