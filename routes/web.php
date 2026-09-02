@@ -8,6 +8,11 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Public, unauthenticated invitation acceptance route. Single purpose: let
+// someone without an account create the first admin account for the
+// hospital named on their invitation. Isolated from every other route.
+Volt::route('invitaciones/{token}', 'hospital-invitations.accept')->name('hospital-invitations.accept');
+
 Volt::route('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');

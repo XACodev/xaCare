@@ -31,6 +31,11 @@ class Hospital extends Model
         return $this->hasMany(User::class);
     }
 
+    public function invitations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(HospitalInvitation::class);
+    }
+
     protected static function booted(): void
     {
         static::created(function (self $hospital) {
