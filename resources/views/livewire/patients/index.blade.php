@@ -9,7 +9,7 @@ state(['q' => '']);
 
 mount(function () {
     abort_unless(Auth::check(), 401);
-    abort_unless((bool) Auth::user()->hasRole('admin'), 403);
+    abort_unless((bool) (Auth::user()->hasRole('admin') || Auth::user()->is_super_admin), 403);
 });
 
 $patients = computed(function () {
