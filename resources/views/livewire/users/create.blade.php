@@ -27,11 +27,16 @@ state([
 
 mount(function () {
     $u = Auth::user();
-    if (!$u || !$u->is_super_admin)
-        abort(403);
+    abort_unless($u && ($u->is_super_admin || $u->role === 'admin'), 403);
 
     $this->availableRoles = Role::pluck('name', 'id')->toArray();
-    $this->availableHospitals = Hospital::orderBy('name')->pluck('name', 'id')->toArray();
+
+    if ($u->is_super_admin) {
+        $this->availableHospitals = Hospital::orderBy('name')->pluck('name', 'id')->toArray();
+    } else {
+        // Admin de hospital: siempre crea staff de su propio tenant, nunca elige otro.
+        $this->hospital_id = $u->hospital_id;
+    }
 });
 
 rules(fn () => [
@@ -50,8 +55,15 @@ rules(fn () => [
 
 $save = function () {
     $me = Auth::user();
-    if (!$me && !$me->is_super_admin)
-        abort(403);
+    abort_unless($me && ($me->is_super_admin || $me->role === 'admin'), 403);
+
+    // Un admin de hospital nunca puede crear un super admin ni elegir otro hospital,
+    // sin importar qué haya llegado del formulario (defensa en profundidad, la vista
+    // ya oculta esos campos).
+    if (! $me->is_super_admin) {
+        $this->is_super_admin = false;
+        $this->hospital_id = $me->hospital_id;
+    }
 
     $data = $this->validate();
 
@@ -91,7 +103,7 @@ $save = function () {
     <div class="flex items-center justify-between">
         <div>
             <flux:heading size="xl">{{ __('New User') }}</flux:heading>
-            <flux:subheading>{{ __('Only Super Admin') }}</flux:subheading>
+            <flux:subheading>{{ __('Admin or Super Admin') }}</flux:subheading>
         </div>
         <flux:link href="{{ route('users.index') }}" class="text-sm">{{ __('Back') }}</flux:link>
     </div>
@@ -122,7 +134,7 @@ $save = function () {
             @endif
         </select>
 
-        @unless($is_super_admin)
+        @if(Auth::user()->is_super_admin && !$is_super_admin)
             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Hospital') }}</label>
             <select wire:model.live="hospital_id"
                 class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
@@ -134,7 +146,7 @@ $save = function () {
                 @endforelse
             </select>
             @error('hospital_id') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
-        @endunless
+        @endif
 
         <flux:input wire:model.live="password" type="password" label="{{ __('Password') }}"
             placeholder="{{ __('Password') }}" />
@@ -142,7 +154,9 @@ $save = function () {
         <flux:input wire:model.live="password_confirmation" type="password" label="{{ __('Confirm Password') }}"
             placeholder="{{ __('Confirm Password') }}" />
 
-        <flux:checkbox wire:model.live="is_super_admin" label="{{ __('Super Admin (platform-only, read-only across hospitals)') }}" />
+        @if(Auth::user()->is_super_admin)
+            <flux:checkbox wire:model.live="is_super_admin" label="{{ __('Super Admin (platform-only, read-only across hospitals)') }}" />
+        @endif
 
         <flux:checkbox wire:model.live="use_pay_scheme" label="{{ __('Use Pay Scheme') }}" />
 

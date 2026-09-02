@@ -14,11 +14,14 @@ state([
 ]);
 
 mount(function () {
-    abort_unless(Auth::check() && Auth::user()->is_super_admin, 403);
+    $u = Auth::user();
+    abort_unless($u && ($u->is_super_admin || $u->role === 'admin'), 403);
     $this->rolesAvailable = Role::pluck('name', 'id')->toArray();
 });
 
 $users = computed(function () {
+    // TenantScope filtra automaticamente a "solo mi hospital" para un admin de hospital
+    // (hospital_id != null); el super admin (hospital_id null) ve todos los hospitales.
     $query = User::query()->orderBy('name');
 
     if ($this->show_deleted) {
@@ -43,19 +46,21 @@ $users = computed(function () {
 
 $deleteUser = function (int $id) {
     $me = Auth::user();
-    abort_unless($me->is_super_admin, 403);
+    abort_unless($me->is_super_admin || $me->role === 'admin', 403);
 
     if ($me->id === $id) {
         abort(403, 'No puedes eliminar tu propio usuario.');
     }
 
+    // TenantScope ya limita esta consulta al hospital del admin logueado (o a todos, si
+    // es super admin) — un admin de hospital no puede alcanzar un usuario ajeno por id.
     $u = User::findOrFail($id);
     $u->delete();
 };
 
 $restoreUser = function (int $id) {
     $me = Auth::user();
-    abort_unless($me->is_super_admin, 403);
+    abort_unless($me->is_super_admin || $me->role === 'admin', 403);
 
     $u = User::onlyTrashed()->findOrFail($id);
     $u->restore();
@@ -80,7 +85,7 @@ $roleColor = function (?string $role) {
                 {{ __('Users') }}
             </flux:heading>
             <flux:subheading>
-                {{ __('Only Super Admin') }}
+                {{ __('Admin or Super Admin') }}
             </flux:subheading>
         </div>
 

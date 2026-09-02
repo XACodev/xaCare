@@ -64,14 +64,22 @@ Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
         ->name('modules.insurance');
 });
 
+Route::middleware(['auth', 'hospital.subscribed'])->group(function () {
+    // Sin middleware `admin` (Spatie hasRole('admin')) a propósito: el super admin no
+    // siempre tiene ese role Spatie asignado, solo el flag `is_super_admin`. Cada
+    // componente Volt valida `is_super_admin || role === 'admin'` en su propio mount(),
+    // igual que procedures.index. El admin de hospital gestiona el staff de su propio
+    // tenant (TenantScope lo limita); el super admin gestiona el de cualquier hospital.
+    Volt::route('users', 'users.index')->name('users.index');
+    Volt::route('users/create', 'users.create')->name('users.create');
+    Volt::route('users/{user}/edit', 'users.edit')->name('users.edit');
+});
+
 Route::middleware(['auth', 'superadmin'])->group(function () {
     Volt::route('hospitals', 'hospitals.index')->name('hospitals.index');
     Volt::route('hospitals/create', 'hospitals.create')->name('hospitals.create');
     Volt::route('hospitals/{hospital}/edit', 'hospitals.edit')->name('hospitals.edit');
 
-    Volt::route('users', 'users.index')->name('users.index');
-    Volt::route('users/create', 'users.create')->name('users.create');
-    Volt::route('users/{user}/edit', 'users.edit')->name('users.edit');
     Volt::route('roles', 'access.roles')->name('roles.index');
     Volt::route('permissions', 'access.permissions')->name('permissions.index');
 });
