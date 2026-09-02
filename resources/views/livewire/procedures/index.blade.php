@@ -31,7 +31,7 @@ $instrumentists = computed(function () {
 
 $procedures = computed(function () {
     $query = SurgicalCase::query()
-        ->with(['instrumentist:id,name'])
+        ->with(['assignments.surgicalRole', 'assignments.user'])
         ->orderByDesc('procedure_date')
         ->orderByDesc('id');
 
@@ -40,7 +40,15 @@ $procedures = computed(function () {
     }
 
     if ($this->instrumentist_id) {
-        $query->where('instrumentist_id', (int) $this->instrumentist_id);
+        // Desviación reportada: el filtro original consultaba SurgicalCase.instrumentist_id, columna
+        // que ya no se llena para casos creados con el nuevo formulario (Task 9), rompiendo este filtro
+        // en silencio. Se ajusta para filtrar por la asignación con rol "Instrumentista", que es el
+        // nombre de rol canónico sembrado por MigrateToSurgicalAssignments.
+        $instrumentistId = (int) $this->instrumentist_id;
+        $query->whereHas('assignments', function ($a) use ($instrumentistId) {
+            $a->where('user_id', $instrumentistId)
+                ->whereHas('surgicalRole', fn($r) => $r->where('name', 'Instrumentista'));
+        });
     }
 
     if ($this->date_from) {
@@ -65,7 +73,7 @@ $procedures = computed(function () {
 });
 
 $total = computed(function () {
-    return $this->procedures->sum(fn($p) => (float) $p->calculated_amount);
+    return $this->procedures->sum(fn($p) => (float) $p->assignments->sum('calculated_amount'));
 });
 
 $ruleLabel = function (?string $rule) {
@@ -227,10 +235,10 @@ $delete = function () {
                     <div class="space-y-1 text-sm text-zinc-500 dark:text-zinc-400">
                         <div class="flex justify-between">
                             <span class="font-medium">
-                                {{ __('Instrumentist') }}:
+                                {{ __('Assignments') }}:
                             </span>
-                            <span class="font-medium">
-                                {{ $p->instrumentist->name ?? '—' }}
+                            <span class="font-medium text-right">
+                                {{ $p->assignments->map(fn($a) => $a->surgicalRole->name . ': ' . ($a->user->name ?? '—'))->implode(', ') }}
                             </span>
                         </div>
                         <div class="flex justify-between">
@@ -259,7 +267,7 @@ $delete = function () {
                     <div class="pt-3 border-t border-zinc-200 dark:border-zinc-700 flex justify-between items-center">
                         <x-procedure-rule-badge :rule="$rule" :videosurgery="$p->is_videosurgery" />
                         <span class="font-bold">
-                            Q{{ number_format((float) $p->calculated_amount, 2) }}
+                            Q{{ number_format($p->assignments->sum('calculated_amount'), 2) }}
                         </span>
                     </div>
 
@@ -295,7 +303,7 @@ $delete = function () {
                         </th>
                         <th class="px-4 py-3 font-medium uppercase tracking-wider">
                             <flux:label>
-                                {{ __('Instrumentist') }}
+                                {{ __('Assignments') }}
                             </flux:label>
                         </th>
                         <th class="px-4 py-3 font-medium uppercase tracking-wider">
@@ -352,8 +360,9 @@ $delete = function () {
                             <td class="px-4 py-3 text-sm truncate max-w-50" title="{{ $p->procedure_type }}">
                                 {{ $p->procedure_type }}
                             </td>
-                            <td class="px-4 py-3 truncate text-sm">
-                                {{ $p->instrumentist->name ?? '—' }}
+                            <td class="px-4 py-3 truncate max-w-50 text-sm"
+                                title="{{ $p->assignments->map(fn($a) => $a->surgicalRole->name . ': ' . ($a->user->name ?? '—'))->implode(', ') }}">
+                                {{ $p->assignments->map(fn($a) => $a->surgicalRole->name . ': ' . ($a->user->name ?? '—'))->implode(', ') }}
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-center">
                                 <div class="flex flex-row justify-between items-center">
@@ -377,7 +386,7 @@ $delete = function () {
                                 </div>
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-bold">
-                                Q{{ number_format((float) $p->calculated_amount, 2) }}
+                                Q{{ number_format($p->assignments->sum('calculated_amount'), 2) }}
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-center">
                                 <flux:badge size="sm" color="{{ $p->status === 'paid' ? 'green' : 'orange' }}">

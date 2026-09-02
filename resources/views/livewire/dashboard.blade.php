@@ -27,15 +27,15 @@ new class extends Component {
 
         if ($user->role === 'admin') {
             $stats = [
-                'total_procedures' => SurgicalCase::count(),
-                'pending_procedures' => SurgicalCase::where('status', 'pending')->count(),
-                'total_paid' => PayoutBatch::where('status', '!=', 'void')->sum('total_amount'),
+                'total_procedures' => \App\Models\SurgicalCase::count(),
+                'pending_procedures' => \App\Models\SurgicalAssignment::where('status', 'pending')->count(),
+                'total_paid' => \App\Models\PayoutBatch::where('status', '!=', 'void')->sum('total_amount'),
             ];
-        } elseif ($user->role === 'instrumentist') {
+        } else {
             $stats = [
-                'total_earnings' => SurgicalCase::where('instrumentist_id', $user->id)->where('status', 'paid')->sum('calculated_amount'),
-                'pending_earnings' => SurgicalCase::where('instrumentist_id', $user->id)->where('status', 'pending')->sum('calculated_amount'),
-                'procedures_count' => SurgicalCase::where('instrumentist_id', $user->id)->count(),
+                'total_earnings' => \App\Models\SurgicalAssignment::where('user_id', $user->id)->where('status', 'paid')->sum('calculated_amount'),
+                'pending_earnings' => \App\Models\SurgicalAssignment::where('user_id', $user->id)->where('status', 'pending')->sum('calculated_amount'),
+                'procedures_count' => \App\Models\SurgicalAssignment::where('user_id', $user->id)->count(),
             ];
         }
 
