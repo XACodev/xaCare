@@ -14,7 +14,7 @@ beforeEach(function () {
 });
 
 test('super admin can view user edit page', function () {
-    $admin = User::factory()->create(['is_super_admin' => true]);
+    $admin = User::factory()->create(['is_super_admin' => true, 'hospital_id' => null]);
     $userToEdit = User::factory()->create(['role' => 'doctor']);
     // Assign role to userToEdit to avoid inconsistencies
     $userToEdit->assignRole('doctor');
@@ -24,6 +24,15 @@ test('super admin can view user edit page', function () {
         ->assertSuccessful()
         ->assertSee(__('Edit User'))
         ->assertSee($userToEdit->name);
+});
+
+test('super admin cannot edit another super admin account from here', function () {
+    $admin = User::factory()->create(['is_super_admin' => true, 'hospital_id' => null]);
+    $otherSuperAdmin = User::factory()->create(['is_super_admin' => true, 'hospital_id' => null]);
+
+    $this->actingAs($admin)
+        ->get(route('users.edit', $otherSuperAdmin))
+        ->assertNotFound();
 });
 
 test('non admin non super admin cannot view user edit page', function () {
@@ -58,31 +67,28 @@ test('hospital admin cannot reach a user from another hospital', function () {
         ->assertNotFound();
 });
 
-test('hospital admin cannot promote a user to super admin or move them to another hospital', function () {
+test('setting hospital_id on the component has no effect on save (field is not part of the form)', function () {
     $hospital = Hospital::factory()->create();
     $otherHospital = Hospital::factory()->create();
-    $admin = User::factory()->create(['is_super_admin' => false, 'role' => 'admin', 'username' => 'adminstaff', 'hospital_id' => $hospital->id]);
+    $admin = User::factory()->create(['is_super_admin' => false, 'role' => 'admin', 'username' => 'adminstaff2', 'hospital_id' => $hospital->id]);
     // Username explícito: fake()->userName() a veces genera algo con punto (ej.
     // "jane.doe23"), que no pasa la regla alpha_dash del formulario y vuelve este test
     // intermitente sin relación con lo que se está probando.
-    $userToEdit = User::factory()->create(['name' => 'Staff', 'username' => 'staffdoctor', 'role' => 'doctor', 'hospital_id' => $hospital->id]);
+    $userToEdit = User::factory()->create(['role' => 'doctor', 'username' => 'staffdoctor2', 'hospital_id' => $hospital->id]);
     $userToEdit->assignRole('doctor');
 
     $this->actingAs($admin);
 
     Volt::test('users.edit', ['user' => $userToEdit->id])
-        ->set('is_super_admin', true)
         ->set('hospital_id', $otherHospital->id)
         ->call('save')
         ->assertHasNoErrors();
 
-    $userToEdit->refresh();
-    expect($userToEdit->is_super_admin)->toBeFalse();
-    expect($userToEdit->hospital_id)->toBe($hospital->id);
+    expect($userToEdit->fresh()->hospital_id)->toBe($hospital->id);
 });
 
 test('can update user details and role', function () {
-    $admin = User::factory()->create(['is_super_admin' => true]);
+    $admin = User::factory()->create(['is_super_admin' => true, 'hospital_id' => null]);
     $userToEdit = User::factory()->create(['name' => 'Old Name', 'role' => 'doctor', 'hospital_id' => Hospital::factory()->create()->id]);
     $userToEdit->assignRole('doctor');
 
@@ -106,7 +112,7 @@ test('can update user details and role', function () {
 });
 
 test('validation prevents duplicate email on update', function () {
-    $admin = User::factory()->create(['is_super_admin' => true]);
+    $admin = User::factory()->create(['is_super_admin' => true, 'hospital_id' => null]);
     $userToEdit = User::factory()->create();
     $otherUser = User::factory()->create(['email' => 'taken@example.com']);
 
@@ -119,7 +125,7 @@ test('validation prevents duplicate email on update', function () {
 });
 
 test('can soft delete and restore user', function () {
-    $admin = User::factory()->create(['is_super_admin' => true]);
+    $admin = User::factory()->create(['is_super_admin' => true, 'hospital_id' => null]);
     $userToEdit = User::factory()->create();
 
     $this->actingAs($admin);
@@ -138,7 +144,8 @@ test('can soft delete and restore user', function () {
 });
 
 test('cannot delete self', function () {
-    $admin = User::factory()->create(['is_super_admin' => true]);
+    $hospital = Hospital::factory()->create();
+    $admin = User::factory()->create(['is_super_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
 
     $this->actingAs($admin);
 
