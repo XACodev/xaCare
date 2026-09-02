@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
 
 <head>
@@ -18,16 +18,11 @@
             </x-slot>
         </flux:sidebar.brand>
 
-        <flux:navlist variant="outline">
-            @if(auth()->user()->role !== "admin" && auth()->check())
-                <flux:navlist.group :heading="__('Procedures')" class="grid">
-                    @if(!auth()->check())
-                        <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
-                            wire:navigate>
-                            {{ __('Dashboard') }}
-                        </flux:navlist.item>
-                    @endif
+        @php($me = auth()->user())
 
+        <flux:navlist variant="outline">
+            @if($me && $me->role !== "admin")
+                <flux:navlist.group :heading="__('Procedures')" class="grid">
                     <flux:navlist.item icon="clipboard-document-list" :href="route('procedures.create')"
                         :current="request()->routeIs('procedures.create')" wire:navigate>
                         {{ __('Register Procedure') }}
@@ -41,7 +36,7 @@
                 </flux:navlist.group>
             @endif
 
-            @if(auth()->user()->role === 'admin')
+            @if($me && $me->role === 'admin')
                 <flux:navlist.group :heading="__('Ingresos')" class="grid">
                     <flux:navlist.item icon="identification" :href="route('patients.index')"
                         :current="request()->routeIs('patients.*')" wire:navigate>
@@ -83,7 +78,7 @@
                             {{ __('General Settings') }}
                         </flux:navlist.item>
                     @endcan
-                    @if(auth()->user()->hospital?->hasFeature('insurance'))
+                    @if($me?->hospital?->hasFeature('insurance'))
                         <flux:navlist.item icon="shield-check" :href="route('modules.insurance')"
                             :current="request()->routeIs('modules.insurance')" wire:navigate>
                             {{ __('Seguros') }}
@@ -96,7 +91,7 @@
         <flux:spacer />
 
         <flux:navlist variant="outline">
-            @if(auth()->user()->is_super_admin)
+            @if($me?->is_super_admin)
                 <flux:navlist.item icon="building-office-2" :href="route('hospitals.index')"
                     :current="request()->routeIs('hospitals.*')" wire:navigate>
                     {{ __('Hospitals') }}
@@ -133,7 +128,7 @@
 
         <!-- Desktop User Menu -->
         <flux:dropdown class="hidden lg:block" position="bottom" align="start">
-            <flux:profile :name="auth()->user()->name" :initials="auth()->user()->initials()"
+            <flux:profile :name="$me?->name" :initials="$me?->initials()"
                 icon:trailing="chevrons-up-down" data-test="sidebar-menu-button" circle color="auto" />
 
             <flux:menu class="w-[220px]">
@@ -143,13 +138,13 @@
                             <span class="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-lg">
                                 <span
                                     class="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
-                                    {{ auth()->user()->initials() }}
+                                    {{ $me?->initials() }}
                                 </span>
                             </span>
 
                             <div class="grid flex-1 text-start text-sm leading-tight">
-                                <span class="truncate font-semibold">{{ auth()->user()->name }}</span>
-                                <span class="truncate text-xs">{{ auth()->user()->email }}</span>
+                                <span class="truncate font-semibold">{{ $me?->name }}</span>
+                                <span class="truncate text-xs">{{ $me?->email }}</span>
                             </div>
                         </div>
                     </div>
@@ -184,7 +179,7 @@
         <flux:spacer />
 
         <flux:dropdown position="top" align="end">
-            <flux:profile :initials="auth()->user()->initials()" icon-trailing="chevron-down" />
+            <flux:profile :initials="$me?->initials()" icon-trailing="chevron-down" />
 
             <flux:menu>
                 <flux:menu.radio.group>
@@ -193,13 +188,13 @@
                             <span class="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-lg">
                                 <span
                                     class="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
-                                    {{ auth()->user()->initials() }}
+                                    {{ $me?->initials() }}
                                 </span>
                             </span>
 
                             <div class="grid flex-1 text-start text-sm leading-tight">
-                                <span class="truncate font-semibold">{{ auth()->user()->name }}</span>
-                                <span class="truncate text-xs">{{ auth()->user()->email }}</span>
+                                <span class="truncate font-semibold">{{ $me?->name }}</span>
+                                <span class="truncate text-xs">{{ $me?->email }}</span>
                             </div>
                         </div>
                     </div>
