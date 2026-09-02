@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 
-use function Livewire\Volt\{state, mount};
+use function Livewire\Volt\{state, mount, computed};
 
 state([
     'case' => null,
@@ -40,16 +40,44 @@ mount(function (SurgicalCase $procedure) {
     $this->is_videosurgery = (bool) $procedure->is_videosurgery;
 
     $this->assignments = $procedure->assignments()->with(['surgicalRole', 'user'])->get()
-        ->map(fn (SurgicalAssignment $a) => [
-            'id' => $a->id,
-            'role_id' => $a->surgical_role_id,
-            'role_name' => $a->surgicalRole->name,
-            'user_id' => $a->user_id,
-            'user_query' => $a->user?->name ?? '',
-            'is_courtesy' => (bool) $a->is_courtesy,
-            'note' => $a->note ?? '',
-            'amount' => (float) $a->calculated_amount,
-        ])->all();
+        ->map(function (SurgicalAssignment $a) {
+            $evaluated = data_get($a->pricing_snapshot, 'modifiers_evaluated', []);
+            $manualToggles = collect($evaluated)
+                ->filter(fn ($m) => ($m['trigger_type'] ?? null) === RateModifier::TRIGGER_MANUAL_TOGGLE && ($m['applies'] ?? false) === true)
+                ->pluck('id')
+                ->values()
+                ->all();
+
+            return [
+                'id' => $a->id,
+                'role_id' => $a->surgical_role_id,
+                'role_name' => $a->surgicalRole->name,
+                'user_id' => $a->user_id,
+                'user_query' => $a->user?->name ?? '',
+                'is_courtesy' => (bool) $a->is_courtesy,
+                'note' => $a->note ?? '',
+                'amount' => (float) $a->calculated_amount,
+                'manual_toggles' => $manualToggles,
+            ];
+        })->all();
+});
+
+$manualModifiersFor = computed(function () {
+    return fn (?int $roleId, ?int $userId, ?string $procedureType) => $roleId
+        ? RateModifier::query()
+            ->whereHas('roleRate', function ($q) use ($roleId, $userId, $procedureType) {
+                $q->where('surgical_role_id', $roleId)
+                    ->where(function ($sub) use ($userId, $procedureType) {
+                        $sub->where(fn ($s) => $s->where('user_id', $userId)->where('procedure_type', $procedureType))
+                            ->orWhere(fn ($s) => $s->where('user_id', $userId)->whereNull('procedure_type'))
+                            ->orWhere(fn ($s) => $s->whereNull('user_id')->where('procedure_type', $procedureType))
+                            ->orWhere(fn ($s) => $s->whereNull('user_id')->whereNull('procedure_type'));
+                    });
+            })
+            ->where('trigger_type', RateModifier::TRIGGER_MANUAL_TOGGLE)
+            ->where('active', true)
+            ->get()
+        : collect();
 });
 
 $recalculate = function (int $index) {
@@ -66,6 +94,7 @@ $recalculate = function (int $index) {
         startTimeHHMM: $this->start_time,
         durationMinutes: max($mins, 0),
         isCourtesy: (bool) $row['is_courtesy'],
+        manualToggleIds: array_map('intval', $row['manual_toggles'] ?? []),
     );
 
     $this->assignments[$index]['amount'] = (float) $pricing['amount'];
@@ -105,6 +134,7 @@ $save = function () {
                 startTimeHHMM: $this->start_time,
                 durationMinutes: $durationMinutes,
                 isCourtesy: (bool) $row['is_courtesy'],
+                manualToggleIds: array_map('intval', $row['manual_toggles'] ?? []),
             );
 
             SurgicalAssignment::where('id', $row['id'])->update([
@@ -230,8 +260,17 @@ $save = function () {
                         </div>
                     </div>
 
-                    <flux:checkbox wire:model="assignments.{{ $index }}.is_courtesy"
-                        wire:change="recalculate({{ $index }})" label="{{ __('Courtesy') }}" />
+                    <div class="flex flex-wrap items-center gap-6">
+                        <flux:checkbox wire:model="assignments.{{ $index }}.is_courtesy"
+                            wire:change="recalculate({{ $index }})" label="{{ __('Courtesy') }}" />
+
+                        @if($row['role_id'])
+                            @foreach(($this->manualModifiersFor)($row['role_id'], $row['user_id'], $procedure_type) as $modifier)
+                                <flux:checkbox wire:model.live="assignments.{{ $index }}.manual_toggles" value="{{ $modifier->id }}"
+                                    wire:change="recalculate({{ $index }})" label="{{ $modifier->name }}" />
+                            @endforeach
+                        @endif
+                    </div>
 
                     <flux:input wire:model="assignments.{{ $index }}.note" label="{{ __('Note (optional)') }}"
                         placeholder="{{ __('e.g. +Q200 due to complication') }}" />
