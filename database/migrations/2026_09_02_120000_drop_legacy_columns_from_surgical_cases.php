@@ -38,8 +38,10 @@ return new class extends Migration
         if ($orphanedCount > 0) {
             throw new \RuntimeException(
                 "No se puede eliminar columnas legacy: {$orphanedCount} casos quirúrgicos tienen datos de ".
-                'instrumentista/doctor/circulante sin migrar a surgical_assignments. Correr '.
-                "'php artisan xacare:migrate-to-surgical-assignments' primero."
+                'instrumentista/doctor/circulante (por ID o por nombre libre) que nunca se migraron a '.
+                'surgical_assignments. No se puede continuar con el drop sin perder esos datos: revisar el '.
+                'historial de esta rama para el comando de migración usado (ya retirado de este código), o '.
+                'migrar manualmente los casos afectados antes de reintentar.'
             );
         }
 
@@ -174,14 +176,22 @@ return new class extends Migration
     }
 
     /**
-     * Cuenta cuántos surgical_cases tienen datos legacy de instrumentista/doctor/circulante
-     * (instrumentist_id, doctor_id o circulating_id no nulos -- las columnas _name pueden estar
-     * pobladas sin ID en casos de emergencia, por eso no cuentan como señal por sí solas) y NO
-     * tienen ninguna fila en surgical_assignments para ese caso. Basta con que exista al menos
-     * una fila de asignación por caso: MigrateToSurgicalAssignments::migrateOneAssignment()
-     * migra los 3 roles (instrumentista/cirujano/circulante) de forma atómica por caso dentro
-     * de una transacción, así que "al menos una asignación" ya garantiza que el caso completo
-     * fue migrado.
+     * Cuenta cuántos surgical_cases tienen datos legacy de instrumentista/doctor/circulante (
+     * CUALQUIERA de las 6 columnas legacy -- instrumentist_id/doctor_id/circulating_id o sus
+     * contrapartes _name -- no nula) y NO tienen ninguna fila en surgical_assignments para ese
+     * caso. Las columnas _name deben chequearse por separado de las _id: en casos de emergencia
+     * un caso puede tener el nombre de instrumentista/doctor/circulante cargado como texto libre
+     * SIN ningún User vinculado (instrumentist_id/doctor_id/circulating_id nulos), así que
+     * chequear solo los IDs dejaría pasar -- y perder para siempre -- esos nombres. No se excluye
+     * el string vacío de este chequeo a propósito: ante la duda de si '' representa "sin dato" o
+     * un valor real cargado así, se prefiere la interpretación más conservadora (tratarlo como
+     * dato presente) dado que la política del proyecto es no perder datos de producción bajo
+     * ninguna circunstancia.
+     *
+     * Basta con que exista al menos una fila de asignación por caso: MigrateToSurgicalAssignments
+     * ::migrateOneAssignment() migraba los 3 roles (instrumentista/cirujano/circulante) de forma
+     * atómica por caso dentro de una transacción, así que "al menos una asignación" ya garantiza
+     * que el caso completo fue migrado.
      */
     private function countLegacyCasesWithoutAssignments(): int
     {
@@ -189,7 +199,10 @@ return new class extends Migration
             ->where(function ($query) {
                 $query->whereNotNull('instrumentist_id')
                     ->orWhereNotNull('doctor_id')
-                    ->orWhereNotNull('circulating_id');
+                    ->orWhereNotNull('circulating_id')
+                    ->orWhereNotNull('instrumentist_name')
+                    ->orWhereNotNull('doctor_name')
+                    ->orWhereNotNull('circulating_name');
             })
             ->pluck('id');
 
