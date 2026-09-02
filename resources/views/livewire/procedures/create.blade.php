@@ -181,6 +181,21 @@ $save = function () {
         ]);
     }
 
+    // Un instrumentista que se auto-asigna en su propia fila no puede cambiarse a otro rol
+    // (ej. Circulante) para alterar su propio pago — el rol se fuerza en servidor, sin
+    // confiar en que el <select> de la vista esté deshabilitado. Un admin sí puede asignar
+    // cualquier rol a cualquier persona, incluido a sí mismo.
+    if ($user->role === 'instrumentist') {
+        $instrumentistRoleId = SurgicalRole::query()->where('slug', 'instrumentista')->value('id');
+        if ($instrumentistRoleId) {
+            foreach ($data['assignments'] as $i => $row) {
+                if ((int) ($row['user_id'] ?? 0) === $user->id) {
+                    $data['assignments'][$i]['role_id'] = $instrumentistRoleId;
+                }
+            }
+        }
+    }
+
     $durationMinutes = TimeHelper::durationMinutes($data['procedure_date'], $data['start_time'], $data['end_time']);
     if ($durationMinutes <= 0) {
         throw ValidationException::withMessages(['end_time' => 'La hora de finalización debe ser posterior a la hora de inicio.']);
@@ -434,14 +449,20 @@ $selectPatient = function (int $id) {
             @error('assignments') <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
 
             @foreach($assignments as $index => $row)
+                @php($isOwnAssignment = Auth::user()->role === 'instrumentist' && (int) ($row['user_id'] ?? 0) === Auth::id())
                 <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-4 space-y-3">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <flux:select wire:model.live="assignments.{{ $index }}.role_id" label="{{ __('Role') }}"
-                            placeholder="{{ __('Select role') }}">
+                            placeholder="{{ __('Select role') }}" :disabled="$isOwnAssignment">
                             @foreach($this->roles as $r)
                                 <flux:select.option value="{{ $r->id }}">{{ $r->name }}</flux:select.option>
                             @endforeach
                         </flux:select>
+                        @if($isOwnAssignment)
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400 -mt-2 md:col-span-1">
+                                {{ __('You cannot change your own assigned role.') }}
+                            </p>
+                        @endif
 
                         <div class="space-y-2 relative">
                             <flux:label>{{ __('Person') }}</flux:label>

@@ -31,12 +31,17 @@ state([
 
 mount(function (string|int $user) {
     $me = Auth::user();
-    abort_unless($me && $me->is_super_admin, 403);
+    abort_unless($me && ($me->is_super_admin || $me->role === 'admin'), 403);
 
+    // TenantScope ya restringe esta consulta al hospital del admin logueado: un admin de
+    // hospital que intente editar un usuario ajeno (incluido cualquier super admin, cuyo
+    // hospital_id es null) recibe 404, nunca los datos de otro tenant.
     $u = User::withTrashed()->findOrFail($user);
 
     $this->availableRoles = Role::pluck('name', 'id')->toArray();
-    $this->availableHospitals = Hospital::orderBy('name')->pluck('name', 'id')->toArray();
+    $this->availableHospitals = $me->is_super_admin
+        ? Hospital::orderBy('name')->pluck('name', 'id')->toArray()
+        : [];
 
     $this->user = $u;
     $this->name = $u->name;
@@ -62,7 +67,15 @@ rules(fn() => [
 
 $save = function () {
     $me = Auth::user();
-    abort_unless($me && $me->is_super_admin, 403);
+    abort_unless($me && ($me->is_super_admin || $me->role === 'admin'), 403);
+
+    // Un admin de hospital nunca puede convertir a nadie en super admin ni reasignarlo a
+    // otro hospital, sin importar qué haya llegado del formulario (defensa en profundidad,
+    // la vista ya oculta esos campos). También protege contra escalar el propio usuario.
+    if (! $me->is_super_admin) {
+        $this->is_super_admin = false;
+        $this->hospital_id = $me->hospital_id;
+    }
 
     $data = $this->validate();
 
@@ -111,7 +124,7 @@ $save = function () {
 
 $toggleDelete = function () {
     $me = Auth::user();
-    abort_unless($me && $me->is_super_admin, 403);
+    abort_unless($me && ($me->is_super_admin || $me->role === 'admin'), 403);
 
     if ($me->id === $this->user->id) {
         abort(403, 'No puedes desactivar tu propio usuario.');
@@ -173,7 +186,7 @@ $toggleDelete = function () {
             @endforeach
         </select>
 
-        @unless($is_super_admin)
+        @if(Auth::user()->is_super_admin && !$is_super_admin)
             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Hospital') }}</label>
             <select wire:model="hospital_id"
                 class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-200 focus:ring-0 focus:border-zinc-500 p-2.5">
@@ -183,10 +196,12 @@ $toggleDelete = function () {
                 @endforeach
             </select>
             @error('hospital_id') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
-        @endunless
+        @endif
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <flux:checkbox wire:model.live="is_super_admin" label="{{ __('Super Admin (platform-only, read-only across hospitals)') }}" />
+            @if(Auth::user()->is_super_admin)
+                <flux:checkbox wire:model.live="is_super_admin" label="{{ __('Super Admin (platform-only, read-only across hospitals)') }}" />
+            @endif
             <flux:checkbox wire:model.live="use_pay_scheme" label="{{ __('Use Pay Scheme') }}" />
         </div>
 

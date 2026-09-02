@@ -9,8 +9,13 @@ use Illuminate\Validation\Rule;
 
 use function Livewire\Volt\{state, computed, mount, rules};
 
+// Sincronizado con la URL (?selected_role_id=): sin esto, un refresh de página (F5) volvía
+// siempre al primer rol activo por sort_order, no al que se estaba editando. La tarifa
+// recién guardada seguía intacta en la BD, pero como el selector "saltaba" a otro rol
+// parecía que el admin no tenía nada asignado.
+state(['selected_role_id' => null])->url();
+
 state([
-    'selected_role_id' => null,
     'base_rate' => 0,
     // user_id: optional query param (?user_id=) that turns this same component into the
     // per-medico override editor instead of the hospital-wide default editor. See Step 3
@@ -41,7 +46,9 @@ mount(function () {
         $this->user_id = User::query()->findOrFail($requestedUserId)->id;
     }
 
-    $this->selected_role_id = SurgicalRole::query()->where('active', true)->orderBy('sort_order')->value('id');
+    if (! $this->selected_role_id || ! SurgicalRole::query()->where('active', true)->whereKey($this->selected_role_id)->exists()) {
+        $this->selected_role_id = SurgicalRole::query()->where('active', true)->orderBy('sort_order')->value('id');
+    }
     $this->loadDefaultRate();
 });
 

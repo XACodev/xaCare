@@ -22,12 +22,70 @@ test('super admin can view user creation page', function () {
         ->assertSee(__('New User'));
 });
 
-test('non super admin cannot view user creation page', function () {
-    $user = User::factory()->create(['is_super_admin' => false, 'role' => 'admin']);
+test('non admin non super admin cannot view user creation page', function () {
+    $user = User::factory()->create(['is_super_admin' => false, 'role' => 'instrumentist']);
 
     $this->actingAs($user)
         ->get(route('users.create'))
         ->assertForbidden();
+});
+
+test('hospital admin can view user creation page', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = User::factory()->create(['is_super_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
+
+    $this->actingAs($admin)
+        ->get(route('users.create'))
+        ->assertSuccessful()
+        ->assertSee(__('New User'));
+});
+
+test('hospital admin creates staff scoped to their own hospital without choosing one', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = User::factory()->create(['is_super_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
+    $role = Role::create(['name' => 'instrumentist', 'guard_name' => 'web']);
+
+    $this->actingAs($admin);
+
+    Volt::test('users.create')
+        ->set('name', 'Staff User')
+        ->set('username', 'staffuser')
+        ->set('email', 'staff@example.com')
+        ->set('role', $role->name)
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $created = User::where('email', 'staff@example.com')->first();
+    expect($created)->not->toBeNull();
+    expect($created->hospital_id)->toBe($hospital->id);
+    expect($created->is_super_admin)->toBeFalse();
+});
+
+test('hospital admin cannot escalate a created user to super admin or another hospital', function () {
+    $hospital = Hospital::factory()->create();
+    $otherHospital = Hospital::factory()->create();
+    $admin = User::factory()->create(['is_super_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
+    $role = Role::create(['name' => 'instrumentist', 'guard_name' => 'web']);
+
+    $this->actingAs($admin);
+
+    Volt::test('users.create')
+        ->set('name', 'Sneaky User')
+        ->set('username', 'sneakyuser')
+        ->set('email', 'sneaky@example.com')
+        ->set('role', $role->name)
+        ->set('is_super_admin', true)
+        ->set('hospital_id', $otherHospital->id)
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $created = User::where('email', 'sneaky@example.com')->first();
+    expect($created->is_super_admin)->toBeFalse();
+    expect($created->hospital_id)->toBe($hospital->id);
 });
 
 test('can create user with role', function () {
