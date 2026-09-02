@@ -2,9 +2,12 @@
 
 use App\Models\Admission;
 use App\Models\Patient;
+use App\Models\RateModifier;
+use App\Models\SurgicalAssignment;
 use App\Models\SurgicalCase;
+use App\Models\SurgicalRole;
 use App\Models\User;
-use App\Services\PricingService;
+use App\Services\RateResolutionService;
 use App\Support\TimeHelper;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,21 +25,13 @@ state([
     // Paciente: se selecciona del maestro (marcado va_a_quirofano)
     'patient_id' => null,
     'patient_query' => '',
-    'patient_name' => '', // snapshot legacy del nombre seleccionado
+    'patient_name' => '',
 
     'procedure_type' => '',
     'is_videosurgery' => false,
-    'is_courtesy' => false,
 
-    // Doctor: puede ser usuario o texto libre
-    'doctor_id' => null,
-    'doctor_query' => '',
-    'doctor_suggestions' => [],
-
-    // Circulating: puede ser usuario o texto libre
-    'circulating_id' => null,
-    'circulating_query' => '',
-    'circulating_suggestions' => [],
+    // Asignaciones: array de filas [role_id, user_id, user_query, is_courtesy, note, manual_toggles(array de ids)]
+    'assignments' => [],
 
     // UX
     'success_message' => null,
@@ -51,171 +46,197 @@ rules([
     'patient_name' => ['nullable', 'string', 'max:255'],
     'procedure_type' => ['required', 'string', 'max:255'],
     'is_videosurgery' => ['boolean'],
-    'is_courtesy' => ['boolean'],
-
-    'doctor_id' => ['nullable', 'integer', 'exists:users,id'],
-    'doctor_query' => ['nullable', 'string', 'max:255'],
-    'doctor_suggestions' => ['nullable', 'array'],
-
-    'circulating_id' => ['nullable', 'integer', 'exists:users,id'],
-    'circulating_query' => ['nullable', 'string', 'max:255'],
-    'circulating_suggestions' => ['nullable', 'array'],
+    'assignments' => ['array', 'min:1'],
+    'assignments.*.role_id' => ['required', 'integer', 'exists:surgical_roles,id'],
+    'assignments.*.user_id' => ['nullable', 'integer', 'exists:users,id'],
+    'assignments.*.user_query' => ['nullable', 'string', 'max:255'],
+    'assignments.*.is_courtesy' => ['boolean'],
+    'assignments.*.note' => ['nullable', 'string', 'max:255'],
 ]);
 
 mount(function () {
     abort_unless((bool) Auth::check(), 401, 'Unauthorized');
-
     abort_unless(in_array(Auth::user()->role, ['instrumentist', 'admin'], true), 403, 'Unauthorized');
     abort_if((bool) Auth::user()->is_super_admin, 403, 'Super admin es de solo lectura; usa una cuenta de hospital para operar.');
 
-    // Cargar listas para selects (si existen)
-    $this->doctors = User::query()
-        ->where('role', 'doctor')
-        ->orderBy('name')
-        ->get(['id', 'name'])
-        ->map(fn($u) => ['id' => $u->id, 'name' => $u->name])
-        ->all();
+    $roles = SurgicalRole::query()->where('active', true)->orderBy('sort_order')->get();
+    $instrumentistRole = $roles->firstWhere('slug', 'instrumentista');
 
-    $this->circulatings = User::query()
-        ->where('role', 'circulating')
+    // Fila inicial: el instrumentista logueado, en el rol Instrumentista si existe.
+    $this->assignments = [[
+        'role_id' => $instrumentistRole?->id,
+        'user_id' => Auth::id(),
+        'user_query' => Auth::user()->name,
+        'is_courtesy' => false,
+        'note' => '',
+        'manual_toggles' => [],
+    ]];
+});
+
+$roles = computed(fn () => SurgicalRole::query()->where('active', true)->orderBy('sort_order')->get());
+
+$userSuggestions = computed(function () {
+    return fn (string $query) => User::query()
+        ->when(trim($query) !== '', function ($q) use ($query) {
+            $normalized = Str::ascii(Str::lower($query));
+            $q->whereRaw('LOWER(name) LIKE ?', ["%{$normalized}%"]);
+        })
         ->orderBy('name')
+        ->limit(8)
         ->get(['id', 'name'])
-        ->map(fn($u) => ['id' => $u->id, 'name' => $u->name])
+        ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
         ->all();
 });
+
+$manualModifiersFor = computed(function () {
+    return fn (?int $roleId, ?int $userId, ?string $procedureType) => $roleId
+        ? RateModifier::query()
+            ->whereHas('roleRate', function ($q) use ($roleId, $userId, $procedureType) {
+                $q->where('surgical_role_id', $roleId)
+                    ->where(function ($sub) use ($userId, $procedureType) {
+                        $sub->where(fn ($s) => $s->where('user_id', $userId)->where('procedure_type', $procedureType))
+                            ->orWhere(fn ($s) => $s->where('user_id', $userId)->whereNull('procedure_type'))
+                            ->orWhere(fn ($s) => $s->whereNull('user_id')->where('procedure_type', $procedureType))
+                            ->orWhere(fn ($s) => $s->whereNull('user_id')->whereNull('procedure_type'));
+                    });
+            })
+            ->where('trigger_type', RateModifier::TRIGGER_MANUAL_TOGGLE)
+            ->where('active', true)
+            ->get()
+        : collect();
+});
+
+$addAssignment = function () {
+    $this->assignments[] = [
+        'role_id' => null, 'user_id' => null, 'user_query' => '',
+        'is_courtesy' => false, 'note' => '', 'manual_toggles' => [],
+    ];
+};
+
+$removeAssignment = function (int $index) {
+    unset($this->assignments[$index]);
+    $this->assignments = array_values($this->assignments);
+};
 
 $duration_minutes = computed(function () {
     if (!$this->procedure_date || !$this->start_time || !$this->end_time) {
         return null;
     }
-
     try {
-        $mins = TimeHelper::durationMinutes($this->procedure_date, $this->start_time, $this->end_time);
-        return $mins;
+        return TimeHelper::durationMinutes($this->procedure_date, $this->start_time, $this->end_time);
     } catch (\Throwable $e) {
         return null;
     }
 });
 
-$amount_preview = computed(function () {
-    $user = Auth::user();
-    if (!$user)
+$previewAmount = function (int $index) {
+    $row = $this->assignments[$index] ?? null;
+    if (!$row || !$row['role_id'] || !is_int($this->duration_minutes)) {
         return null;
+    }
 
-    if (!$this->start_time || !$this->end_time || !$this->procedure_date)
+    $role = SurgicalRole::find($row['role_id']);
+    if (!$role) {
         return null;
+    }
 
-    $mins = $this->duration_minutes;
-    if (!is_int($mins) || $mins <= 0)
-        return null;
+    $user = $row['user_id'] ? User::find($row['user_id']) : null;
 
-    $pricing = app(PricingService::class)->calculate(
-        instrumentist: $user,
-        isVideosurgery: (bool) $this->is_videosurgery,
-        isCourtesy: (bool) $this->is_courtesy,
-        durationMinutes: $mins,
+    $result = app(RateResolutionService::class)->resolve(
+        role: $role,
+        user: $user,
+        procedureType: $this->procedure_type ?: null,
+        procedureDate: $this->procedure_date,
         startTimeHHMM: $this->start_time,
-        endTimeHHMM: $this->end_time,
+        durationMinutes: $this->duration_minutes,
+        isCourtesy: (bool) ($row['is_courtesy'] ?? false),
+        manualToggleIds: array_map('intval', $row['manual_toggles'] ?? []),
     );
 
-    return $pricing['amount'] ?? null;
-});
+    return $result['amount'];
+};
+
+$selectAssignmentUser = function (int $index, int $userId) {
+    $u = User::find($userId);
+    if (!$u) {
+        return;
+    }
+    $this->assignments[$index]['user_id'] = $u->id;
+    $this->assignments[$index]['user_query'] = $u->name;
+};
 
 $save = function () {
     $this->success_message = null;
-
     $user = Auth::user();
     abort_unless((bool) Auth::check(), 401, 'Unauthorized');
 
-    // Validación base (rules())
     $data = $this->validate();
 
-    // Validación "al menos uno": paciente del maestro (patient_id) o nombre libre
-    // (patient_query) para registros de emergencia sin ingreso previo.
     $patientId = $data['patient_id'] ?? null;
     $patientName = $patientId ? $data['patient_name'] : trim((string) ($data['patient_query'] ?? ''));
-
     if (!$patientId && $patientName === '') {
         throw ValidationException::withMessages([
             'patient_query' => 'Selecciona un paciente ingresado o escribe el nombre (registro de emergencia).',
         ]);
     }
 
-    // Validación "al menos uno": doctor_id o doctor_query
-    $doctorId = $data['doctor_id'] ?? null;
-    $doctorName = trim((string) ($data['doctor_query'] ?? ''));
-
-    if (!$doctorId && $doctorName === '') {
-        throw ValidationException::withMessages([
-            'doctor_query' => 'Selecciona un médico o escribe el nombre.',
-        ]);
-    }
-
-    // Circulante: al menos circulating_id o circulating_name
-    $circulatingId = $data['circulating_id'] ?? null;
-    $circulatingName = trim((string) ($data['circulating_query'] ?? ''));
-
-    if (!$circulatingId && $circulatingName === '') {
-        throw ValidationException::withMessages([
-            'circulating_query' => 'Selecciona un circulante o escribe el nombre.',
-        ]);
-    }
-
-    // Duración
     $durationMinutes = TimeHelper::durationMinutes($data['procedure_date'], $data['start_time'], $data['end_time']);
-
-    // Protección básica: que no sea 0 y que no sea una locura
     if ($durationMinutes <= 0) {
-        throw ValidationException::withMessages([
-            'end_time' => 'La hora de finalización debe ser posterior a la hora de inicio.',
-        ]);
+        throw ValidationException::withMessages(['end_time' => 'La hora de finalización debe ser posterior a la hora de inicio.']);
     }
-
     if ($durationMinutes > (24 * 60)) {
-        throw ValidationException::withMessages([
-            'end_time' => 'La duración no puede superar 24 horas.',
-        ]);
+        throw ValidationException::withMessages(['end_time' => 'La duración no puede superar 24 horas.']);
     }
 
-    // Pricing
-    $pricing = app(PricingService::class)->calculate(
-        instrumentist: $user,
-        isVideosurgery: (bool) $data['is_videosurgery'],
-        isCourtesy: (bool) $data['is_courtesy'],
-        durationMinutes: $durationMinutes,
-        startTimeHHMM: $data['start_time'],
-        endTimeHHMM: $data['end_time'],
-    );
+    $payableRoleIds = SurgicalRole::query()->where('is_payable', true)->pluck('id')->all();
+    $hasPayableRow = collect($data['assignments'])->contains(fn ($row) => in_array((int) $row['role_id'], $payableRoleIds, true));
+    if (!$hasPayableRow) {
+        throw ValidationException::withMessages(['assignments' => 'Agrega al menos una asignación de un rol pagable.']);
+    }
 
-    DB::transaction(function () use ($user, $data, $patientId, $patientName, $doctorId, $doctorName, $circulatingId, $circulatingName, $durationMinutes, $pricing) {
-        SurgicalCase::create([
+    DB::transaction(function () use ($data, $patientId, $patientName, $durationMinutes) {
+        $case = SurgicalCase::create([
             'procedure_date' => $data['procedure_date'],
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
             'duration_minutes' => $durationMinutes,
-
             'patient_id' => $patientId,
             'patient_name' => $patientName,
             'procedure_type' => $data['procedure_type'],
             'is_videosurgery' => (bool) $data['is_videosurgery'],
-
-            'instrumentist_id' => $user->id,
-            'instrumentist_name' => $user->name, // snapshot
-
-            'doctor_id' => $doctorId,
-            'doctor_name' => $doctorId ? optional(User::find($doctorId))->name : $doctorName,
-
-            'circulating_id' => $circulatingId,
-            'circulating_name' => $circulatingId ? optional(User::find($circulatingId))->name : $circulatingName,
-
-            'calculated_amount' => (float) ($pricing['amount'] ?? 0),
-            'pricing_snapshot' => $pricing['snapshot'] ?? null,
-
             'status' => 'pending',
+            'calculated_amount' => 0,
         ]);
+
+        foreach ($data['assignments'] as $row) {
+            $role = SurgicalRole::findOrFail($row['role_id']);
+            $assignedUser = $row['user_id'] ? User::find($row['user_id']) : null;
+            $isCourtesy = (bool) ($row['is_courtesy'] ?? false);
+
+            $pricing = app(RateResolutionService::class)->resolve(
+                role: $role,
+                user: $assignedUser,
+                procedureType: $data['procedure_type'],
+                procedureDate: $data['procedure_date'],
+                startTimeHHMM: $data['start_time'],
+                durationMinutes: $durationMinutes,
+                isCourtesy: $isCourtesy,
+                manualToggleIds: array_map('intval', $row['manual_toggles'] ?? []),
+            );
+
+            SurgicalAssignment::create([
+                'surgical_case_id' => $case->id,
+                'surgical_role_id' => $role->id,
+                'user_id' => $assignedUser?->id,
+                'calculated_amount' => (float) $pricing['amount'],
+                'pricing_snapshot' => $pricing['snapshot'],
+                'is_courtesy' => $isCourtesy,
+                'note' => $row['note'] ?: null,
+                'status' => $role->is_payable ? 'pending' : 'paid',
+            ]);
+        }
     });
 
-    // Reset parcial para facilidad en tablet
     $this->procedure_date = now()->toDateString();
     $this->patient_id = null;
     $this->patient_query = '';
@@ -224,130 +245,35 @@ $save = function () {
     $this->start_time = now()->subHour()->format('H:i');
     $this->end_time = now()->format('H:i');
     $this->is_videosurgery = false;
-
-    $this->doctor_id = null;
-    $this->doctor_name = '';
-    $this->doctor_suggestions = [];
-
-    $this->circulating_id = null;
-    $this->circulating_name = '';
-    $this->circulating_suggestions = [];
+    $instrumentistRole = $this->roles->firstWhere('slug', 'instrumentista');
+    $this->assignments = [[
+        'role_id' => $instrumentistRole?->id, 'user_id' => Auth::id(), 'user_query' => Auth::user()->name,
+        'is_courtesy' => false, 'note' => '', 'manual_toggles' => [],
+    ]];
 
     $this->success_message = 'Procedimiento registrado (pendiente).';
-
     $this->dispatch('$refresh');
 };
 
 $pending_procedures = computed(function () {
     $user = Auth::user();
-    if (!$user)
-        return [];
+    if (!$user) return [];
 
-    return SurgicalCase::query()
-        ->where('instrumentist_id', $user->id)
+    return SurgicalAssignment::query()
+        ->where('user_id', $user->id)
         ->where('status', 'pending')
-        ->orderByDesc('procedure_date')
-        ->orderByDesc('start_time')
+        ->with('surgicalCase')
+        ->orderByDesc('created_at')
         ->limit(50)
         ->get();
 });
 
 $pending_total = computed(function () {
     $user = Auth::user();
-    if (!$user)
-        return 0;
+    if (!$user) return 0;
 
-    return (float) SurgicalCase::query()
-        ->where('instrumentist_id', $user->id)
-        ->where('status', 'pending')
-        ->sum('calculated_amount');
+    return (float) SurgicalAssignment::query()->where('user_id', $user->id)->where('status', 'pending')->sum('calculated_amount');
 });
-
-$searchDoctor = function () {
-    $q = trim((string) $this->doctor_query);
-
-    // si ya seleccionó un doctor y el texto coincide, no spamear búsquedas
-    if ($this->doctor_id && $q === '') {
-        $this->doctor_suggestions = [];
-        return;
-    }
-
-    // Si está vacío, no mostrar nada
-    if ($q === '') {
-        $this->doctor_suggestions = [];
-        $this->doctor_id = null;
-        return;
-    }
-
-    $this->doctor_id = null;
-
-    // Búsqueda insensible a acentos
-    $allDoctors = User::query()
-        ->where('role', 'doctor')
-        ->orderBy('name')
-        ->get(['id', 'name']);
-
-    $normalizedQ = Str::ascii(Str::lower($q));
-
-    $this->doctor_suggestions = $allDoctors
-        ->filter(function ($u) use ($normalizedQ) {
-            $normalizedName = Str::ascii(Str::lower($u->name));
-            return str_contains($normalizedName, $normalizedQ);
-        })
-        ->take(8)
-        ->values() // Re-indexar array para JSON
-        ->all();
-};
-
-$selectDoctor = function (int $id) {
-    $u = User::query()->where('role', 'doctor')->find($id);
-
-    if (!$u)
-        return;
-
-    $this->doctor_id = $u->id;
-    $this->doctor_query = $u->name;
-    $this->doctor_suggestions = [];
-};
-
-$searchCirculating = function () {
-    $q = trim((string) $this->circulating_query);
-
-    if ($q === '') {
-        $this->circulating_suggestions = [];
-        $this->circulating_id = null;
-        return;
-    }
-
-    $this->circulating_id = null;
-
-    $allCirculatings = User::query()
-        ->where('role', 'circulating')
-        ->orderBy('name')
-        ->get(['id', 'name']);
-
-    $normalizedQ = Str::ascii(Str::lower($q));
-
-    $this->circulating_suggestions = $allCirculatings
-        ->filter(function ($u) use ($normalizedQ) {
-            $normalizedName = Str::ascii(Str::lower($u->name));
-            return str_contains($normalizedName, $normalizedQ);
-        })
-        ->take(8)
-        ->values()
-        ->all();
-};
-
-$selectCirculating = function (int $id) {
-    $u = User::query()->where('role', 'circulating')->find($id);
-
-    if (!$u)
-        return;
-
-    $this->circulating_id = $u->id;
-    $this->circulating_query = $u->name;
-    $this->circulating_suggestions = [];
-};
 
 $patient_suggestions = computed(function () {
     $q = trim((string) $this->patient_query);
@@ -382,8 +308,6 @@ $selectPatient = function (int $id) {
     $this->patient_query = $p->nombreCompleto();
     $this->patient_name = $p->nombreCompleto(); // snapshot legacy
 };
-
-updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculating]);
 
 ?>
 
@@ -494,92 +418,77 @@ updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculat
         <div class="w-full flex flex-col md:flex-row justify-center md:justify-between sm:px-6 gap-10 md:w-auto">
             <flux:checkbox wire:model.change="is_videosurgery" label="{{ __('Videosurgery') }}"
                 description="{{ __('Check if the procedure was by video.') }}" />
-            <flux:checkbox wire:model.change="is_courtesy" label="{{ __('Courtesy') }}"
-                description="{{ __('Check if the procedure was by courtesy.') }}" />
         </div>
 
         <hr class="border-indigo-300 dark:border-zinc-600">
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-2">
-                <flux:label>
-                    {{ __('Doctor (Surgeon)') }}
-                </flux:label>
-
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-zinc-400">
-                        <flux:icon.magnifying-glass class="size-5" />
-                    </div>
-                    <input type="text"
-                        class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 pl-10 pr-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 dark:placeholder-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
-                        placeholder="{{ __('Search or type name...') }}" wire:model.live.debounce.200ms="doctor_query">
-
-                    @if(!empty($this->doctor_suggestions))
-                        <div
-                            class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-indigo-400 overflow-hidden">
-                            @foreach($this->doctor_suggestions as $s)
-                                <button type="button"
-                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-indigo-400/50 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-indigo-400 last:border-0"
-                                    wire:click="selectDoctor({{ $s['id'] }})">
-                                    {{ $s['name'] }}
-                                </button>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-
-                @error('doctor_id')
-                    <p class="text-sm text-red-600 dark:text-red-400">
-                        {{ $message }}
-                    </p>
-                @enderror
-
-                @error('doctor_query')
-                    <p class="text-sm text-red-600 dark:text-red-400">
-                        {{ $message }}
-                    </p>
-                @enderror
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <flux:heading size="lg">{{ __('Assignments') }}</flux:heading>
+                <flux:button type="button" wire:click="addAssignment" size="sm" variant="filled">
+                    {{ __('Add role') }}
+                </flux:button>
             </div>
 
-            <div class="space-y-2">
-                <flux:label>
-                    {{ __('Circulating (Nurse)') }}
-                </flux:label>
+            @error('assignments') <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
 
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-zinc-400">
-                        <flux:icon.magnifying-glass class="size-5" />
-                    </div>
-                    <input type="text"
-                        class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 pl-10 pr-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 dark:placeholder-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
-                        placeholder="{{ __('Search or type name...') }}"
-                        wire:model.live.debounce.200ms="circulating_query">
-
-                    @if(!empty($this->circulating_suggestions))
-                        <div
-                            class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-indigo-400 overflow-hidden">
-                            @foreach($this->circulating_suggestions as $s)
-                                <button type="button"
-                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-indigo-400/50 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-indigo-400/50 last:border-0"
-                                    wire:click="selectCirculating({{ $s['id'] }})">
-                                    {{ $s['name'] }}
-                                </button>
+            @foreach($assignments as $index => $row)
+                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-4 space-y-3">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <flux:select wire:model.live="assignments.{{ $index }}.role_id" label="{{ __('Role') }}"
+                            placeholder="{{ __('Select role') }}">
+                            @foreach($this->roles as $r)
+                                <flux:select.option value="{{ $r->id }}">{{ $r->name }}</flux:select.option>
                             @endforeach
-                        </div>
-                    @endif
-                </div>
+                        </flux:select>
 
-                @error('circulating_id')
-                    <p class="text-sm text-red-600 dark:text-red-400">
-                        {{ $message }}
-                    </p>
-                @enderror
-                @error('circulating_query')
-                    <p class="text-sm text-red-600 dark:text-red-400">
-                        {{ $message }}
-                    </p>
-                @enderror
-            </div>
+                        <div class="space-y-2 relative">
+                            <flux:label>{{ __('Person') }}</flux:label>
+                            <input type="text" wire:model.live.debounce.200ms="assignments.{{ $index }}.user_query"
+                                placeholder="{{ __('Search person...') }}"
+                                class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-700" />
+                            @if(!empty($row['user_query']))
+                                <div class="absolute z-20 mt-1 w-full rounded-lg border bg-white shadow-lg dark:bg-zinc-700">
+                                    @foreach(($this->userSuggestions)($row['user_query']) as $s)
+                                        <button type="button" class="block w-full text-left px-4 py-2 hover:bg-zinc-50 dark:hover:bg-indigo-400/50"
+                                            wire:click="selectAssignmentUser({{ $index }}, {{ $s['id'] }})">
+                                            {{ $s['name'] }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="flex items-end gap-4">
+                            <div class="text-right flex-1">
+                                <span class="text-xs text-zinc-500 uppercase">{{ __('Amount') }}</span>
+                                <div class="text-lg font-bold text-indigo-600">
+                                    @php($preview = $this->previewAmount($index))
+                                    Q{{ is_numeric($preview) ? number_format($preview, 2) : '0.00' }}
+                                </div>
+                            </div>
+                            @if(count($assignments) > 1)
+                                <flux:button type="button" wire:click="removeAssignment({{ $index }})" size="sm" variant="danger" icon="trash">
+                                </flux:button>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-6">
+                        <flux:checkbox wire:model.live="assignments.{{ $index }}.is_courtesy" label="{{ __('Courtesy') }}" />
+
+                        @if($row['role_id'])
+                            @foreach(($this->manualModifiersFor)($row['role_id'], $row['user_id'], $procedure_type) as $modifier)
+                                <flux:checkbox wire:model.live="assignments.{{ $index }}.manual_toggles" value="{{ $modifier->id }}"
+                                    label="{{ $modifier->name }}" />
+                            @endforeach
+                        @endif
+                    </div>
+
+                    <flux:input wire:model.live="assignments.{{ $index }}.note" label="{{ __('Note (optional)') }}"
+                        placeholder="{{ __('e.g. +Q200 due to complication') }}" />
+                </div>
+            @endforeach
         </div>
 
         <div
@@ -602,7 +511,8 @@ updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculat
                         {{ __('Amount') }}
                     </span>
                     <span class="text-xl font-bold text-indigo-600 dark:text-zinc-100">
-                        {{ is_numeric($this->amount_preview) ? 'Q' . number_format($this->amount_preview, 2) : '--' }}
+                        @php($totalPreview = collect($assignments)->keys()->sum(fn ($i) => (float) ($this->previewAmount($i) ?? 0)))
+                        Q{{ number_format($totalPreview, 2) }}
                     </span>
                 </div>
             </div>
@@ -677,41 +587,42 @@ updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculat
                     <tbody
                         class="divide-y divide-indigo-200 dark:divide-zinc-700 whitespace-nowrap text-zinc-600 dark:text-zinc-400 transition-colors">
                         @forelse($this->pending_procedures as $p)
+                            @php($case = $p->surgicalCase)
                             <tr class=" hover:bg-indigo-50 dark:hover:bg-indigo-800/30 transition-colors">
                                 <td class="px-6 py-3 font-medium text-left">
-                                    {{ $p->procedure_date->format('d/m/Y') }}
+                                    {{ $case?->procedure_date?->format('d/m/Y') }}
                                 </td>
                                 @if(Auth::user()->use_pay_scheme)
                                     <td class="px-6 py-3 whitespace-nowrap items-center text-center">
                                         <div class="flex flex-col items-center gap-0.5">
                                             <div>
-                                                {{ Carbon\Carbon::parse($p->start_time)->format('H:i') }}
+                                                {{ $case?->start_time ? Carbon\Carbon::parse($case->start_time)->format('H:i') : '' }}
                                                 <span class="text-xs text-zinc-400 dark:text-zinc-500">-</span>
-                                                {{ Carbon\Carbon::parse($p->end_time)->format('H:i') }}
+                                                {{ $case?->end_time ? Carbon\Carbon::parse($case->end_time)->format('H:i') : '' }}
                                             </div>
                                             <div>
                                                 <span class="text-xs text-zinc-400 dark:text-zinc-500">
-                                                    {{ $p->duration_minutes }} min
+                                                    {{ $case?->duration_minutes }} min
                                                 </span>
                                             </div>
                                         </div>
                                     </td>
                                 @endif
                                 <td class="px-6 py-3 text-left capitalize font-bold text-zinc-600 dark:text-zinc-200/90">
-                                    {{ strtolower($p->patient_name) }}
+                                    {{ strtolower((string) $case?->patient_name) }}
                                 </td>
                                 <td class="px-6 py-3 truncate capitalize max-w-35">
-                                    {{ strtolower($p->procedure_type) }}
+                                    {{ strtolower((string) $case?->procedure_type) }}
                                 </td>
                                 <td class="px-6 py-3">
                                     @if (Auth::user()->use_pay_scheme)
                                         <x-procedure-rule-badge :rule="data_get($p, 'pricing_snapshot.rule')"
-                                            :videosurgery="$p->is_videosurgery" />
+                                            :videosurgery="$case?->is_videosurgery" />
                                     @else
-                                        @if ($p->is_videosurgery)
+                                        @if ($case?->is_videosurgery)
                                             <flux:badge color="indigo" size="sm">{{ __('Video') }}</flux:badge>
                                         @endif
-                                        @if (data_get($p, 'pricing_snapshot.is_courtesy'))
+                                        @if ($p->is_courtesy)
                                             <flux:badge color="lime" size="sm">{{ __('Courtesy') }}</flux:badge>
                                         @endif
                                     @endif
@@ -739,14 +650,15 @@ updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculat
             {{-- Mobile --}}
             <div class="md:hidden divide-y divide-zinc-200 dark:divide-zinc-700">
                 @forelse($this->pending_procedures as $p)
+                    @php($case = $p->surgicalCase)
                     <div class="p-4 bg-white dark:bg-zinc-900 space-y-4">
                         <div class="flex items-start justify-between gap-2">
                             <div>
                                 <div class="font-medium text-zinc-900 dark:text-zinc-100">
-                                    {{ $p->patient_name }}
+                                    {{ $case?->patient_name }}
                                 </div>
                                 <div class="text-sm text-zinc-500 dark:text-zinc-400">
-                                    {{ $p->procedure_type }}
+                                    {{ $case?->procedure_type }}
                                 </div>
                             </div>
                             <div class="text-right shrink-0">
@@ -754,7 +666,7 @@ updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculat
                                     Q{{ number_format((float) $p->calculated_amount, 2) }}
                                 </div>
                                 <div class="text-xs text-zinc-500 dark:text-zinc-400">
-                                    {{ $p->procedure_date->format('d/m/Y') }}
+                                    {{ $case?->procedure_date?->format('d/m/Y') }}
                                 </div>
                             </div>
                         </div>
@@ -764,27 +676,27 @@ updated(['doctor_query' => $searchDoctor, 'circulating_query' => $searchCirculat
                                 <div class="flex flex-col flex-wrap items-center">
                                     <div class="flex flex-wrap justify-between items-center gap-1">
                                         <div class="flex items-center">
-                                            {{ Carbon\Carbon::parse($p->start_time)->format('H:i') }} <span
+                                            {{ $case?->start_time ? Carbon\Carbon::parse($case->start_time)->format('H:i') : '' }} <span
                                                 class="text-xs text-zinc-400 dark:text-zinc-500 ml-1">hrs</span>
                                         </div>
 
                                         <span class="text-xs text-zinc-400 dark:text-zinc-500">-</span>
 
                                         <div class="flex items-center">
-                                            {{ Carbon\Carbon::parse($p->end_time)->format('H:i') }} <span
+                                            {{ $case?->end_time ? Carbon\Carbon::parse($case->end_time)->format('H:i') : '' }} <span
                                                 class="text-xs text-zinc-400 dark:text-zinc-500 ml-1">hrs</span>
                                         </div>
                                     </div>
 
                                     <span class="text-xs text-zinc-400 dark:text-zinc-500">
-                                        {{ $p->duration_minutes }} min
+                                        {{ $case?->duration_minutes }} min
                                     </span>
                                 </div>
                                 <x-procedure-rule-badge :rule="data_get($p, 'pricing_snapshot.rule')"
-                                    :videosurgery="$p->is_videosurgery" />
+                                    :videosurgery="$case?->is_videosurgery" />
                             </div>
                         @else
-                            @if (data_get($p, 'pricing_snapshot.is_courtesy'))
+                            @if ($p->is_courtesy)
                                 <flux:badge color="lime" size="sm">{{ __('Courtesy') }}</flux:badge>
                             @endif
                         @endif
