@@ -16,7 +16,7 @@ test('backfill assigns hospital and creates patients from procedure names', func
             'procedure_date' => now()->toDateString(),
             'start_time' => '08:00', 'end_time' => '09:00',
             'patient_name' => $name, 'procedure_type' => 'X',
-            'instrumentist_id' => $user->id, 'status' => 'pending',
+            'status' => 'pending',
         ]);
     }
 

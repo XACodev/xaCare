@@ -4,12 +4,16 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Hospital;
 use App\Models\User;
+use App\Models\SurgicalAssignment;
 use App\Models\SurgicalCase;
+use App\Models\SurgicalRole;
 use App\Models\PayoutBatch;
 use App\Models\PayoutItem;
 use App\Models\PricingSetting;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class QxLogTestSeeder extends Seeder
 {
@@ -142,7 +146,13 @@ class QxLogTestSeeder extends Seeder
         // ======================
         // PRICING SETTINGS (deben existir antes)
         // ======================
-        $settings = PricingSetting::firstOrCreate(['id' => 1], [
+        $hospital = Hospital::firstOrCreate(
+            ['slug' => 'hnsc'],
+            ['name' => 'Centro Médico y Hospital Nuestra Señora del Carmen', 'plan' => 'basic', 'features' => [], 'is_active' => true],
+        );
+
+        $settings = PricingSetting::withoutGlobalScopes()->firstOrCreate(['id' => 1], [
+            'hospital_id' => $hospital->id,
             'default_rate' => 200,
             'video_rate' => 300,
             'night_rate' => 350,
@@ -153,9 +163,19 @@ class QxLogTestSeeder extends Seeder
         ]);
 
         // ======================
+        // ROLES QUIRÚRGICOS (Instrumentista/Cirujano/Circulante)
+        // ======================
+        $roles = [];
+        foreach (['Instrumentista', 'Cirujano', 'Circulante'] as $roleName) {
+            $roles[$roleName] = SurgicalRole::withoutGlobalScopes()->firstOrCreate(
+                ['hospital_id' => $hospital->id, 'slug' => Str::slug($roleName)],
+                ['name' => $roleName, 'is_payable' => true, 'active' => true, 'sort_order' => 0],
+            );
+        }
+
+        // ======================
         // PROCEDIMIENTOS
         // ======================
-        $procedures = [];
         $instrumentists = [$inst1, $inst2, $inst3];
         $doctors = [$doc1, $doc2, $doc3];
         $circulators = [$circ1, $circ2];
@@ -173,6 +193,9 @@ class QxLogTestSeeder extends Seeder
 
         // Instanciar el servicio real para obtener los mismos datos de guardado
         $pricingService = app(\App\Services\PricingService::class);
+
+        // Asignaciones de instrumentista creadas, para poder liquidar algunas más abajo.
+        $instrumentistAssignments = collect();
 
         for ($i = 1; $i <= 50; $i++) {
             $inst = fake()->randomElement($instrumentists);
@@ -207,7 +230,8 @@ class QxLogTestSeeder extends Seeder
                 $endTime
             );
 
-            $procedures[] = SurgicalCase::create([
+            $case = SurgicalCase::create([
+                'hospital_id' => $hospital->id,
                 'procedure_date' => $date,
                 'start_time' => $startTime,
                 'end_time' => $endTime,
@@ -215,19 +239,43 @@ class QxLogTestSeeder extends Seeder
                 'patient_name' => fake()->name(),
                 'procedure_type' => fake()->randomElement($procedureTypes),
                 'is_videosurgery' => $isVideosurgery,
-                'instrumentist_id' => $inst->id,
-                'instrumentist_name' => $inst->name,
-
-                'doctor_id' => $doc->id,
-                'doctor_name' => $doc->name,
-
-                'circulating_id' => $circ->id,
-                'circulating_name' => $circ->name,
-
                 'calculated_amount' => $pricingResult['amount'],
                 'pricing_snapshot' => $pricingResult['snapshot'],
-
                 'status' => 'pending',
+            ]);
+
+            // Participantes del caso, migrados como SurgicalAssignment en vez de las columnas
+            // legacy instrumentist_id/doctor_id/circulating_id (retiradas de surgical_cases).
+            $instrumentistAssignment = SurgicalAssignment::withoutGlobalScopes()->create([
+                'hospital_id' => $hospital->id,
+                'surgical_case_id' => $case->id,
+                'surgical_role_id' => $roles['Instrumentista']->id,
+                'user_id' => $inst->id,
+                'calculated_amount' => $pricingResult['amount'],
+                'pricing_snapshot' => $pricingResult['snapshot'],
+                'is_courtesy' => $isCourtesy,
+                'status' => 'pending',
+            ]);
+            $instrumentistAssignments->push($instrumentistAssignment);
+
+            SurgicalAssignment::withoutGlobalScopes()->create([
+                'hospital_id' => $hospital->id,
+                'surgical_case_id' => $case->id,
+                'surgical_role_id' => $roles['Cirujano']->id,
+                'user_id' => $doc->id,
+                'calculated_amount' => 0,
+                'is_courtesy' => false,
+                'status' => 'paid',
+            ]);
+
+            SurgicalAssignment::withoutGlobalScopes()->create([
+                'hospital_id' => $hospital->id,
+                'surgical_case_id' => $case->id,
+                'surgical_role_id' => $roles['Circulante']->id,
+                'user_id' => $circ->id,
+                'calculated_amount' => 0,
+                'is_courtesy' => false,
+                'status' => 'paid',
             ]);
         }
 
@@ -237,81 +285,80 @@ class QxLogTestSeeder extends Seeder
 
         // Pago a Ana (inst1)
         $batch1 = PayoutBatch::create([
-            'instrumentist_id' => $inst1->id,
+            'hospital_id' => $hospital->id,
+            'payee_id' => $inst1->id,
             'paid_by_id' => $admin->id,
             'paid_at' => now()->subDays(5),
             'total_amount' => 0,
             'status' => 'active',
         ]);
 
-        $paidProcedures1 = collect($procedures)
-            ->filter(fn($p) => $p->instrumentist_id === $inst1->id)
+        $paidAssignments1 = $instrumentistAssignments
+            ->filter(fn ($a) => $a->user_id === $inst1->id)
             ->take(5);
 
         $total1 = 0;
-        foreach ($paidProcedures1 as $p) {
-            PayoutItem::create([
+        foreach ($paidAssignments1 as $a) {
+            $case = $a->surgicalCase;
+
+            $item = PayoutItem::create([
+                'hospital_id' => $hospital->id,
                 'payout_batch_id' => $batch1->id,
-                'procedure_id' => $p->id,
-                'amount' => $p->calculated_amount,
+                'surgical_assignment_id' => $a->id,
+                'amount' => $a->calculated_amount,
                 'snapshot' => [
-                    'procedure_id' => $p->id,
-                    'patient_name' => $p->patient_name,
-                    'procedure_type' => $p->procedure_type,
-                    'procedure_date' => $p->procedure_date->toDateString(),
-                    'calculated_amount' => $p->calculated_amount,
-                    'pricing_snapshot' => $p->pricing_snapshot,
+                    'procedure_id' => $case->id,
+                    'patient_name' => $case->patient_name,
+                    'procedure_type' => $case->procedure_type,
+                    'procedure_date' => $case->procedure_date->toDateString(),
+                    'calculated_amount' => $a->calculated_amount,
+                    'pricing_snapshot' => $a->pricing_snapshot,
                 ],
             ]);
 
-            $p->update([
-                'status' => 'paid',
-                'paid_at' => $batch1->paid_at,
-                'payout_batch_id' => $batch1->id,
-            ]);
-            $total1 += $p->calculated_amount;
+            $a->update(['status' => 'paid', 'payout_item_id' => $item->id]);
+            $total1 += $a->calculated_amount;
         }
 
         $batch1->update(['total_amount' => $total1]);
 
         // Pago a Sofía (inst3)
         $batch2 = PayoutBatch::create([
-            'instrumentist_id' => $inst3->id,
+            'hospital_id' => $hospital->id,
+            'payee_id' => $inst3->id,
             'paid_by_id' => $super->id,
             'paid_at' => now()->subDays(2),
             'total_amount' => 0,
             'status' => 'active',
         ]);
 
-        $paidProcedures2 = collect($procedures)
-            ->filter(fn($p) => $p->instrumentist_id === $inst3->id)
+        $paidAssignments2 = $instrumentistAssignments
+            ->filter(fn ($a) => $a->user_id === $inst3->id)
             ->take(3);
 
         $total2 = 0;
-        foreach ($paidProcedures2 as $p) {
-            PayoutItem::create([
+        foreach ($paidAssignments2 as $a) {
+            $case = $a->surgicalCase;
+
+            $item = PayoutItem::create([
+                'hospital_id' => $hospital->id,
                 'payout_batch_id' => $batch2->id,
-                'procedure_id' => $p->id,
-                'amount' => $p->calculated_amount,
+                'surgical_assignment_id' => $a->id,
+                'amount' => $a->calculated_amount,
                 'snapshot' => [
-                    'procedure_id' => $p->id,
-                    'patient_name' => $p->patient_name,
-                    'procedure_type' => $p->procedure_type,
-                    'procedure_date' => $p->procedure_date->toDateString(),
-                    'calculated_amount' => $p->calculated_amount,
-                    'pricing_snapshot' => $p->pricing_snapshot,
+                    'procedure_id' => $case->id,
+                    'patient_name' => $case->patient_name,
+                    'procedure_type' => $case->procedure_type,
+                    'procedure_date' => $case->procedure_date->toDateString(),
+                    'calculated_amount' => $a->calculated_amount,
+                    'pricing_snapshot' => $a->pricing_snapshot,
                 ],
             ]);
 
-            $p->update([
-                'status' => 'paid',
-                'paid_at' => $batch2->paid_at,
-                'payout_batch_id' => $batch2->id,
-            ]);
-            $total2 += $p->calculated_amount;
+            $a->update(['status' => 'paid', 'payout_item_id' => $item->id]);
+            $total2 += $a->calculated_amount;
         }
 
         $batch2->update(['total_amount' => $total2]);
-
     }
 }
