@@ -6,10 +6,12 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class RateModifier extends Model
 {
-    use BelongsToTenant, HasFactory;
+    use BelongsToTenant, HasFactory, LogsActivity;
 
     public const TRIGGER_TIME_WINDOW = 'time_window';
     public const TRIGGER_DURATION_GTE = 'duration_gte';
@@ -45,5 +47,13 @@ class RateModifier extends Model
     public function isManual(): bool
     {
         return $this->trigger_type === self::TRIGGER_MANUAL_TOGGLE;
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['amount', 'active', 'trigger_config'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }

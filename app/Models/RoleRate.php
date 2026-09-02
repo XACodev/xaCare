@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class RoleRate extends Model
 {
-    use BelongsToTenant, HasFactory;
+    use BelongsToTenant, HasFactory, LogsActivity;
 
     protected $fillable = [
         'hospital_id',
@@ -39,5 +41,13 @@ class RoleRate extends Model
     public function modifiers(): HasMany
     {
         return $this->hasMany(RateModifier::class);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['base_rate', 'active'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }

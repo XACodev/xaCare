@@ -62,6 +62,14 @@ mount(function (SurgicalCase $procedure) {
         })->all();
 });
 
+$historyFor = computed(function () {
+    return fn (int $assignmentId) => SurgicalAssignment::find($assignmentId)
+        ?->activities()
+        ->with('causer:id,name')
+        ->latest('id')
+        ->get() ?? collect();
+});
+
 $manualModifiersFor = computed(function () {
     return fn (?int $roleId, ?int $userId, ?string $procedureType) => $roleId
         ? RateModifier::query()
@@ -137,7 +145,11 @@ $save = function () {
                 manualToggleIds: array_map('intval', $row['manual_toggles'] ?? []),
             );
 
-            SurgicalAssignment::where('id', $row['id'])->update([
+            // Se busca y actualiza la instancia del modelo (en vez de un update()
+            // masivo vía query builder) para que se disparen los eventos de
+            // Eloquent que spatie/laravel-activitylog necesita para registrar el
+            // historial de auditoría de honorarios.
+            SurgicalAssignment::find($row['id'])?->update([
                 'user_id' => $assignedUser?->id,
                 'is_courtesy' => (bool) $row['is_courtesy'],
                 'note' => $row['note'] ?: null,
@@ -274,6 +286,35 @@ $save = function () {
 
                     <flux:input wire:model="assignments.{{ $index }}.note" label="{{ __('Note (optional)') }}"
                         placeholder="{{ __('e.g. +Q200 due to complication') }}" />
+
+                    {{-- Historial de solo lectura: quien cambio esta asignacion antes de este edit --}}
+                    @php($history = ($this->historyFor)($row['id']))
+                    @if($history->isNotEmpty())
+                        <details class="rounded-md bg-zinc-50 dark:bg-zinc-800/50 px-3 py-2">
+                            <summary class="cursor-pointer text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+                                {{ __('Change History') }} ({{ $history->count() }})
+                            </summary>
+
+                            <ul class="mt-2 space-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                @foreach($history as $activity)
+                                    <li>
+                                        <span class="font-medium text-zinc-700 dark:text-zinc-300">
+                                            {{ $activity->causer?->name ?? __('System') }}
+                                        </span>
+                                        &mdash;
+                                        @foreach(($activity->properties['attributes'] ?? []) as $field => $newValue)
+                                            <span class="font-mono">
+                                                {{ $field }}: {{ $activity->properties['old'][$field] ?? '—' }} &rarr; {{ $newValue }}
+                                            </span>@if(!$loop->last), @endif
+                                        @endforeach
+                                        <span class="italic">
+                                            ({{ $activity->created_at->format('d/m/Y H:i') }})
+                                        </span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </details>
+                    @endif
                 </div>
             @endforeach
         </div>

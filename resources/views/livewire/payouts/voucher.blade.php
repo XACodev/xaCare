@@ -32,6 +32,8 @@ mount(function (string|int $batch) {
             'paidByUser:id,name',
             'items.surgicalAssignment.surgicalCase',
             'items.surgicalAssignment.surgicalRole',
+            'items.surgicalAssignment.activities' => fn ($q) => $q->latest(),
+            'items.surgicalAssignment.activities.causer:id,name',
         ])
         ->findOrFail($batch);
 
@@ -567,6 +569,60 @@ mount(function (string|int $batch) {
                     </tfoot>
                 </table>
             </div>
+
+            {{--
+                Historial de cambios (auditoría de honorarios): quién modificó el
+                monto/cortesía/nota de cada asignación, antes/después, y cuándo.
+                No debe aparecer en la impresión física del voucher (no-print,
+                mismo patrón usado en el resto del archivo).
+            --}}
+            @php
+                $itemsWithHistory = $this->items->filter(
+                    fn ($it) => $it->surgicalAssignment->activities->isNotEmpty()
+                );
+            @endphp
+            @if($itemsWithHistory->isNotEmpty())
+                <div class="no-print mt-6 rounded-lg overflow-hidden" style="border: 1px solid var(--line)">
+                    <div class="px-6 py-3 text-xs font-semibold uppercase tracking-wider" style="color: var(--ink-soft); border-bottom: 1px solid var(--line)">
+                        {{ __('Change History') }}
+                    </div>
+
+                    <div class="divide-y" style="border-color: var(--line)">
+                        @foreach($itemsWithHistory as $it)
+                            @php
+                                $case = $it->surgicalAssignment->surgicalCase;
+                            @endphp
+                            <details class="px-6 py-3">
+                                <summary class="cursor-pointer text-sm font-medium" style="color: var(--ink)">
+                                    {{ $case->patient_name ?? '-' }} &mdash; {{ $case->procedure_type ?? '-' }}
+                                    <span class="text-xs font-normal" style="color: var(--ink-soft)">
+                                        ({{ $it->surgicalAssignment->activities->count() }} {{ __('changes') }})
+                                    </span>
+                                </summary>
+
+                                <ul class="mt-2 space-y-1 text-xs" style="color: var(--ink-soft)">
+                                    @foreach($it->surgicalAssignment->activities as $activity)
+                                        <li>
+                                            <span class="font-medium" style="color: var(--ink)">
+                                                {{ $activity->causer?->name ?? __('System') }}
+                                            </span>
+                                            &mdash;
+                                            @foreach(($activity->properties['attributes'] ?? []) as $field => $newValue)
+                                                <span class="voucher-mono">
+                                                    {{ $field }}: {{ $activity->properties['old'][$field] ?? '—' }} &rarr; {{ $newValue }}
+                                                </span>@if(!$loop->last), @endif
+                                            @endforeach
+                                            <span class="italic">
+                                                ({{ $activity->created_at->format('d/m/Y H:i') }})
+                                            </span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </details>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
         @endif
 
