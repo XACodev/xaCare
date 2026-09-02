@@ -1,6 +1,9 @@
 <?php
 
+use App\Models\Activity;
+use App\Models\Admission;
 use App\Models\Hospital;
+use App\Models\Patient;
 use App\Models\RoleRate;
 use App\Models\SurgicalAssignment;
 use App\Models\SurgicalCase;
@@ -98,4 +101,104 @@ test('super admin cannot modify use_pay_scheme of a User via pricing.instrumenti
         ->assertForbidden();
 
     expect($target->fresh()->use_pay_scheme)->toBeFalse();
+});
+
+test('super admin cannot save a surgical case via procedures.edit', function () {
+    $hospital = Hospital::factory()->create();
+    $case = SurgicalCase::factory()->create([
+        'hospital_id' => $hospital->id,
+        'status' => 'pending',
+    ]);
+
+    $superAdmin = makeFase1SuperAdmin();
+    $superAdmin->givePermissionTo('procedures.edit');
+    $this->actingAs($superAdmin);
+
+    Volt::test('procedures.edit', ['procedure' => $case])
+        ->set('patient_name', 'Tampered')
+        ->call('save')
+        ->assertForbidden();
+
+    expect($case->fresh()->patient_name)->not->toBe('Tampered');
+});
+
+test('super admin cannot delete a surgical case via procedures.index', function () {
+    $hospital = Hospital::factory()->create();
+    $case = SurgicalCase::factory()->create(['hospital_id' => $hospital->id]);
+
+    $superAdmin = makeFase1SuperAdmin();
+    $this->actingAs($superAdmin);
+
+    Volt::test('procedures.index')
+        ->set('procedure_to_delete', $case->id)
+        ->call('delete')
+        ->assertForbidden();
+
+    expect(SurgicalCase::withoutGlobalScopes()->find($case->id))->not->toBeNull();
+});
+
+test('super admin cannot saveBaseRate on pricing.settings for another hospital', function () {
+    $hospital = Hospital::factory()->create();
+    $role = SurgicalRole::factory()->create(['hospital_id' => $hospital->id, 'active' => true]);
+
+    $superAdmin = makeFase1SuperAdmin();
+    $superAdmin->givePermissionTo('pricing.manage');
+    $this->actingAs($superAdmin);
+
+    Volt::test('pricing.settings')
+        ->set('selected_role_id', $role->id)
+        ->set('base_rate', 999)
+        ->call('saveBaseRate')
+        ->assertForbidden();
+
+    expect(RoleRate::withoutGlobalScopes()->where('surgical_role_id', $role->id)->exists())->toBeFalse();
+});
+
+test('hospital admin cannot create an admission pointing at a patient from another hospital', function () {
+    $hospitalA = Hospital::factory()->create();
+    $hospitalB = Hospital::factory()->create();
+    $adminA = makeFase1HospitalAdmin($hospitalA);
+    $patientB = Patient::factory()->create(['hospital_id' => $hospitalB->id]);
+
+    $this->actingAs($adminA);
+
+    Volt::test('admissions.create')
+        ->set('patient_id', $patientB->id)
+        ->set('fecha_ingreso', now()->toDateString())
+        ->call('save')
+        ->assertHasErrors(['patient_id']);
+
+    expect(Admission::withoutGlobalScopes()->where('patient_id', $patientB->id)->exists())->toBeFalse();
+});
+
+test('activity logged for a surgical assignment carries hospital_id and is scoped between hospitals', function () {
+    $hospitalA = Hospital::factory()->create();
+    $hospitalB = Hospital::factory()->create();
+    $adminA = makeFase1HospitalAdmin($hospitalA);
+    $adminB = makeFase1HospitalAdmin($hospitalB);
+
+    $role = SurgicalRole::factory()->create(['hospital_id' => $hospitalA->id]);
+    $case = SurgicalCase::factory()->create(['hospital_id' => $hospitalA->id]);
+    $assignment = SurgicalAssignment::factory()->create([
+        'hospital_id' => $hospitalA->id,
+        'surgical_case_id' => $case->id,
+        'surgical_role_id' => $role->id,
+        'note' => 'original',
+    ]);
+
+    $this->actingAs($adminA);
+    $assignment->update(['note' => 'honorario ajustado']);
+
+    $activity = Activity::withoutGlobalScopes()
+        ->where('subject_type', SurgicalAssignment::class)
+        ->where('subject_id', $assignment->id)
+        ->latest('id')
+        ->first();
+
+    expect($activity)->not->toBeNull();
+    expect($activity->hospital_id)->toBe($hospitalA->id);
+
+    $this->actingAs($adminB);
+
+    expect(Activity::pluck('id'))->not->toContain($activity->id);
 });

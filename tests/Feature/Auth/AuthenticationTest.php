@@ -24,6 +24,19 @@ test('users can authenticate using the login screen', function () {
     $this->assertAuthenticated();
 });
 
+test('dashboard can be loaded from a session without a cached guard user', function () {
+    $user = User::factory()->create();
+
+    $this->post(route('login.store'), [
+        'username' => $user->username,
+        'password' => 'password',
+    ])->assertRedirect(route('dashboard', absolute: false));
+
+    auth()->guard('web')->forgetUser();
+
+    $this->get(route('dashboard'))->assertOk();
+});
+
 test('users can not authenticate with invalid password', function () {
     $user = User::factory()->create();
 
@@ -38,7 +51,7 @@ test('users can not authenticate with invalid password', function () {
 });
 
 test('users with two factor enabled are redirected to two factor challenge', function () {
-    if (!Features::canManageTwoFactorAuthentication()) {
+    if (! Features::canManageTwoFactorAuthentication()) {
         $this->markTestSkipped('Two-factor authentication is not enabled.');
     }
 

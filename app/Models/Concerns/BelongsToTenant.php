@@ -11,10 +11,10 @@ trait BelongsToTenant
 {
     public static function bootBelongsToTenant(): void
     {
-        static::addGlobalScope(new TenantScope());
+        static::addGlobalScope(new TenantScope);
 
         static::creating(function ($model) {
-            if (! $model->hospital_id && Auth::check() && Auth::user()->hospital_id) {
+            if (! $model->hospital_id && Auth::hasUser() && Auth::user()?->hospital_id) {
                 $model->hospital_id = Auth::user()->hospital_id;
             }
         });
@@ -34,7 +34,7 @@ trait BelongsToTenant
             return;
         }
 
-        if (Auth::check() && Auth::user()->is_super_admin) {
+        if (Auth::hasUser() && Auth::user()?->is_super_admin) {
             abort(403, 'Super admin es de solo lectura sobre datos operativos de hospitales.');
         }
     }

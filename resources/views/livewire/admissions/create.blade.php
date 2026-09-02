@@ -4,6 +4,7 @@ use App\Models\Admission;
 use App\Models\Patient;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 use function Livewire\Volt\{state, mount, rules, computed};
 
@@ -23,8 +24,8 @@ state([
     'success_message' => null,
 ]);
 
-rules([
-    'patient_id' => ['required', 'integer', 'exists:patients,id'],
+rules(fn () => [
+    'patient_id' => ['required', 'integer', Rule::exists('patients', 'id')->when(Auth::user()?->hospital_id, fn ($rule) => $rule->where('hospital_id', Auth::user()->hospital_id))],
     'va_a_quirofano' => ['boolean'],
     'fecha_ingreso' => ['required', 'date'],
     'hora_ingreso' => ['nullable', 'date_format:H:i'],

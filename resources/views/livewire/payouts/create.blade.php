@@ -6,6 +6,7 @@ use App\Models\SurgicalAssignment;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 use function Livewire\Volt\{state, computed, mount, rules, updated};
@@ -16,10 +17,10 @@ state([
     'selected' => [],
 ]);
 
-rules([
-    'payee_id' => ['required', 'integer', 'exists:users,id'],
+rules(fn () => [
+    'payee_id' => ['required', 'integer', Rule::exists('users', 'id')->when(Auth::user()?->hospital_id, fn ($rule) => $rule->where('hospital_id', Auth::user()->hospital_id))],
     'selected' => ['array'],
-    'selected.*' => ['integer', 'exists:surgical_assignments,id'],
+    'selected.*' => ['integer', Rule::exists('surgical_assignments', 'id')->when(Auth::user()?->hospital_id, fn ($rule) => $rule->where('hospital_id', Auth::user()->hospital_id))],
 ]);
 
 mount(function () {
