@@ -40,19 +40,14 @@ $procedures = computed(function () {
     }
 
     if ($this->instrumentist_id) {
-        // Desviación reportada: el filtro original consultaba solo SurgicalCase.instrumentist_id,
-        // columna que ya no se llena para casos creados con el nuevo formulario (Task 9). Se agregó
-        // un filtro por SurgicalAssignment con rol "Instrumentista" (nombre canónico sembrado por
-        // MigrateToSurgicalAssignments), pero eso rompía el filtro para casos legacy que aún no
-        // pasaron por ese comando de migración (no tienen filas en SurgicalAssignment). Ahora se
-        // combinan ambas rutas con OR: columna legacy o asignación migrada.
+        // Las columnas legacy de instrumentista/doctor/circulante fueron retiradas de
+        // surgical_cases (ver migración de drop): todo caso quirúrgico existente ya tiene sus
+        // participantes representados como SurgicalAssignment, así que el filtro solo necesita
+        // esa ruta.
         $instrumentistId = (int) $this->instrumentist_id;
-        $query->where(function ($q) use ($instrumentistId) {
-            $q->where('instrumentist_id', $instrumentistId)
-                ->orWhereHas('assignments', function ($a) use ($instrumentistId) {
-                    $a->where('user_id', $instrumentistId)
-                        ->whereHas('surgicalRole', fn($r) => $r->where('name', 'Instrumentista'));
-                });
+        $query->whereHas('assignments', function ($a) use ($instrumentistId) {
+            $a->where('user_id', $instrumentistId)
+                ->whereHas('surgicalRole', fn($r) => $r->where('name', 'Instrumentista'));
         });
     }
 
@@ -68,9 +63,7 @@ $procedures = computed(function () {
         $term = trim($this->q);
         $query->where(function ($s) use ($term) {
             $s->where('patient_name', 'like', "%{$term}%")
-                ->orWhere('procedure_type', 'like', "%{$term}%")
-                ->orWhere('doctor_name', 'like', "%{$term}%")
-                ->orWhere('circulating_name', 'like', "%{$term}%");
+                ->orWhere('procedure_type', 'like', "%{$term}%");
         });
     }
 

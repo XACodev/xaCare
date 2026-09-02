@@ -29,27 +29,6 @@ class SurgicalCase extends Model
         );
     }
 
-    protected function instrumentistName(): Attribute
-    {
-        return Attribute::make(
-            set: fn (?string $value) => $value ? ucwords(strtolower($value)) : null,
-        );
-    }
-
-    protected function doctorName(): Attribute
-    {
-        return Attribute::make(
-            set: fn (?string $value) => $value ? ucwords(strtolower($value)) : null,
-        );
-    }
-
-    protected function circulatingName(): Attribute
-    {
-        return Attribute::make(
-            set: fn (?string $value) => $value ? ucwords(strtolower($value)) : null,
-        );
-    }
-
     protected $fillable = [
         'hospital_id',
         'patient_id',
@@ -61,15 +40,6 @@ class SurgicalCase extends Model
         'patient_name',
         'procedure_type',
         'is_videosurgery',
-
-        'instrumentist_id',
-        'instrumentist_name',
-
-        'doctor_id',
-        'doctor_name',
-
-        'circulating_id',
-        'circulating_name',
 
         'calculated_amount',
         'pricing_snapshot',
@@ -84,21 +54,6 @@ class SurgicalCase extends Model
         'pricing_snapshot' => 'array',      // JSON ↔ array
         'calculated_amount' => 'decimal:2', // siempre 2 decimales
     ];
-
-    public function instrumentist()
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public function doctor()
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public function circulating()
-    {
-        return $this->belongsTo(User::class);
-    }
 
     public function patient()
     {

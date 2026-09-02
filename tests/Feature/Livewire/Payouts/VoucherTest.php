@@ -25,7 +25,6 @@ function makePaidBatchWithItem(User $instrumentist, User $admin): PayoutBatch
 {
     $procedure = SurgicalCase::factory()->create([
         'hospital_id' => $instrumentist->hospital_id,
-        'instrumentist_id' => $instrumentist->id,
         'status' => 'paid',
         'calculated_amount' => 100,
     ]);

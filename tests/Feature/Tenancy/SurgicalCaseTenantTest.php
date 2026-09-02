@@ -18,7 +18,6 @@ test('procedures are scoped by hospital and link to a patient', function () {
         'patient_name' => 'Ana Gomez',
         'patient_id' => $patient->id,
         'procedure_type' => 'Apendicectomia',
-        'instrumentist_id' => $user->id,
         'status' => 'pending',
     ]);
 
