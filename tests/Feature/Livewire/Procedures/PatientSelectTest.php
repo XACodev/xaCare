@@ -3,7 +3,7 @@
 use App\Models\Admission;
 use App\Models\Hospital;
 use App\Models\Patient;
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\User;
 use Livewire\Volt\Volt;
 
@@ -28,7 +28,7 @@ test('instrumentist selects a patient and it is stored on the procedure', functi
         ->call('save')
         ->assertHasNoErrors();
 
-    $procedure = Procedure::withoutGlobalScopes()->first();
+    $procedure = SurgicalCase::withoutGlobalScopes()->first();
     expect($procedure->patient_id)->toBe($patient->id);
     expect($procedure->patient_name)->toBe('Ana Gomez');
 });
@@ -48,7 +48,7 @@ test('instrumentist can register a procedure with a free-text patient name for e
         ->call('save')
         ->assertHasNoErrors();
 
-    $procedure = Procedure::withoutGlobalScopes()->first();
+    $procedure = SurgicalCase::withoutGlobalScopes()->first();
     expect($procedure->patient_id)->toBeNull();
     expect($procedure->patient_name)->toBe('Paciente De Emergencia'); // Title Case cast
 });

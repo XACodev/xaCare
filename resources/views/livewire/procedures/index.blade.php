@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Flux\Flux;
@@ -30,7 +30,7 @@ $instrumentists = computed(function () {
 });
 
 $procedures = computed(function () {
-    $query = Procedure::query()
+    $query = SurgicalCase::query()
         ->with(['instrumentist:id,name'])
         ->orderByDesc('procedure_date')
         ->orderByDesc('id');
@@ -93,7 +93,7 @@ $confirmDelete = function (int $id) {
 
 $delete = function () {
     if ($this->procedure_to_delete) {
-        Procedure::findOrFail($this->procedure_to_delete)->delete();
+        SurgicalCase::findOrFail($this->procedure_to_delete)->delete();
         $this->procedure_to_delete = null;
         Flux::modal('confirm-procedure-deletion')->close();
     }

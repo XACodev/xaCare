@@ -3,7 +3,7 @@
 use App\Models\Hospital;
 use App\Models\PayoutBatch;
 use App\Models\PayoutItem;
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\User;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -21,7 +21,7 @@ beforeEach(function () {
 
 function makePaidBatchWithItem(User $instrumentist, User $admin): PayoutBatch
 {
-    $procedure = Procedure::factory()->create([
+    $procedure = SurgicalCase::factory()->create([
         'hospital_id' => $instrumentist->hospital_id,
         'instrumentist_id' => $instrumentist->id,
         'status' => 'paid',
@@ -77,7 +77,7 @@ test('shows liquidate again button when instrumentist still has pending procedur
 
     $batch = makePaidBatchWithItem($instrumentist, $admin);
 
-    Procedure::factory()->create([
+    SurgicalCase::factory()->create([
         'hospital_id' => $instrumentist->hospital_id,
         'instrumentist_id' => $instrumentist->id,
         'status' => 'pending',

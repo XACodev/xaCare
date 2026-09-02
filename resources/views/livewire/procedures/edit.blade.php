@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\User;
 use App\Services\PricingService;
 use App\Support\TimeHelper;
@@ -36,7 +36,7 @@ state([
     'amount_preview' => 0,
 ]);
 
-mount(function (Procedure $procedure) {
+mount(function (SurgicalCase $procedure) {
     $user = Auth::user();
     abort_unless($user && $user->can('procedures.edit'), 403);
 
@@ -253,10 +253,10 @@ $save = function () {
         $p->calculated_amount = (float) $calc['amount'];
         $p->pricing_snapshot = $calc['snapshot'];
 
-        if (Schema::hasColumn('procedures', 'edited_by_id')) {
+        if (Schema::hasColumn('surgical_cases', 'edited_by_id')) {
             $p->edited_by_id = $user->id;
         }
-        if (Schema::hasColumn('procedures', 'edited_at')) {
+        if (Schema::hasColumn('surgical_cases', 'edited_at')) {
             $p->edited_at = now();
         }
 

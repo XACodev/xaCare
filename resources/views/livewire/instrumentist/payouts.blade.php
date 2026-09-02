@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\PayoutBatch;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,7 +27,7 @@ mount(function () {
     // ======================
     // Pending procedures
     // ======================
-    $pendingBase = Procedure::query()
+    $pendingBase = SurgicalCase::query()
         ->where('instrumentist_id', $user->id)
         ->where('status', 'pending');
 

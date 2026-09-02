@@ -6,9 +6,9 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Procedure>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\SurgicalCase>
  */
-class ProcedureFactory extends Factory
+class SurgicalCaseFactory extends Factory
 {
     /**
      * Define the model's default state.

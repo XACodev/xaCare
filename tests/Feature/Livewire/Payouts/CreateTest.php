@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\User;
 use Livewire\Volt\Volt;
 use Spatie\Permission\Models\Permission;
@@ -23,7 +23,7 @@ test('shows pending and selected procedure counts', function () {
     $instrumentist = User::factory()->create();
     $instrumentist->assignRole('instrumentist');
 
-    $procedures = Procedure::factory()->count(3)->create([
+    $procedures = SurgicalCase::factory()->count(3)->create([
         'instrumentist_id' => $instrumentist->id,
         'status' => 'pending',
         'calculated_amount' => 100,
@@ -45,7 +45,7 @@ test('liquidating redirects to the payout voucher', function () {
     $instrumentist = User::factory()->create();
     $instrumentist->assignRole('instrumentist');
 
-    $procedures = Procedure::factory()->count(2)->create([
+    $procedures = SurgicalCase::factory()->count(2)->create([
         'instrumentist_id' => $instrumentist->id,
         'status' => 'pending',
         'calculated_amount' => 150,
@@ -72,7 +72,7 @@ test('preselects instrumentist from query parameter', function () {
     $instrumentist = User::factory()->create();
     $instrumentist->assignRole('instrumentist');
 
-    Procedure::factory()->create([
+    SurgicalCase::factory()->create([
         'instrumentist_id' => $instrumentist->id,
         'status' => 'pending',
         'calculated_amount' => 100,

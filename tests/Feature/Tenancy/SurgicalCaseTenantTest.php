@@ -2,7 +2,7 @@
 
 use App\Models\Hospital;
 use App\Models\Patient;
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\User;
 
 test('procedures are scoped by hospital and link to a patient', function () {
@@ -11,7 +11,7 @@ test('procedures are scoped by hospital and link to a patient', function () {
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'instrumentist']);
     $this->actingAs($user);
 
-    $procedure = Procedure::create([
+    $procedure = SurgicalCase::create([
         'procedure_date' => now()->toDateString(),
         'start_time' => '08:00',
         'end_time' => '09:00',

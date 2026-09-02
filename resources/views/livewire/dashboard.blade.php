@@ -1,7 +1,7 @@
 <?php
 
 use Livewire\Volt\Component;
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\PayoutBatch;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,15 +27,15 @@ new class extends Component {
 
         if ($user->role === 'admin') {
             $stats = [
-                'total_procedures' => Procedure::count(),
-                'pending_procedures' => Procedure::where('status', 'pending')->count(),
+                'total_procedures' => SurgicalCase::count(),
+                'pending_procedures' => SurgicalCase::where('status', 'pending')->count(),
                 'total_paid' => PayoutBatch::where('status', '!=', 'void')->sum('total_amount'),
             ];
         } elseif ($user->role === 'instrumentist') {
             $stats = [
-                'total_earnings' => Procedure::where('instrumentist_id', $user->id)->where('status', 'paid')->sum('calculated_amount'),
-                'pending_earnings' => Procedure::where('instrumentist_id', $user->id)->where('status', 'pending')->sum('calculated_amount'),
-                'procedures_count' => Procedure::where('instrumentist_id', $user->id)->count(),
+                'total_earnings' => SurgicalCase::where('instrumentist_id', $user->id)->where('status', 'paid')->sum('calculated_amount'),
+                'pending_earnings' => SurgicalCase::where('instrumentist_id', $user->id)->where('status', 'pending')->sum('calculated_amount'),
+                'procedures_count' => SurgicalCase::where('instrumentist_id', $user->id)->count(),
             ];
         }
 

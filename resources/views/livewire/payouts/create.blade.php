@@ -2,7 +2,7 @@
 
 use App\Models\PayoutBatch;
 use App\Models\PayoutItem;
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +21,7 @@ state([
 rules([
     'instrumentist_id' => ['required', 'integer', 'exists:users,id'],
     'selected' => ['array'],
-    'selected.*' => ['integer', 'exists:procedures,id'],
+    'selected.*' => ['integer', 'exists:surgical_cases,id'],
 ]);
 
 mount(function () {
@@ -49,7 +49,7 @@ $pending_procedures = computed(function () {
     if (!$this->instrumentist_id)
         return collect();
 
-    return Procedure::query()
+    return SurgicalCase::query()
         ->where('instrumentist_id', $this->instrumentist_id)
         ->where('status', 'pending')
         ->orderByDesc('procedure_date')
@@ -61,7 +61,7 @@ $pending_total = computed(function () {
     if (!$this->instrumentist_id)
         return 0.0;
 
-    return (float) Procedure::query()
+    return (float) SurgicalCase::query()
         ->where('instrumentist_id', $this->instrumentist_id)
         ->where('status', 'pending')
         ->sum('calculated_amount');
@@ -72,7 +72,7 @@ $selected_total = computed(function () {
     if (!$this->instrumentist_id || empty($ids))
         return 0.0;
 
-    return (float) Procedure::query()
+    return (float) SurgicalCase::query()
         ->where('instrumentist_id', $this->instrumentist_id)
         ->where('status', 'pending')
         ->whereIn('id', $ids)
@@ -120,7 +120,7 @@ $liquidate = function () {
     }
 
     // Re-validate contra DB: que sean del instrumentista y estén pending
-    $procedures = Procedure::query()
+    $procedures = SurgicalCase::query()
         ->where('instrumentist_id', $data['instrumentist_id'])
         ->where('status', 'pending')
         ->whereIn('id', $selectedIds)

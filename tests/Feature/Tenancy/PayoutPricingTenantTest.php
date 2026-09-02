@@ -4,7 +4,7 @@ use App\Models\Hospital;
 use App\Models\PayoutBatch;
 use App\Models\PayoutItem;
 use App\Models\PricingSetting;
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\User;
 
 test('payout batches and items are scoped to the authenticated user hospital', function () {
@@ -17,7 +17,7 @@ test('payout batches and items are scoped to the authenticated user hospital', f
     PayoutItem::create([
         'hospital_id' => $hospitalA->id,
         'payout_batch_id' => $batchA->id,
-        'procedure_id' => Procedure::factory()->create(['hospital_id' => $hospitalA->id])->id,
+        'procedure_id' => SurgicalCase::factory()->create(['hospital_id' => $hospitalA->id])->id,
         'amount' => 100,
         'snapshot' => [],
     ]);

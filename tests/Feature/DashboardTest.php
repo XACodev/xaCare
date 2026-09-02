@@ -20,7 +20,7 @@ test('admins see admin shortcuts and stats on dashboard', function () {
     $this->actingAs($user);
 
     // Create some data
-    \App\Models\Procedure::factory()->create(['status' => 'pending']);
+    \App\Models\SurgicalCase::factory()->create(['status' => 'pending']);
     \App\Models\PayoutBatch::factory()->create(['total_amount' => 500, 'status' => 'active']);
 
     $response = $this->get(route('dashboard'));

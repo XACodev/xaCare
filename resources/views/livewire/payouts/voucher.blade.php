@@ -2,7 +2,7 @@
 
 use App\Models\OrganizationSetting;
 use App\Models\PayoutBatch;
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use Illuminate\Support\Facades\Auth;
 
 use function Livewire\Volt\{state, mount};
@@ -70,7 +70,7 @@ mount(function (string|int $batch) {
     $this->year = optional($this->batch->paid_at)->format('Y') ?? now()->format('Y');
     $this->folio = 'QX-' . $this->year . '-' . str_pad((string) $this->batch->id, 6, '0', STR_PAD_LEFT);
 
-    $this->remaining_pending_count = Procedure::query()
+    $this->remaining_pending_count = SurgicalCase::query()
         ->where('instrumentist_id', $b->instrumentist_id)
         ->where('status', 'pending')
         ->count();

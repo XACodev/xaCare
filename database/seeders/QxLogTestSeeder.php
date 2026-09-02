@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\User;
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\PayoutBatch;
 use App\Models\PayoutItem;
 use App\Models\PricingSetting;
@@ -207,7 +207,7 @@ class QxLogTestSeeder extends Seeder
                 $endTime
             );
 
-            $procedures[] = Procedure::create([
+            $procedures[] = SurgicalCase::create([
                 'procedure_date' => $date,
                 'start_time' => $startTime,
                 'end_time' => $endTime,

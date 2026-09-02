@@ -2,7 +2,7 @@
 
 use App\Models\Hospital;
 use App\Models\Patient;
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\User;
 
 test('backfill assigns hospital and creates patients from procedure names', function () {
@@ -12,7 +12,7 @@ test('backfill assigns hospital and creates patients from procedure names', func
 
     // Two procedures with the same patient name, one different.
     foreach (['Ana Gomez', 'Ana Gomez', 'Luis Perez'] as $name) {
-        Procedure::withoutGlobalScopes()->create([
+        SurgicalCase::withoutGlobalScopes()->create([
             'procedure_date' => now()->toDateString(),
             'start_time' => '08:00', 'end_time' => '09:00',
             'patient_name' => $name, 'procedure_type' => 'X',
@@ -25,7 +25,7 @@ test('backfill assigns hospital and creates patients from procedure names', func
     expect(Patient::withoutGlobalScopes()->count())->toBe(2);
     expect($user->fresh()->hospital_id)->toBe($hospital->id);
 
-    $anas = Procedure::withoutGlobalScopes()->where('patient_name', 'Ana Gomez')->pluck('patient_id')->unique();
+    $anas = SurgicalCase::withoutGlobalScopes()->where('patient_name', 'Ana Gomez')->pluck('patient_id')->unique();
     expect($anas->count())->toBe(1);
     expect($anas->first())->not->toBeNull();
 });

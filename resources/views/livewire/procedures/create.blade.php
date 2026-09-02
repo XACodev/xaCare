@@ -2,7 +2,7 @@
 
 use App\Models\Admission;
 use App\Models\Patient;
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\User;
 use App\Services\PricingService;
 use App\Support\TimeHelper;
@@ -188,7 +188,7 @@ $save = function () {
     );
 
     DB::transaction(function () use ($user, $data, $patientId, $patientName, $doctorId, $doctorName, $circulatingId, $circulatingName, $durationMinutes, $pricing) {
-        Procedure::create([
+        SurgicalCase::create([
             'procedure_date' => $data['procedure_date'],
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
@@ -243,7 +243,7 @@ $pending_procedures = computed(function () {
     if (!$user)
         return [];
 
-    return Procedure::query()
+    return SurgicalCase::query()
         ->where('instrumentist_id', $user->id)
         ->where('status', 'pending')
         ->orderByDesc('procedure_date')
@@ -257,7 +257,7 @@ $pending_total = computed(function () {
     if (!$user)
         return 0;
 
-    return (float) Procedure::query()
+    return (float) SurgicalCase::query()
         ->where('instrumentist_id', $user->id)
         ->where('status', 'pending')
         ->sum('calculated_amount');

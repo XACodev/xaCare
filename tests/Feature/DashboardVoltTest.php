@@ -2,13 +2,13 @@
 
 use Livewire\Volt\Volt;
 use App\Models\User;
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 
 test('earnings are hidden by default and toggle works', function () {
     $user = User::factory()->create(['role' => 'instrumentist']);
 
     // Create some data so we can verify the amount is actually hidden/shown
-    Procedure::factory()->create([
+    SurgicalCase::factory()->create([
         'instrumentist_id' => $user->id,
         'status' => 'paid',
         'calculated_amount' => 500,

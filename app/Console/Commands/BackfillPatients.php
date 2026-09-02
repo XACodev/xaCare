@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Hospital;
 use App\Models\Patient;
-use App\Models\Procedure;
+use App\Models\SurgicalCase;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -25,10 +25,10 @@ class BackfillPatients extends Command
 
         // 1) Tenant backfill for users and procedures without hospital_id.
         User::whereNull('hospital_id')->where('is_super_admin', false)->update(['hospital_id' => $hospital->id]);
-        Procedure::withoutGlobalScopes()->whereNull('hospital_id')->update(['hospital_id' => $hospital->id]);
+        SurgicalCase::withoutGlobalScopes()->whereNull('hospital_id')->update(['hospital_id' => $hospital->id]);
 
         // 2) One Patient per distinct patient_name; link procedures.
-        $names = Procedure::withoutGlobalScopes()
+        $names = SurgicalCase::withoutGlobalScopes()
             ->whereNull('patient_id')
             ->whereNotNull('patient_name')
             ->distinct()
@@ -44,7 +44,7 @@ class BackfillPatients extends Command
                     'primer_apellido' => $parts[count($parts) - 1] ?? '—',
                 ]);
 
-                Procedure::withoutGlobalScopes()
+                SurgicalCase::withoutGlobalScopes()
                     ->whereNull('patient_id')
                     ->where('patient_name', $name)
                     ->update(['patient_id' => $patient->id]);

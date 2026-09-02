@@ -29,6 +29,6 @@ class PayoutItem extends Model
 
     public function procedure()
     {
-        return $this->belongsTo(Procedure::class);
+        return $this->belongsTo(SurgicalCase::class);
     }
 }
