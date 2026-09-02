@@ -14,8 +14,12 @@ mount(function () {
     abort_unless((bool) Auth::user()->can('pricing.manage'), 403);
 });
 
+// Generalized from User::role('instrumentist') to "any user who has ever participated in a
+// case" so that hospital admins can set per-user RoleRate overrides for any payable role, not
+// just instrumentists. Reuses pricing.settings (Step 1/2) as the override editor by linking to
+// it with a ?user_id= query param instead of building a second tarifario UI here.
 $instrumentists = computed(function () {
-    return User::role('instrumentist')
+    return User::whereHas('assignments')
         ->when($this->searchInstrumentists, function ($q) {
             $term = trim($this->searchInstrumentists);
             $q->where(function ($s) use ($term) {
@@ -30,7 +34,7 @@ $instrumentists = computed(function () {
 $toggle = function (int $id) {
     abort_unless((bool) Auth::user()->can('pricing.manage'), 403);
 
-    $u = User::role('instrumentist')->findOrFail($id);
+    $u = User::findOrFail($id);
 
     $u->use_pay_scheme = !(bool) $u->use_pay_scheme;
     $u->save();
@@ -62,12 +66,16 @@ $toggle = function (int $id) {
                             {{ $u->use_pay_scheme ? __('Special') : __('Standard') }}
                         </flux:badge>
                     </div>
-                    <div class="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                    <div class="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
                         <button
                             class="w-full h-8 text-sm rounded-lg cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-800/30 transition-colors border-2 hover:border-indigo-200 dark:hover:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800"
                             wire:click="toggle({{ $u->id }})">
                             {{ $u->use_pay_scheme ? __('Deactivate scheme') : __('Activate scheme') }}
                         </button>
+                        <a href="{{ route('pricing.settings', ['user_id' => $u->id]) }}"
+                            class="w-full h-8 flex items-center justify-center text-sm rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors border-2 border-zinc-100 dark:border-zinc-800">
+                            {{ __('Configure rate') }}
+                        </a>
                     </div>
                 </div>
             @empty
@@ -110,12 +118,16 @@ $toggle = function (int $id) {
                                     {{ $u->use_pay_scheme ? __('Yes') : __('No') }}
                                 </flux:badge>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm space-x-2">
                                 <button
                                     class="cursor-pointer transition-colors font-medium h-8 px-2 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900 border border-indigo-100 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/30 hover:border-indigo-200 dark:hover:border-indigo-700 hover:text-indigo-700 dark:hover:text-indigo-300 text-indigo-600 dark:text-indigo-400"
                                     wire:click="toggle({{ $u->id }})">
                                     {{ $u->use_pay_scheme ? __('Deactivate') : __('Activate') }}
                                 </button>
+                                <a href="{{ route('pricing.settings', ['user_id' => $u->id]) }}"
+                                    class="inline-flex cursor-pointer transition-colors font-medium h-8 px-2 items-center rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-100 dark:border-zinc-800">
+                                    {{ __('Configure rate') }}
+                                </a>
                             </td>
                         </tr>
                     @empty
