@@ -11,6 +11,7 @@ use App\Services\RateResolutionService;
 use App\Support\TimeHelper;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 
@@ -37,18 +38,18 @@ state([
     'success_message' => null,
 ]);
 
-rules([
+rules(fn () => [
     'procedure_date' => ['required', 'date'],
     'start_time' => ['required', 'date_format:H:i'],
     'end_time' => ['required', 'date_format:H:i'],
-    'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
+    'patient_id' => ['nullable', 'integer', Rule::exists('patients', 'id')->when(Auth::user()?->hospital_id, fn ($rule) => $rule->where('hospital_id', Auth::user()->hospital_id))],
     'patient_query' => ['nullable', 'string', 'max:255'],
     'patient_name' => ['nullable', 'string', 'max:255'],
     'procedure_type' => ['required', 'string', 'max:255'],
     'is_videosurgery' => ['boolean'],
     'assignments' => ['array', 'min:1'],
-    'assignments.*.role_id' => ['required', 'integer', 'exists:surgical_roles,id'],
-    'assignments.*.user_id' => ['nullable', 'integer', 'exists:users,id'],
+    'assignments.*.role_id' => ['required', 'integer', Rule::exists('surgical_roles', 'id')->when(Auth::user()?->hospital_id, fn ($rule) => $rule->where('hospital_id', Auth::user()->hospital_id))],
+    'assignments.*.user_id' => ['nullable', 'integer', Rule::exists('users', 'id')->when(Auth::user()?->hospital_id, fn ($rule) => $rule->where('hospital_id', Auth::user()->hospital_id))],
     'assignments.*.user_query' => ['nullable', 'string', 'max:255'],
     'assignments.*.is_courtesy' => ['boolean'],
     'assignments.*.note' => ['nullable', 'string', 'max:255'],

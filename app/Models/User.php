@@ -63,6 +63,15 @@ class User extends Authenticatable
     }
 
     /**
+     * El super admin sí puede crear/editar usuarios y administradores de cualquier hospital
+     * vía /users (gestión ya protegida por su propio middleware `superadmin`).
+     */
+    public static function allowsSuperAdminWrites(): bool
+    {
+        return true;
+    }
+
+    /**
      * Asignaciones quirurgicas del usuario como beneficiario.
      */
     public function assignments()

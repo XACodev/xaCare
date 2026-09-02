@@ -5,6 +5,7 @@ use App\Models\RoleRate;
 use App\Models\SurgicalRole;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 use function Livewire\Volt\{state, computed, mount, rules};
 
@@ -23,8 +24,8 @@ state([
     'modifier_amount' => 0,
 ]);
 
-rules([
-    'selected_role_id' => ['required', 'integer', 'exists:surgical_roles,id'],
+rules(fn () => [
+    'selected_role_id' => ['required', 'integer', Rule::exists('surgical_roles', 'id')->when(Auth::user()?->hospital_id, fn ($rule) => $rule->where('hospital_id', Auth::user()->hospital_id))],
     'base_rate' => ['required', 'numeric', 'min:0'],
 ]);
 
