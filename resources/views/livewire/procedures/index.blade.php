@@ -40,14 +40,19 @@ $procedures = computed(function () {
     }
 
     if ($this->instrumentist_id) {
-        // Desviación reportada: el filtro original consultaba SurgicalCase.instrumentist_id, columna
-        // que ya no se llena para casos creados con el nuevo formulario (Task 9), rompiendo este filtro
-        // en silencio. Se ajusta para filtrar por la asignación con rol "Instrumentista", que es el
-        // nombre de rol canónico sembrado por MigrateToSurgicalAssignments.
+        // Desviación reportada: el filtro original consultaba solo SurgicalCase.instrumentist_id,
+        // columna que ya no se llena para casos creados con el nuevo formulario (Task 9). Se agregó
+        // un filtro por SurgicalAssignment con rol "Instrumentista" (nombre canónico sembrado por
+        // MigrateToSurgicalAssignments), pero eso rompía el filtro para casos legacy que aún no
+        // pasaron por ese comando de migración (no tienen filas en SurgicalAssignment). Ahora se
+        // combinan ambas rutas con OR: columna legacy o asignación migrada.
         $instrumentistId = (int) $this->instrumentist_id;
-        $query->whereHas('assignments', function ($a) use ($instrumentistId) {
-            $a->where('user_id', $instrumentistId)
-                ->whereHas('surgicalRole', fn($r) => $r->where('name', 'Instrumentista'));
+        $query->where(function ($q) use ($instrumentistId) {
+            $q->where('instrumentist_id', $instrumentistId)
+                ->orWhereHas('assignments', function ($a) use ($instrumentistId) {
+                    $a->where('user_id', $instrumentistId)
+                        ->whereHas('surgicalRole', fn($r) => $r->where('name', 'Instrumentista'));
+                });
         });
     }
 
