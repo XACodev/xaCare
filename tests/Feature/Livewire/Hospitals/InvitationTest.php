@@ -34,6 +34,20 @@ test('a super admin can generate an invitation for a hospital', function () {
         ->and($invitation->expires_at->isFuture())->toBeTrue();
 });
 
+test('a super admin can revoke a pending invitation', function () {
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $hospital = Hospital::factory()->create();
+    $invitation = HospitalInvitation::factory()->create(['hospital_id' => $hospital->id]);
+
+    $this->actingAs($superAdmin);
+
+    Volt::test('hospitals.edit', ['hospital' => $hospital->id])
+        ->call('revokeInvitation', $invitation->id)
+        ->assertHasNoErrors();
+
+    expect(HospitalInvitation::withoutGlobalScopes()->find($invitation->id))->toBeNull();
+});
+
 test('a non super admin cannot generate invitations', function () {
     $hospital = Hospital::factory()->create();
     $admin = User::factory()->create(['hospital_id' => $hospital->id, 'is_super_admin' => false]);

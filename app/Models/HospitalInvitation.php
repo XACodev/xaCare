@@ -6,7 +6,6 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class HospitalInvitation extends Model
@@ -95,6 +94,15 @@ class HospitalInvitation extends Model
             $this->isExpired() => 'expired',
             default => 'pending',
         };
+    }
+
+    /**
+     * Onboarding de plataforma: el super admin genera y revoca invitaciones.
+     * No es dato operativo clínico del hospital.
+     */
+    public static function allowsSuperAdminWrites(): bool
+    {
+        return true;
     }
 
     public function invitedByUser(): BelongsTo
