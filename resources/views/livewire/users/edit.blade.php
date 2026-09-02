@@ -17,7 +17,7 @@ state([
     'email' => '',
     'role' => '',
     'hospital_id' => '',
-    'is_super_admin' => false,
+    'hospitalName' => null,
     'use_pay_scheme' => false,
 
     'password' => '',
@@ -26,7 +26,6 @@ state([
     'success_message' => null,
 
     'availableRoles' => [],
-    'availableHospitals' => [],
 ]);
 
 mount(function (string|int $user) {
@@ -34,22 +33,21 @@ mount(function (string|int $user) {
     abort_unless($me && ($me->is_super_admin || $me->role === 'admin'), 403);
 
     // TenantScope ya restringe esta consulta al hospital del admin logueado: un admin de
-    // hospital que intente editar un usuario ajeno (incluido cualquier super admin, cuyo
-    // hospital_id es null) recibe 404, nunca los datos de otro tenant.
+    // hospital que intente editar un usuario ajeno recibe 404, nunca los datos de otro
+    // tenant. Las cuentas super admin nunca se editan desde aquí (se gestionan desde
+    // Configuración), sin importar quién lo intente.
     $u = User::withTrashed()->findOrFail($user);
+    abort_if($u->is_super_admin, 404);
 
     $this->availableRoles = Role::pluck('name', 'id')->toArray();
-    $this->availableHospitals = $me->is_super_admin
-        ? Hospital::orderBy('name')->pluck('name', 'id')->toArray()
-        : [];
 
     $this->user = $u;
     $this->name = $u->name;
     $this->username = $u->username;
     $this->email = $u->email;
     $this->role = $u->getRoleNames()->first() ?? '';
-    $this->hospital_id = $u->hospital_id ?? '';
-    $this->is_super_admin = $u->is_super_admin;
+    $this->hospital_id = $u->hospital_id;
+    $this->hospitalName = $u->hospital?->name;
     $this->use_pay_scheme = $u->use_pay_scheme;
 });
 
@@ -58,9 +56,7 @@ rules(fn() => [
     'username' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users', 'username')->ignore($this->user->id)],
     'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->user->id)],
     'role' => ['required', 'string', 'max:50'],
-    'hospital_id' => [Rule::requiredIf(! $this->is_super_admin), 'nullable', 'integer', 'exists:hospitals,id'],
     'password' => ['nullable', 'string', 'min:6', 'confirmed'],
-    'is_super_admin' => ['boolean'],
     'use_pay_scheme' => ['boolean'],
     'availableRoles' => ['required', 'array'],
 ]);
@@ -69,25 +65,11 @@ $save = function () {
     $me = Auth::user();
     abort_unless($me && ($me->is_super_admin || $me->role === 'admin'), 403);
 
-    // Un admin de hospital nunca puede convertir a nadie en super admin ni reasignarlo a
-    // otro hospital, sin importar qué haya llegado del formulario (defensa en profundidad,
-    // la vista ya oculta esos campos). También protege contra escalar el propio usuario.
-    if (! $me->is_super_admin) {
-        $this->is_super_admin = false;
-        $this->hospital_id = $me->hospital_id;
-    }
-
     $data = $this->validate();
 
-    // No permite quitarse el rol admin o super admin a si mismo
-    if ($me->id === $this->user->id) {
-        if ($data['role'] !== 'admin') {
-            abort(403, 'No puedes quitarte el rol admin.');
-        }
-
-        if ($me->is_super_admin && !$data['is_super_admin']) {
-            abort(403, 'No puedes quitarte el rol super_admin.');
-        }
+    // No permite quitarse el rol admin a si mismo
+    if ($me->id === $this->user->id && $data['role'] !== 'admin') {
+        abort(403, 'No puedes quitarte el rol admin.');
     }
 
     $this->user->update([
@@ -95,8 +77,6 @@ $save = function () {
         'username' => $data['username'],
         'email' => $data['email'],
         'role' => $data['role'],
-        'hospital_id' => $data['is_super_admin'] ? null : $data['hospital_id'],
-        'is_super_admin' => $data['is_super_admin'],
         'use_pay_scheme' => $data['use_pay_scheme'],
     ]);
 
@@ -142,7 +122,9 @@ $toggleDelete = function () {
 ?>
 
 <div class="max-w-xl mx-auto p-4 space-y-6">
-    <flux:button href="{{ route('users.index') }}" variant="primary" size="sm" icon="arrow-left">
+    <flux:button
+        href="{{ Auth::user()->is_super_admin ? ($hospital_id ? route('hospitals.edit', $hospital_id) : route('hospitals.index')) : route('users.index') }}"
+        variant="primary" size="sm" icon="arrow-left">
         {{ __('Back') }}
     </flux:button>
 
@@ -157,6 +139,11 @@ $toggleDelete = function () {
                 {{ __('ID') }}: {{ $this->user->id ?? '' }}
             </flux:text>
         </div>
+
+        @if($hospitalName)
+            <flux:text variant="subtle">{{ __('Hospital') }}: {{ $hospitalName }}</flux:text>
+        @endif
+
         <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
             <div class="flex items-center gap-2">
                 <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ __('State') }}:</span>
@@ -186,24 +173,7 @@ $toggleDelete = function () {
             @endforeach
         </select>
 
-        @if(Auth::user()->is_super_admin && !$is_super_admin)
-            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Hospital') }}</label>
-            <select wire:model="hospital_id"
-                class="w-full rounded-lg border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-200 focus:ring-0 focus:border-zinc-500 p-2.5">
-                <option value="">-- {{ __('Select') }} --</option>
-                @foreach($availableHospitals as $id => $hospitalName)
-                    <option value="{{ $id }}">{{ $hospitalName }}</option>
-                @endforeach
-            </select>
-            @error('hospital_id') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
-        @endif
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            @if(Auth::user()->is_super_admin)
-                <flux:checkbox wire:model.live="is_super_admin" label="{{ __('Super Admin (platform-only, read-only across hospitals)') }}" />
-            @endif
-            <flux:checkbox wire:model.live="use_pay_scheme" label="{{ __('Use Pay Scheme') }}" />
-        </div>
+        <flux:checkbox wire:model.live="use_pay_scheme" label="{{ __('Use Pay Scheme') }}" />
 
         <flux:separator />
 

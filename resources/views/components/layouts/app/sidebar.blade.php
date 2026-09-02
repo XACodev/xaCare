@@ -64,6 +64,12 @@
                     </flux:navlist.item>
                 </flux:navlist.group>
                 <flux:navlist.group :heading="__('Configurations')" class="grid">
+                    @if(!$me->is_super_admin)
+                        <flux:navlist.item icon="user" :href="route('users.index')"
+                            :current="request()->routeIs('users.index')" wire:navigate>
+                            {{ __('Mi Staff') }}
+                        </flux:navlist.item>
+                    @endif
                     <flux:navlist.item icon="users" :href="route('pricing.instrumentists')"
                         :current="request()->routeIs('pricing.instrumentists')" wire:navigate>
                         {{ __('Configure Instrumentists') }}
@@ -95,10 +101,6 @@
                 <flux:navlist.item icon="building-office-2" :href="route('hospitals.index')"
                     :current="request()->routeIs('hospitals.*')" wire:navigate>
                     {{ __('Hospitals') }}
-                </flux:navlist.item>
-                <flux:navlist.item icon="user" :href="route('users.index')" :current="request()->routeIs('users.index')"
-                    wire:navigate>
-                    {{ __('Users') }}
                 </flux:navlist.item>
                 <flux:navlist.item icon="user" :href="route('roles.index')" :current="request()->routeIs('roles.index')"
                     wire:navigate>

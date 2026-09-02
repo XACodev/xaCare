@@ -14,15 +14,18 @@ state([
 ]);
 
 mount(function () {
+    // Solo admin de hospital: el super admin gestiona el staff desde la ficha de cada
+    // hospital (Hospitales > editar > Staff), no desde una lista global — evita mezclar
+    // el personal de todos los hospitales en una sola tabla.
     $u = Auth::user();
-    abort_unless($u && ($u->is_super_admin || $u->role === 'admin'), 403);
+    abort_unless($u && ! $u->is_super_admin && $u->role === 'admin', 403);
     $this->rolesAvailable = Role::pluck('name', 'id')->toArray();
 });
 
 $users = computed(function () {
-    // TenantScope filtra automaticamente a "solo mi hospital" para un admin de hospital
-    // (hospital_id != null); el super admin (hospital_id null) ve todos los hospitales.
-    $query = User::query()->orderBy('name');
+    // TenantScope filtra automaticamente a "solo mi hospital". Nunca incluye cuentas
+    // super admin (hospital_id null no coincide con el filtro).
+    $query = User::query()->where('is_super_admin', false)->orderBy('name');
 
     if ($this->show_deleted) {
         $query->onlyTrashed();
@@ -46,23 +49,25 @@ $users = computed(function () {
 
 $deleteUser = function (int $id) {
     $me = Auth::user();
-    abort_unless($me->is_super_admin || $me->role === 'admin', 403);
+    abort_unless(! $me->is_super_admin && $me->role === 'admin', 403);
 
     if ($me->id === $id) {
         abort(403, 'No puedes eliminar tu propio usuario.');
     }
 
-    // TenantScope ya limita esta consulta al hospital del admin logueado (o a todos, si
-    // es super admin) — un admin de hospital no puede alcanzar un usuario ajeno por id.
+    // TenantScope ya limita esta consulta al hospital del admin logueado — no puede
+    // alcanzar un usuario ajeno por id.
     $u = User::findOrFail($id);
+    abort_if($u->is_super_admin, 404);
     $u->delete();
 };
 
 $restoreUser = function (int $id) {
     $me = Auth::user();
-    abort_unless($me->is_super_admin || $me->role === 'admin', 403);
+    abort_unless(! $me->is_super_admin && $me->role === 'admin', 403);
 
     $u = User::onlyTrashed()->findOrFail($id);
+    abort_if($u->is_super_admin, 404);
     $u->restore();
 };
 
@@ -82,10 +87,10 @@ $roleColor = function (?string $role) {
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <flux:heading size="xl">
-                {{ __('Users') }}
+                {{ __('Mi Staff') }}
             </flux:heading>
             <flux:subheading>
-                {{ __('Admin or Super Admin') }}
+                {{ __('Usuarios de tu hospital') }}
             </flux:subheading>
         </div>
 

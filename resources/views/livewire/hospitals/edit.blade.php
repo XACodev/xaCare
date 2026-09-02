@@ -3,12 +3,13 @@
 use App\Enums\SubscriptionStatus;
 use App\Models\Hospital;
 use App\Models\HospitalInvitation;
+use App\Models\User;
 use App\Services\HospitalPlanService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
-use function Livewire\Volt\{state, mount, rules};
+use function Livewire\Volt\{state, mount, rules, computed};
 
 state([
     'hospital' => null,
@@ -21,6 +22,8 @@ state([
     'invitations' => [],
     'invitation_note' => '',
     'generated_link' => null,
+    'staff_q' => '',
+    'staff_show_deleted' => false,
 ]);
 
 mount(function (string|int $hospital) {
@@ -99,6 +102,44 @@ $revokeInvitation = function (int $invitationId) {
         ->delete();
 
     $this->loadInvitations();
+};
+
+// El staff se lista scopeado a ESTE hospital únicamente — evita la lista global que
+// mezclaba el personal de todos los hospitales en una sola tabla desordenada.
+$staff = computed(function () {
+    $query = User::withoutGlobalScopes()
+        ->where('hospital_id', $this->hospital->id)
+        ->where('is_super_admin', false)
+        ->orderBy('name');
+
+    if ($this->staff_show_deleted) {
+        $query->onlyTrashed();
+    }
+
+    if ($this->staff_q) {
+        $q = trim($this->staff_q);
+        $query->where(function ($sub) use ($q) {
+            $sub->where('name', 'like', "%{$q}%")
+                ->orWhere('username', 'like', "%{$q}%")
+                ->orWhere('email', 'like', "%{$q}%");
+        });
+    }
+
+    return $query->limit(150)->get(['id', 'name', 'username', 'email', 'role', 'deleted_at']);
+});
+
+$deleteStaff = function (int $id) {
+    abort_unless((bool) Auth::user()->is_super_admin, 403);
+
+    $u = User::withoutGlobalScopes()->where('hospital_id', $this->hospital->id)->findOrFail($id);
+    $u->delete();
+};
+
+$restoreStaff = function (int $id) {
+    abort_unless((bool) Auth::user()->is_super_admin, 403);
+
+    $u = User::withoutGlobalScopes()->onlyTrashed()->where('hospital_id', $this->hospital->id)->findOrFail($id);
+    $u->restore();
 };
 
 ?>
@@ -208,6 +249,74 @@ $revokeInvitation = function (int $invitationId) {
                     @empty
                         <tr>
                             <td colspan="4" class="px-4 py-6 text-center text-sm text-zinc-500">{{ __('No invitations yet.') }}</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
+        <div class="flex items-center justify-between gap-4">
+            <div>
+                <flux:heading size="lg">{{ __('Staff') }}</flux:heading>
+                <flux:subheading>{{ __('Personal operativo de este hospital.') }}</flux:subheading>
+            </div>
+            <flux:button href="{{ route('users.create', ['hospital_id' => $hospital->id]) }}" icon="plus" size="sm"
+                variant="primary">
+                {{ __('New User') }}
+            </flux:button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="sm:col-span-2">
+                <flux:input icon="magnifying-glass" wire:model.live="staff_q"
+                    placeholder="{{ __('Search name, username or email...') }}" />
+            </div>
+            <div class="flex items-center">
+                <flux:checkbox wire:model.live="staff_show_deleted" label="{{ __('Show deleted') }}" />
+            </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+            <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
+                <thead class="bg-zinc-50 dark:bg-zinc-800/50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 tracking-wider">{{ __('Name') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 tracking-wider">{{ __('Username') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 tracking-wider">{{ __('Role') }}</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 tracking-wider">{{ __('Status') }}</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 tracking-wider">{{ __('Actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-700">
+                    @forelse($this->staff as $u)
+                        <tr>
+                            <td class="px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100">{{ $u->name }}</td>
+                            <td class="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">{{ $u->username }}</td>
+                            <td class="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400 capitalize">{{ $u->role }}</td>
+                            <td class="px-4 py-3 text-center">
+                                <flux:badge size="sm" color="{{ $u->deleted_at ? 'red' : 'green' }}">
+                                    {{ $u->deleted_at ? __('Deleted') : __('Active') }}
+                                </flux:badge>
+                            </td>
+                            <td class="px-4 py-3 text-center space-x-2">
+                                @if(!$u->deleted_at)
+                                    <flux:button href="{{ route('users.edit', $u->id) }}" size="sm" variant="primary"
+                                        icon="pencil" color="indigo" />
+                                    <flux:button wire:click="deleteStaff({{ $u->id }})"
+                                        wire:confirm="{{ __('Delete this user? (can be restored)') }}" size="sm"
+                                        variant="danger" icon="trash" class="cursor-pointer" />
+                                @else
+                                    <flux:button wire:click="restoreStaff({{ $u->id }})" size="sm" variant="primary"
+                                        icon="arrow-uturn-left" tooltip="{{ __('Restore') }}" color="green"
+                                        class="cursor-pointer" />
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="px-4 py-6 text-center text-sm text-zinc-500">{{ __('No hay staff todavía.') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

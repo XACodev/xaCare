@@ -15,14 +15,13 @@ state([
     'email' => '',
     'role' => '',
     'hospital_id' => '',
+    'hospitalName' => null,
     'password' => '',
     'password_confirmation' => '',
-    'is_super_admin' => false,
     'use_pay_scheme' => false,
     'phone' => '',
     'success_message' => null,
     'availableRoles' => [],
-    'availableHospitals' => [],
 ]);
 
 mount(function () {
@@ -32,7 +31,12 @@ mount(function () {
     $this->availableRoles = Role::pluck('name', 'id')->toArray();
 
     if ($u->is_super_admin) {
-        $this->availableHospitals = Hospital::orderBy('name')->pluck('name', 'id')->toArray();
+        // El super admin siempre llega aquí desde la ficha de un hospital concreto
+        // (Hospitales > editar > Staff > Nuevo usuario) — nunca elige el hospital desde
+        // un selector suelto, para no mezclar el staff de todos los hospitales.
+        $hospital = Hospital::query()->findOrFail(request()->integer('hospital_id'));
+        $this->hospital_id = $hospital->id;
+        $this->hospitalName = $hospital->name;
     } else {
         // Admin de hospital: siempre crea staff de su propio tenant, nunca elige otro.
         $this->hospital_id = $u->hospital_id;
@@ -44,10 +48,9 @@ rules(fn () => [
     'username' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users', 'username')],
     'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
     'role' => ['required', 'string', 'max:50'],
-    'hospital_id' => [Rule::requiredIf(! $this->is_super_admin), 'nullable', 'integer', 'exists:hospitals,id'],
+    'hospital_id' => ['required', 'integer', 'exists:hospitals,id'],
     'availableRoles' => ['required', 'array'],
     'password' => ['required', 'string', 'min:6', 'confirmed'],
-    'is_super_admin' => ['boolean'],
     'use_pay_scheme' => ['boolean'],
     'phone' => ['nullable', 'string', 'max:8'],
 ]);
@@ -57,11 +60,9 @@ $save = function () {
     $me = Auth::user();
     abort_unless($me && ($me->is_super_admin || $me->role === 'admin'), 403);
 
-    // Un admin de hospital nunca puede crear un super admin ni elegir otro hospital,
-    // sin importar qué haya llegado del formulario (defensa en profundidad, la vista
-    // ya oculta esos campos).
+    // Un admin de hospital nunca puede elegir otro hospital, sin importar qué haya
+    // llegado del formulario (defensa en profundidad, la vista ya oculta ese campo).
     if (! $me->is_super_admin) {
-        $this->is_super_admin = false;
         $this->hospital_id = $me->hospital_id;
     }
 
@@ -72,8 +73,8 @@ $save = function () {
         'username' => $data['username'],
         'email' => $data['email'],
         'password' => Hash::make($data['password']),
-        'hospital_id' => $data['is_super_admin'] ? null : $data['hospital_id'],
-        'is_super_admin' => $data['is_super_admin'],
+        'hospital_id' => $data['hospital_id'],
+        'is_super_admin' => false,
         'use_pay_scheme' => $data['use_pay_scheme'],
         'phone' => $data['phone'],
         'role' => $data['role']
@@ -89,11 +90,9 @@ $save = function () {
         'email',
         'phone',
         'role',
-        'hospital_id',
         'availableRoles',
         'password',
         'password_confirmation',
-        'is_super_admin',
         'use_pay_scheme'
     ]);
 };
@@ -103,9 +102,13 @@ $save = function () {
     <div class="flex items-center justify-between">
         <div>
             <flux:heading size="xl">{{ __('New User') }}</flux:heading>
-            <flux:subheading>{{ __('Admin or Super Admin') }}</flux:subheading>
+            <flux:subheading>
+                {{ $hospitalName ? __('Staff for :hospital', ['hospital' => $hospitalName]) : __('Admin or Super Admin') }}
+            </flux:subheading>
         </div>
-        <flux:link href="{{ route('users.index') }}" class="text-sm">{{ __('Back') }}</flux:link>
+        <flux:link
+            href="{{ Auth::user()->is_super_admin ? route('hospitals.edit', $hospital_id) : route('users.index') }}"
+            class="text-sm">{{ __('Back') }}</flux:link>
     </div>
 
     @if($success_message)
@@ -134,29 +137,11 @@ $save = function () {
             @endif
         </select>
 
-        @if(Auth::user()->is_super_admin && !$is_super_admin)
-            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Hospital') }}</label>
-            <select wire:model.live="hospital_id"
-                class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
-                <option value="">-- {{ __('Select') }} --</option>
-                @forelse($availableHospitals as $id => $hospitalName)
-                    <option value="{{ $id }}">{{ $hospitalName }}</option>
-                @empty
-                    <option value="">{{ __('No hospitals found.') }}</option>
-                @endforelse
-            </select>
-            @error('hospital_id') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
-        @endif
-
         <flux:input wire:model.live="password" type="password" label="{{ __('Password') }}"
             placeholder="{{ __('Password') }}" />
 
         <flux:input wire:model.live="password_confirmation" type="password" label="{{ __('Confirm Password') }}"
             placeholder="{{ __('Confirm Password') }}" />
-
-        @if(Auth::user()->is_super_admin)
-            <flux:checkbox wire:model.live="is_super_admin" label="{{ __('Super Admin (platform-only, read-only across hospitals)') }}" />
-        @endif
 
         <flux:checkbox wire:model.live="use_pay_scheme" label="{{ __('Use Pay Scheme') }}" />
 
