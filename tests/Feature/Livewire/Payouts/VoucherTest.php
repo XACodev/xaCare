@@ -3,7 +3,9 @@
 use App\Models\Hospital;
 use App\Models\PayoutBatch;
 use App\Models\PayoutItem;
+use App\Models\SurgicalAssignment;
 use App\Models\SurgicalCase;
+use App\Models\SurgicalRole;
 use App\Models\User;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -28,9 +30,18 @@ function makePaidBatchWithItem(User $instrumentist, User $admin): PayoutBatch
         'calculated_amount' => 100,
     ]);
 
+    $assignment = SurgicalAssignment::factory()->create([
+        'hospital_id' => $instrumentist->hospital_id,
+        'surgical_case_id' => $procedure->id,
+        'surgical_role_id' => SurgicalRole::factory()->create(['hospital_id' => $instrumentist->hospital_id])->id,
+        'user_id' => $instrumentist->id,
+        'status' => 'paid',
+        'calculated_amount' => 100,
+    ]);
+
     $batch = PayoutBatch::factory()->create([
         'hospital_id' => $instrumentist->hospital_id,
-        'instrumentist_id' => $instrumentist->id,
+        'payee_id' => $instrumentist->id,
         'paid_by_id' => $admin->id,
         'total_amount' => 100,
     ]);
@@ -38,7 +49,7 @@ function makePaidBatchWithItem(User $instrumentist, User $admin): PayoutBatch
     PayoutItem::create([
         'hospital_id' => $instrumentist->hospital_id,
         'payout_batch_id' => $batch->id,
-        'procedure_id' => $procedure->id,
+        'surgical_assignment_id' => $assignment->id,
         'amount' => 100,
         'snapshot' => [
             'procedure_date' => $procedure->procedure_date,
@@ -77,9 +88,10 @@ test('shows liquidate again button when instrumentist still has pending procedur
 
     $batch = makePaidBatchWithItem($instrumentist, $admin);
 
-    SurgicalCase::factory()->create([
+    SurgicalAssignment::factory()->create([
         'hospital_id' => $instrumentist->hospital_id,
-        'instrumentist_id' => $instrumentist->id,
+        'surgical_role_id' => SurgicalRole::factory()->create(['hospital_id' => $instrumentist->hospital_id])->id,
+        'user_id' => $instrumentist->id,
         'status' => 'pending',
     ]);
 
@@ -87,7 +99,7 @@ test('shows liquidate again button when instrumentist still has pending procedur
         ->get(route('payouts.voucher', $batch->id))
         ->assertSuccessful()
         ->assertSee(__('Liquidate again'))
-        ->assertSee(route('payouts.create', ['instrumentist_id' => $instrumentist->id]), false);
+        ->assertSee(route('payouts.create', ['payee_id' => $instrumentist->id]), false);
 });
 
 test('hides liquidate again button when instrumentist has no pending procedures', function () {

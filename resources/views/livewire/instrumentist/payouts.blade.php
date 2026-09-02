@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\SurgicalCase;
+use App\Models\SurgicalAssignment;
 use App\Models\PayoutBatch;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,15 +27,15 @@ mount(function () {
     // ======================
     // Pending procedures
     // ======================
-    $pendingBase = SurgicalCase::query()
-        ->where('instrumentist_id', $user->id)
+    $pendingBase = SurgicalAssignment::query()
+        ->where('user_id', $user->id)
         ->where('status', 'pending');
 
     $this->pending_count = (int) $pendingBase->count();
     $this->pending_total = (float) $pendingBase->sum('calculated_amount');
 
     $this->pending = $pendingBase
-        ->orderByDesc('procedure_date')
+        ->with(['surgicalCase', 'surgicalRole'])
         ->orderByDesc('created_at')
         ->limit(50)
         ->get();
@@ -46,7 +46,7 @@ $batches = computed(function () {
     $user = Auth::user();
 
     $query = PayoutBatch::query()
-        ->where('instrumentist_id', $user->id)
+        ->where('payee_id', $user->id)
         ->withCount('items')
         ->orderByDesc('paid_at');
 
@@ -138,22 +138,22 @@ $ruleColor = function (?string $rule) {
                         @forelse($this->pending as $p)
                             <tr class="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
                                 <td class="px-6 py-4 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">
-                                    {{ \Carbon\Carbon::parse($p->procedure_date)->format('d/m/Y') ?? '-' }}
+                                    {{ \Carbon\Carbon::parse($p->surgicalCase->procedure_date)->format('d/m/Y') ?? '-' }}
                                 </td>
                                 <td class="px-6 py-4 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">
-                                    {{ \Carbon\Carbon::parse($p->start_time)->format('H:i') ?? '-' }}
+                                    {{ \Carbon\Carbon::parse($p->surgicalCase->start_time)->format('H:i') ?? '-' }}
                                 </td>
                                 <td class="px-6 py-4 text-zinc-900 dark:text-zinc-100 font-medium whitespace-nowrap">
-                                    {{ $p->patient_name ?? '-' }}
+                                    {{ $p->surgicalCase->patient_name ?? '-' }}
                                 </td>
                                 <td class="px-6 py-4 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">
                                     <div class="flex items-center gap-2">
-                                        <span>{{ $p->procedure_type ?? '-' }}</span>
+                                        <span>{{ $p->surgicalCase->procedure_type ?? '-' }}</span>
                                         @if (Auth::user()->use_pay_scheme)
                                             <x-procedure-rule-badge :rule="data_get($p->pricing_snapshot, 'rule')"
-                                                :videosurgery="$p->is_videosurgery" />
+                                                :videosurgery="$p->surgicalCase->is_videosurgery" />
                                         @else
-                                            @if ($p->is_videosurgery)
+                                            @if ($p->surgicalCase->is_videosurgery)
                                                 <flux:badge color="indigo" size="sm" icon="video-camera">{{ __('Video') }}
                                                 </flux:badge>
                                             @endif

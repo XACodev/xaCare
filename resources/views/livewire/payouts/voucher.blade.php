@@ -2,7 +2,7 @@
 
 use App\Models\OrganizationSetting;
 use App\Models\PayoutBatch;
-use App\Models\SurgicalCase;
+use App\Models\SurgicalAssignment;
 use Illuminate\Support\Facades\Auth;
 
 use function Livewire\Volt\{state, mount};
@@ -28,9 +28,10 @@ mount(function (string|int $batch) {
 
     $b = PayoutBatch::query()
         ->with([
-            'instrumentist:id,name',
+            'payee:id,name',
             'paidByUser:id,name',
-            'items.procedure',
+            'items.surgicalAssignment.surgicalCase',
+            'items.surgicalAssignment.surgicalRole',
         ])
         ->findOrFail($batch);
 
@@ -70,8 +71,8 @@ mount(function (string|int $batch) {
     $this->year = optional($this->batch->paid_at)->format('Y') ?? now()->format('Y');
     $this->folio = 'QX-' . $this->year . '-' . str_pad((string) $this->batch->id, 6, '0', STR_PAD_LEFT);
 
-    $this->remaining_pending_count = SurgicalCase::query()
-        ->where('instrumentist_id', $b->instrumentist_id)
+    $this->remaining_pending_count = SurgicalAssignment::query()
+        ->where('user_id', $b->payee_id)
         ->where('status', 'pending')
         ->count();
 
@@ -326,7 +327,7 @@ mount(function (string|int $batch) {
 
                 @if($this->remaining_pending_count > 0 && Auth::user()->can('payouts.create'))
                     <flux:button
-                        href="{{ route('payouts.create', ['instrumentist_id' => $this->batch->instrumentist_id]) }}"
+                        href="{{ route('payouts.create', ['payee_id' => $this->batch->payee_id]) }}"
                         variant="ghost">
                         {{ __('Liquidate again') }} ({{ $this->remaining_pending_count }})
                     </flux:button>
@@ -392,7 +393,15 @@ mount(function (string|int $batch) {
                     {{ __('Pay to') }}:
                 </flux:label>
                 <span class="min-w-9/12 font-medium capitalize" style="color: var(--ink)">
-                    {{ $this->batch->instrumentist->name }}
+                    {{ $this->batch->payee->name }}
+                </span>
+            </div>
+            <div class="flex gap-1">
+                <flux:label class="min-w-3/12">
+                    {{ __('Role') }}:
+                </flux:label>
+                <span class="min-w-9/12 font-medium capitalize" style="color: var(--ink)">
+                    {{ $this->batch->items->pluck('surgicalAssignment.surgicalRole.name')->unique()->implode(', ') }}
                 </span>
             </div>
             <div class="flex gap-1">
@@ -506,7 +515,7 @@ mount(function (string|int $batch) {
                     <tbody>
                         @foreach($this->items as $it)
                             @php
-                                $p = $it->procedure;
+                                $p = $it->surgicalAssignment->surgicalCase;
                             @endphp
                             <tr style="border-bottom: 1px solid var(--line)">
                                 <td class="py-3 pr-3" style="color: var(--ink-soft)">
@@ -569,7 +578,7 @@ mount(function (string|int $batch) {
                     {{ __('Received by') }}
                 </div>
                 <div class="pt-2" style="border-top: 1px solid var(--line); color: var(--ink)">
-                    {{ $this->batch->instrumentist->name ?? '' }}
+                    {{ $this->batch->payee->name ?? '' }}
                 </div>
             </div>
 
