@@ -209,10 +209,9 @@ mount(function (string|int $batch) {
     }
 
     /*
-     * El voucher se imprime en blanco y negro para ahorrar tinta: en @media print
-     * se anula todo lo que dependa de --accent-teal/--accent-blue/--stamp y se
-     * recrea la jerarquia visual (barra superior, sello de folio, fila de total)
-     * con negro/gris solamente.
+     * El cuerpo del voucher (tablas, lineas) se imprime en negro/gris para
+     * ahorrar tinta, pero el encabezado (logo, nombre y sello de folio)
+     * conserva sus colores originales para que se vea igual que en el modulo.
      */
     @media print {
         .no-print {
@@ -234,37 +233,39 @@ mount(function (string|int $batch) {
             top: 0;
             width: 100%;
             height: 100%;
+            display: flex;
+            flex-direction: column;
             --paper: #ffffff;
             --ink: #000000;
             --ink-soft: #3f3f46;
             --line: #000000;
         }
 
+        /*
+         * El card se estira al alto completo de la hoja (en vez de quedar
+         * chico arriba con toda la hoja vacia abajo) y se vuelve columna
+         * flex para poder anclar la firma al margen inferior con
+         * margin-top:auto. La tabla en si NO crece (eso se veia feo).
+         */
         .voucher-card {
             box-shadow: none !important;
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
         }
 
+        .voucher-signatures {
+            margin-top: auto !important;
+        }
+
+        /*
+         * El folio, el logo y el nombre de la organizacion se imprimen
+         * a color (igual que en el modulo) porque son el sello de
+         * identidad del documento. La barra superior degradada, en
+         * cambio, no aporta nada visualmente y se elimina.
+         */
         .voucher-card::before {
-            background: var(--ink) !important;
-            height: 3px;
-        }
-
-        .voucher-stamp {
-            background: var(--paper) !important;
-            border: 2px solid var(--ink);
-            border-radius: 6px;
-        }
-
-        .voucher-stamp::before {
             content: none;
-        }
-
-        .voucher-stamp-label {
-            color: var(--ink-soft) !important;
-        }
-
-        .voucher-stamp-value {
-            color: var(--ink) !important;
         }
 
         .voucher-total-row {
@@ -275,15 +276,87 @@ mount(function (string|int $batch) {
          * El total en pantalla usa text-lg/text-xl para destacar; impreso
          * eso se veia desproporcionado frente al resto de la tabla. Se
          * iguala al tamano de las filas normales y la jerarquia se logra
-         * con un filete doble en vez de tamano de fuente.
+         * con un filete doble en vez de tamano de fuente. Sin recuadro:
+         * combinado con el filete se veia saturado.
          */
         .voucher-total-amount {
+            display: inline-block;
             font-size: 13px !important;
+            padding-bottom: 2px;
             border-bottom: 3px double var(--ink);
         }
 
-        .voucher-logo {
-            filter: grayscale(1);
+        /*
+         * El encabezado (logo/nombre a la izquierda, folio/fecha a la
+         * derecha) usa el breakpoint md: en pantalla, pero el area
+         * imprimible de una hoja carta con margenes es mas angosta que
+         * ese breakpoint, asi que sin esto se apila en columna, duplica
+         * su altura y desborda el voucher a una segunda hoja.
+         */
+        .voucher-header-row {
+            flex-direction: row !important;
+            align-items: center !important;
+            padding-bottom: 1.5rem !important;
+        }
+
+        .voucher-header-right {
+            flex-direction: column !important;
+            align-items: flex-end !important;
+        }
+
+        .voucher-header-title {
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+
+        /*
+         * El sello con fondo oscuro y borde degradado no tiene sentido en
+         * papel: se aplana a texto simple, alineado con el resto del
+         * encabezado.
+         */
+        .voucher-stamp {
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            text-align: right !important;
+        }
+
+        .voucher-stamp::before {
+            content: none !important;
+        }
+
+        .voucher-stamp-label {
+            color: var(--ink-soft) !important;
+        }
+
+        .voucher-stamp-value {
+            color: var(--ink) !important;
+        }
+
+        .voucher-pay-to-box {
+            padding-top: 0.75rem !important;
+            padding-bottom: 0.75rem !important;
+        }
+
+        .voucher-card {
+            padding: 1.5rem !important;
+        }
+
+        table thead th,
+        table tbody td,
+        table tfoot td {
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+        }
+
+        #print-content .mt-6 {
+            margin-top: 1rem !important;
+        }
+
+        .voucher-signatures .voucher-signature-label {
+            margin-bottom: 1.5rem !important;
         }
     }
 
@@ -339,14 +412,14 @@ mount(function (string|int $batch) {
     </div>
 
     <div class="voucher-card rounded-xl p-8 shadow-sm print:shadow-none print:rounded-none">
-        <div class="flex flex-col md:flex-row items-center justify-between gap-6 pb-6">
+        <div class="voucher-header-row flex flex-col md:flex-row items-center justify-between gap-6 pb-6">
             <div class="flex items-center gap-4">
                 @if($this->org_logo_url)
                     <img src="{{ $this->org_logo_url }}" alt="{{ $this->org_name }}"
                         class="voucher-logo size-14 object-contain shrink-0" />
                 @endif
 
-                <div class="items-center text-center md:text-left md:items-start">
+                <div class="voucher-header-title items-center text-center md:text-left md:items-start">
                     <h1 class="voucher-serif text-3xl font-semibold tracking-tight" style="color: var(--ink)">
                         {{ __('Payment Voucher') }}
                     </h1>
@@ -359,17 +432,17 @@ mount(function (string|int $batch) {
                 </div>
             </div>
 
-            <div class="flex flex-col items-center md:items-end gap-2 print:flex-row print:justify-between print:w-full">
-                <div class="voucher-stamp relative rounded-lg px-4 py-2 text-center shadow-sm print:shadow-none">
+            <div class="voucher-header-right flex flex-col items-center md:items-end gap-2">
+                <div class="voucher-stamp relative rounded-lg px-4 py-2 text-center md:text-right shadow-sm print:shadow-none">
                     <div class="voucher-stamp-label text-[10px] font-semibold uppercase tracking-widest">
                         {{ __('Folio') }}
                     </div>
-                    <div class="voucher-stamp-value voucher-mono text-base font-semibold">
+                    <div class="voucher-stamp-value voucher-mono text-sm font-semibold">
                         {{ $this->folio }}
                     </div>
                 </div>
 
-                <div class="flex flex-col items-center md:items-end text-sm print:flex-row print:gap-2">
+                <div class="flex flex-col items-center md:items-end text-sm">
                     <span style="color: var(--ink-soft)">
                         {{ __('Payment Date') }}:
                     </span>
@@ -389,7 +462,7 @@ mount(function (string|int $batch) {
             </div>
         </div>
 
-        <div class="flex flex-col gap-3 justify-between rounded-lg py-6 px-6" style="border: 1px solid var(--line)">
+        <div class="voucher-pay-to-box flex flex-col gap-3 justify-between rounded-lg py-6 px-6" style="border: 1px solid var(--line)">
             <div class="flex gap-1">
                 <flux:label class="min-w-3/12">
                     {{ __('Pay to') }}:
@@ -429,6 +502,12 @@ mount(function (string|int $batch) {
             <!-- Tabla resumida -->
             <div class="mt-6 rounded-lg overflow-hidden" style="border: 1px solid var(--line)">
                 <table class="w-full text-sm">
+                    <colgroup>
+                        <col style="width: 46%">
+                        <col style="width: 16%">
+                        <col style="width: 19%">
+                        <col style="width: 19%">
+                    </colgroup>
                     <thead style="border-bottom: 1px solid var(--line); color: var(--ink-soft)">
                         <tr>
                             <th class="py-4 px-6 text-left text-xs font-semibold uppercase tracking-wider">
@@ -474,16 +553,16 @@ mount(function (string|int $batch) {
 
                     <tfoot>
                         <tr class="voucher-total-row">
-                            <td colspan="2" class="{{ $this->usePayScheme ? 'py-3' : 'py-4' }} px-6" style="border-top: 2px solid var(--ink)"></td>
+                            <td colspan="2" class="{{ $this->usePayScheme ? 'py-3' : 'py-4' }} px-6"></td>
                             <td colspan="1"
                                 class="{{ $this->usePayScheme ? 'py-3' : 'py-4' }} px-6 text-center font-semibold uppercase tracking-wide text-xs"
-                                style="color: var(--ink); border-top: 2px solid var(--ink)">
+                                style="color: var(--ink)">
                                 {{ __('Total') }}
                             </td>
                             <td colspan="1"
-                                class="voucher-total-amount {{ $this->usePayScheme ? 'py-3' : 'py-4' }} px-6 text-right voucher-mono font-bold text-lg"
-                                style="color: var(--ink); border-top: 2px solid var(--ink)">
-                                Q{{ number_format((float) $this->batch->total_amount, 2) }}
+                                class="{{ $this->usePayScheme ? 'py-3' : 'py-4' }} px-6 text-right voucher-mono font-bold text-lg"
+                                style="color: var(--ink)">
+                                <span class="voucher-total-amount">Q{{ number_format((float) $this->batch->total_amount, 2) }}</span>
                             </td>
                         </tr>
                     </tfoot>
@@ -562,8 +641,8 @@ mount(function (string|int $batch) {
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="5" class="voucher-total-amount text-right voucher-mono font-bold text-xl" style="color: var(--ink)">
-                                Q{{ number_format((float) $this->batch->total_amount, 2) }}
+                            <td colspan="5" class="text-right font-bold text-xl" style="color: var(--ink)">
+                                <span class="voucher-total-amount voucher-mono">Q{{ number_format((float) $this->batch->total_amount, 2) }}</span>
                             </td>
                         </tr>
                     </tfoot>
@@ -628,9 +707,9 @@ mount(function (string|int $batch) {
 
         <!-- Footer signature -->
         <div
-            class="grid grid-cols-3 gap-12 text-center items-center text-xs {{ $this->usePayScheme ? 'mt-12' : 'mt-16' }}">
+            class="voucher-signatures grid grid-cols-3 gap-12 text-center items-center text-xs {{ $this->usePayScheme ? 'mt-12' : 'mt-16' }}">
             <div>
-                <div class="mb-12" style="color: var(--ink-soft)">
+                <div class="voucher-signature-label mb-12" style="color: var(--ink-soft)">
                     {{ __('Received by') }}
                 </div>
                 <div class="pt-2" style="border-top: 1px solid var(--line); color: var(--ink)">
@@ -639,7 +718,7 @@ mount(function (string|int $batch) {
             </div>
 
             <div>
-                <div class="mb-12" style="color: var(--ink-soft)">
+                <div class="voucher-signature-label mb-12" style="color: var(--ink-soft)">
                     {{ __('Paid by') }} ({{ __('Administration') }})
                 </div>
                 <div class="pt-2" style="border-top: 1px solid var(--line); color: var(--ink)">
@@ -648,7 +727,7 @@ mount(function (string|int $batch) {
             </div>
 
             <div>
-                <div class="mb-12" style="color: var(--ink-soft)">
+                <div class="voucher-signature-label mb-12" style="color: var(--ink-soft)">
                     {{ __('Authorized Signature') }}
                 </div>
                 <div class="pt-2" style="border-top: 1px solid var(--line); color: var(--ink)">
