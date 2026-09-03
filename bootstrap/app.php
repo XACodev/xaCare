@@ -3,7 +3,7 @@
 use App\Http\Middleware\AdminAuth;
 use App\Http\Middleware\EnsureHospitalFeature;
 use App\Http\Middleware\EnsureHospitalSubscribed;
-use App\Http\Middleware\SuperAdminOnly;
+use App\Http\Middleware\PlatformAdminOnly;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,7 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'superadmin' => SuperAdminOnly::class,
+            'platform-admin' => PlatformAdminOnly::class,
             'admin' => AdminAuth::class,
             'hospital.subscribed' => EnsureHospitalSubscribed::class,
             'hospital.feature' => EnsureHospitalFeature::class,
