@@ -15,6 +15,8 @@ state([
 ]);
 
 mount(function () {
+    abort_unless(Auth::check() && Auth::user()->is_platform_admin, 403);
+
     $this->permissions = Permission::query()
         ->where('guard_name', 'web')
         ->orderBy('name')
@@ -31,6 +33,8 @@ $permissionsList = computed(function () {
 });
 
 $create = function () {
+    abort_unless((bool) Auth::user()?->is_platform_admin, 403);
+
     $name = trim((string) $this->name);
     
     if ($name === '') {
@@ -50,6 +54,8 @@ $create = function () {
 };
 
 $delete = function (int $id) {
+    abort_unless((bool) Auth::user()?->is_platform_admin, 403);
+
     if ($this->confirm_delete !== $id) {
         $this->confirm_delete = $id;
         return;

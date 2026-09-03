@@ -1,11 +1,17 @@
 <?php
 
 use App\Models\Activity;
+use Illuminate\Support\Facades\Auth;
 use Livewire\WithPagination;
 use Livewire\Volt\Component;
 
 new class extends Component {
     use WithPagination;
+
+    public function mount(): void
+    {
+        abort_unless(Auth::check() && Auth::user()->is_platform_admin, 403);
+    }
 
     public function with(): array
     {

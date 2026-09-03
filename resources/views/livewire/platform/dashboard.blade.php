@@ -4,6 +4,7 @@ use App\Enums\SubscriptionStatus;
 use App\Models\Activity;
 use App\Models\Hospital;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Volt\Component;
 
@@ -15,6 +16,8 @@ new class extends Component {
 
     public function mount(): void
     {
+        abort_unless(Auth::check() && Auth::user()->is_platform_admin, 403);
+
         $this->hospitalStats = [
             'total' => Hospital::count(),
             'active' => Hospital::where('subscription_status', SubscriptionStatus::Active)->count(),

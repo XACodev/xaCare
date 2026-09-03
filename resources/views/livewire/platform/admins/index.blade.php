@@ -4,7 +4,7 @@ use App\Models\PlatformAdminInvitation;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
-use function Livewire\Volt\{state, computed, layout};
+use function Livewire\Volt\{state, mount, computed, layout};
 
 layout('components.layouts.platform');
 
@@ -12,6 +12,10 @@ state([
     'invitation_note' => '',
     'generated_link' => null,
 ]);
+
+mount(function () {
+    abort_unless(Auth::check() && Auth::user()->is_platform_admin, 403);
+});
 
 $admins = computed(fn () => User::where('is_platform_admin', true)->orderBy('name')->get());
 
@@ -21,6 +25,8 @@ $invitations = computed(fn () => PlatformAdminInvitation::whereNull('accepted_at
     ->get());
 
 $generateInvitation = function () {
+    abort_unless((bool) Auth::user()?->is_platform_admin, 403);
+
     [$invitation, $plainTextToken] = PlatformAdminInvitation::generateFor(
         invitedBy: Auth::id(),
         note: $this->invitation_note ?: null,
@@ -31,6 +37,8 @@ $generateInvitation = function () {
 };
 
 $revokeInvitation = function (int $invitationId) {
+    abort_unless((bool) Auth::user()?->is_platform_admin, 403);
+
     PlatformAdminInvitation::where('id', $invitationId)->delete();
 };
 
