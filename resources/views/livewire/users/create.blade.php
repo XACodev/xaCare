@@ -113,9 +113,7 @@ $save = function () {
     <div class="flex items-center justify-between">
         <div>
             <flux:heading size="xl">{{ __('New User') }}</flux:heading>
-            <flux:subheading>
-                {{ $hospitalName ? __('Staff for :hospital', ['hospital' => $hospitalName]) : __('Admin or Super Admin') }}
-            </flux:subheading>
+            <flux:subheading>{{ __('Staff for :hospital', ['hospital' => $hospitalName]) }}</flux:subheading>
         </div>
         <flux:link
             href="{{ Auth::user()->is_super_admin ? route('hospitals.edit', $hospital_id) : route('users.index') }}"

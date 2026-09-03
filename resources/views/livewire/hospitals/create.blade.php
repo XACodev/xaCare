@@ -55,7 +55,7 @@ $save = function () {
     <div class="flex items-center justify-between">
         <div>
             <flux:heading size="xl">{{ __('New Hospital') }}</flux:heading>
-            <flux:subheading>{{ __('Only Super Admin') }}</flux:subheading>
+            <flux:subheading>{{ __('Solo Administrador de plataforma') }}</flux:subheading>
         </div>
         <flux:link href="{{ route('hospitals.index') }}" class="text-sm">{{ __('Back') }}</flux:link>
     </div>
