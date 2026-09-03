@@ -29,7 +29,7 @@ class User extends Authenticatable
         'password',
         'username',
         'role',
-        'is_super_admin',
+        'is_platform_admin',
         'use_pay_scheme',
     ];
 
@@ -55,7 +55,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'is_super_admin' => 'boolean',
+            'is_platform_admin' => 'boolean',
             'role' => 'string',
             'use_pay_scheme' => 'boolean',
             'deleted_at' => 'datetime',
@@ -66,7 +66,7 @@ class User extends Authenticatable
      * El super admin sí puede crear/editar usuarios y administradores de cualquier hospital
      * vía /users (gestión ya protegida por su propio middleware `superadmin`).
      */
-    public static function allowsSuperAdminWrites(): bool
+    public static function allowsPlatformAdminWrites(): bool
     {
         return true;
     }

@@ -65,11 +65,11 @@ Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
 });
 
 Route::middleware(['auth', 'hospital.subscribed'])->group(function () {
-    // Sin middleware `admin` (Spatie hasRole('admin')) a propósito: el super admin no
-    // siempre tiene ese role Spatie asignado, solo el flag `is_super_admin`. Cada
-    // componente Volt valida su propio acceso en mount(), igual que procedures.index.
+    // Sin middleware `admin` (Spatie hasRole('admin')) a propósito: el administrador de
+    // plataforma no siempre tiene ese role Spatie asignado, solo el flag `is_platform_admin`.
+    // Cada componente Volt valida su propio acceso en mount(), igual que procedures.index.
     // `users.index` es solo para el admin de hospital (su propio staff, vía TenantScope).
-    // El super admin gestiona staff desde la ficha de cada hospital (hospitals.edit,
+    // El administrador de plataforma gestiona staff desde la ficha de cada hospital (hospitals.edit,
     // sección "Staff"), y crea/edita usando estas mismas dos rutas pasando `?hospital_id=`.
     Volt::route('users', 'users.index')->name('users.index');
     Volt::route('users/create', 'users.create')->name('users.create');

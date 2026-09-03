@@ -12,7 +12,7 @@ beforeEach(function () {
 });
 
 test('super admin can view user creation page for a specific hospital', function () {
-    $user = User::factory()->create(['is_super_admin' => true, 'hospital_id' => null]);
+    $user = User::factory()->create(['is_platform_admin' => true, 'hospital_id' => null]);
     $hospital = Hospital::factory()->create();
     Role::create(['name' => 'admin', 'guard_name' => 'web']);
     Role::create(['name' => 'doctor', 'guard_name' => 'web']);
@@ -24,7 +24,7 @@ test('super admin can view user creation page for a specific hospital', function
 });
 
 test('super admin cannot view user creation page without a hospital_id', function () {
-    $user = User::factory()->create(['is_super_admin' => true, 'hospital_id' => null]);
+    $user = User::factory()->create(['is_platform_admin' => true, 'hospital_id' => null]);
 
     $this->actingAs($user)
         ->get(route('users.create'))
@@ -32,7 +32,7 @@ test('super admin cannot view user creation page without a hospital_id', functio
 });
 
 test('non admin non super admin cannot view user creation page', function () {
-    $user = User::factory()->create(['is_super_admin' => false, 'role' => 'instrumentist']);
+    $user = User::factory()->create(['is_platform_admin' => false, 'role' => 'instrumentist']);
 
     $this->actingAs($user)
         ->get(route('users.create'))
@@ -41,7 +41,7 @@ test('non admin non super admin cannot view user creation page', function () {
 
 test('hospital admin can view user creation page', function () {
     $hospital = Hospital::factory()->create();
-    $admin = User::factory()->create(['is_super_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
+    $admin = User::factory()->create(['is_platform_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
 
     $this->actingAs($admin)
         ->get(route('users.create'))
@@ -51,7 +51,7 @@ test('hospital admin can view user creation page', function () {
 
 test('hospital admin creates staff scoped to their own hospital without choosing one', function () {
     $hospital = Hospital::factory()->create();
-    $admin = User::factory()->create(['is_super_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
+    $admin = User::factory()->create(['is_platform_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
     $role = Role::create(['name' => 'instrumentist', 'guard_name' => 'web']);
 
     $this->actingAs($admin);
@@ -69,13 +69,13 @@ test('hospital admin creates staff scoped to their own hospital without choosing
     $created = User::where('email', 'staff@example.com')->first();
     expect($created)->not->toBeNull();
     expect($created->hospital_id)->toBe($hospital->id);
-    expect($created->is_super_admin)->toBeFalse();
+    expect($created->is_platform_admin)->toBeFalse();
 });
 
 test('hospital admin cannot move a created user to another hospital', function () {
     $hospital = Hospital::factory()->create();
     $otherHospital = Hospital::factory()->create();
-    $admin = User::factory()->create(['is_super_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
+    $admin = User::factory()->create(['is_platform_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
     $role = Role::create(['name' => 'instrumentist', 'guard_name' => 'web']);
 
     $this->actingAs($admin);
@@ -95,13 +95,13 @@ test('hospital admin cannot move a created user to another hospital', function (
         ->assertHasNoErrors();
 
     $created = User::where('email', 'sneaky@example.com')->first();
-    expect($created->is_super_admin)->toBeFalse();
+    expect($created->is_platform_admin)->toBeFalse();
     expect($created->hospital_id)->toBe($hospital->id);
 });
 
 test('validation requires role', function () {
     $hospital = Hospital::factory()->create();
-    $admin = User::factory()->create(['is_super_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
+    $admin = User::factory()->create(['is_platform_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
 
     $this->actingAs($admin);
 

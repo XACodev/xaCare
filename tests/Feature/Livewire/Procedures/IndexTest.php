@@ -14,7 +14,7 @@ test('hospital admin can view the procedures index', function () {
 });
 
 test('super admin can view the procedures index', function () {
-    $superAdmin = User::factory()->create(['is_super_admin' => true, 'hospital_id' => null]);
+    $superAdmin = User::factory()->create(['is_platform_admin' => true, 'hospital_id' => null]);
 
     $this->actingAs($superAdmin);
 

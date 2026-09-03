@@ -12,13 +12,13 @@ beforeEach(function () {
 });
 
 test('the staff section only lists users from this hospital, never super admins', function () {
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $hospital = Hospital::factory()->create();
     $otherHospital = Hospital::factory()->create();
 
     $ownStaff = User::factory()->create(['name' => 'Own Staff', 'hospital_id' => $hospital->id]);
     $otherStaff = User::factory()->create(['name' => 'Other Hospital Staff', 'hospital_id' => $otherHospital->id]);
-    $anotherSuperAdmin = User::factory()->create(['name' => 'Another Super Admin', 'hospital_id' => null, 'is_super_admin' => true]);
+    $anotherSuperAdmin = User::factory()->create(['name' => 'Another Super Admin', 'hospital_id' => null, 'is_platform_admin' => true]);
 
     $this->actingAs($superAdmin);
 
@@ -29,7 +29,7 @@ test('the staff section only lists users from this hospital, never super admins'
 });
 
 test('super admin can delete and restore staff from within the hospital page', function () {
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $hospital = Hospital::factory()->create();
     $staff = User::factory()->create(['hospital_id' => $hospital->id]);
 

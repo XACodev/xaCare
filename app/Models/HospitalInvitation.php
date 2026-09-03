@@ -100,7 +100,7 @@ class HospitalInvitation extends Model
      * Onboarding de plataforma: el super admin genera y revoca invitaciones.
      * No es dato operativo clínico del hospital.
      */
-    public static function allowsSuperAdminWrites(): bool
+    public static function allowsPlatformAdminWrites(): bool
     {
         return true;
     }

@@ -32,7 +32,7 @@ class QxLogTestSeeder extends Seeder
                 'email' => 'thealejandro7w7@gmail.com',
                 'phone' => '30683865',
                 'role' => 'admin',
-                'is_super_admin' => true,
+                'is_platform_admin' => true,
                 'use_pay_scheme' => false,
                 'password' => Hash::make('9977'),
             ]
@@ -45,7 +45,7 @@ class QxLogTestSeeder extends Seeder
                 'email' => 'hospitalcoban@gmail.com',
                 'phone' => '77903000',
                 'role' => 'admin',
-                'is_super_admin' => false,
+                'is_platform_admin' => false,
                 'use_pay_scheme' => false,
                 'password' => Hash::make('1981'),
             ]

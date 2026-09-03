@@ -59,7 +59,7 @@ $accept = function () {
         // the submitted form — this is what makes it impossible for
         // whoever accepts the link to choose which hospital they join.
         'hospital_id' => $invitation->hospital_id,
-        'is_super_admin' => false,
+        'is_platform_admin' => false,
         'role' => 'admin',
     ]);
 

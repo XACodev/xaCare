@@ -26,9 +26,9 @@ state([
 
 mount(function () {
     $u = Auth::user();
-    abort_unless($u && ($u->is_super_admin || $u->role === 'admin'), 403);
+    abort_unless($u && ($u->is_platform_admin || $u->role === 'admin'), 403);
 
-    if ($u->is_super_admin) {
+    if ($u->is_platform_admin) {
         // El super admin siempre llega aquí desde la ficha de un hospital concreto
         // (Hospitales > editar > Staff > Nuevo usuario) — nunca elige el hospital desde
         // un selector suelto, para no mezclar el staff de todos los hospitales.
@@ -69,11 +69,11 @@ rules(fn () => [
 
 $save = function () {
     $me = Auth::user();
-    abort_unless($me && ($me->is_super_admin || $me->role === 'admin'), 403);
+    abort_unless($me && ($me->is_platform_admin || $me->role === 'admin'), 403);
 
     // Un admin de hospital nunca puede elegir otro hospital, sin importar qué haya
     // llegado del formulario (defensa en profundidad, la vista ya oculta ese campo).
-    if (! $me->is_super_admin) {
+    if (! $me->is_platform_admin) {
         $this->hospital_id = $me->hospital_id;
     }
 
@@ -85,7 +85,7 @@ $save = function () {
         'email' => $data['email'],
         'password' => Hash::make($data['password']),
         'hospital_id' => $data['hospital_id'],
-        'is_super_admin' => false,
+        'is_platform_admin' => false,
         'use_pay_scheme' => $data['use_pay_scheme'],
         'phone' => $data['phone'],
         'role' => $data['role']
@@ -116,7 +116,7 @@ $save = function () {
             <flux:subheading>{{ __('Staff for :hospital', ['hospital' => $hospitalName]) }}</flux:subheading>
         </div>
         <flux:link
-            href="{{ Auth::user()->is_super_admin ? route('hospitals.edit', $hospital_id) : route('users.index') }}"
+            href="{{ Auth::user()->is_platform_admin ? route('hospitals.edit', $hospital_id) : route('users.index') }}"
             class="text-sm">{{ __('Back') }}</flux:link>
     </div>
 

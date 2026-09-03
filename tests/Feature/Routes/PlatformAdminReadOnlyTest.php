@@ -11,34 +11,34 @@ beforeEach(function () {
     $adminRole->givePermissionTo(['payouts.create']);
 });
 
-function makeSuperAdmin(): User
+function makePlatformAdmin(): User
 {
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true, 'role' => 'admin']);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true, 'role' => 'admin']);
     $superAdmin->assignRole('admin');
 
     return $superAdmin;
 }
 
 test('super admin cannot register a patient', function () {
-    $this->actingAs(makeSuperAdmin())
+    $this->actingAs(makePlatformAdmin())
         ->get(route('patients.create'))
         ->assertForbidden();
 });
 
 test('super admin cannot register an admission', function () {
-    $this->actingAs(makeSuperAdmin())
+    $this->actingAs(makePlatformAdmin())
         ->get(route('admissions.create'))
         ->assertForbidden();
 });
 
 test('super admin cannot register a procedure', function () {
-    $this->actingAs(makeSuperAdmin())
+    $this->actingAs(makePlatformAdmin())
         ->get(route('procedures.create'))
         ->assertForbidden();
 });
 
 test('super admin cannot create a payout', function () {
-    $this->actingAs(makeSuperAdmin())
+    $this->actingAs(makePlatformAdmin())
         ->get(route('payouts.create'))
         ->assertForbidden();
 });

@@ -16,7 +16,7 @@ test('hospital staff cannot open the dashboard when the subscription is canceled
     ]);
     $user = User::factory()->create([
         'hospital_id' => $hospital->id,
-        'is_super_admin' => false,
+        'is_platform_admin' => false,
     ]);
 
     $this->actingAs($user)
@@ -30,7 +30,7 @@ test('hospital staff can open the dashboard when the subscription is active', fu
     ]);
     $user = User::factory()->create([
         'hospital_id' => $hospital->id,
-        'is_super_admin' => false,
+        'is_platform_admin' => false,
     ]);
 
     $this->actingAs($user)
@@ -43,7 +43,7 @@ test('a basic-plan admin cannot open the insurance module', function () {
     $admin = User::factory()->create([
         'hospital_id' => $hospital->id,
         'role' => 'admin',
-        'is_super_admin' => false,
+        'is_platform_admin' => false,
     ]);
     $admin->assignRole('admin');
 
@@ -59,7 +59,7 @@ test('a pro-plan admin can open the insurance module stub', function () {
     $admin = User::factory()->create([
         'hospital_id' => $hospital->id,
         'role' => 'admin',
-        'is_super_admin' => false,
+        'is_platform_admin' => false,
     ]);
     $admin->assignRole('admin');
 

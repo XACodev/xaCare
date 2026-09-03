@@ -6,7 +6,7 @@ use App\Models\User;
 use Livewire\Volt\Volt;
 
 test('creating a hospital starts a trial and syncs plan features', function () {
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $this->actingAs($superAdmin);
 
     Volt::test('hospitals.create')
@@ -25,7 +25,7 @@ test('creating a hospital starts a trial and syncs plan features', function () {
 });
 
 test('super admin can change plan and subscription status', function () {
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $hospital = Hospital::factory()->create(['plan' => 'basic']);
     $this->actingAs($superAdmin);
 

@@ -8,7 +8,7 @@ use function Livewire\Volt\{state, mount, computed};
 state(['q' => '']);
 
 mount(function () {
-    abort_unless(Auth::check() && Auth::user()->is_super_admin, 403);
+    abort_unless(Auth::check() && Auth::user()->is_platform_admin, 403);
 });
 
 $hospitals = computed(function () {
@@ -20,7 +20,7 @@ $hospitals = computed(function () {
 });
 
 $toggleActive = function (int $id) {
-    abort_unless((bool) Auth::user()->is_super_admin, 403);
+    abort_unless((bool) Auth::user()->is_platform_admin, 403);
 
     $hospital = Hospital::findOrFail($id);
     $hospital->update(['is_active' => ! $hospital->is_active]);

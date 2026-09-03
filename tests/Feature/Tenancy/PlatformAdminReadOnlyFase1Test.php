@@ -22,9 +22,9 @@ beforeEach(function () {
     $adminRole->givePermissionTo(['procedures.edit', 'pricing.manage']);
 });
 
-function makeFase1SuperAdmin(): User
+function makeFase1PlatformAdmin(): User
 {
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true, 'role' => 'admin']);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true, 'role' => 'admin']);
     $superAdmin->assignRole('admin');
 
     return $superAdmin;
@@ -33,7 +33,7 @@ function makeFase1SuperAdmin(): User
 function makeFase1HospitalAdmin(?Hospital $hospital = null): User
 {
     $hospital ??= Hospital::factory()->create();
-    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'is_super_admin' => false, 'role' => 'admin']);
+    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'is_platform_admin' => false, 'role' => 'admin']);
     $admin->assignRole('admin');
 
     return $admin;
@@ -53,7 +53,7 @@ test('super admin cannot edit (save) a SurgicalCase / SurgicalAssignment of anot
         'surgical_role_id' => $role->id,
     ]);
 
-    $superAdmin = makeFase1SuperAdmin();
+    $superAdmin = makeFase1PlatformAdmin();
     $this->actingAs($superAdmin);
 
     expect(fn () => $case->update(['procedure_type' => 'Tampered']))
@@ -67,7 +67,7 @@ test('super admin cannot delete a SurgicalCase', function () {
     $hospital = Hospital::factory()->create();
     $case = SurgicalCase::factory()->create(['hospital_id' => $hospital->id]);
 
-    $superAdmin = makeFase1SuperAdmin();
+    $superAdmin = makeFase1PlatformAdmin();
     $this->actingAs($superAdmin);
 
     expect(fn () => $case->delete())
@@ -78,7 +78,7 @@ test('super admin cannot save/create a RoleRate', function () {
     $hospital = Hospital::factory()->create();
     $role = SurgicalRole::factory()->create(['hospital_id' => $hospital->id]);
 
-    $superAdmin = makeFase1SuperAdmin();
+    $superAdmin = makeFase1PlatformAdmin();
     $this->actingAs($superAdmin);
 
     expect(fn () => RoleRate::create([
@@ -93,7 +93,7 @@ test('super admin cannot modify use_pay_scheme of a User via pricing.instrumenti
     $hospital = Hospital::factory()->create();
     $target = User::factory()->create(['hospital_id' => $hospital->id, 'use_pay_scheme' => false]);
 
-    $superAdmin = makeFase1SuperAdmin();
+    $superAdmin = makeFase1PlatformAdmin();
     $this->actingAs($superAdmin);
 
     Volt::test('pricing.instrumentist')
@@ -110,7 +110,7 @@ test('super admin cannot save a surgical case via procedures.edit', function () 
         'status' => 'pending',
     ]);
 
-    $superAdmin = makeFase1SuperAdmin();
+    $superAdmin = makeFase1PlatformAdmin();
     $superAdmin->givePermissionTo('procedures.edit');
     $this->actingAs($superAdmin);
 
@@ -126,7 +126,7 @@ test('super admin cannot delete a surgical case via procedures.index', function 
     $hospital = Hospital::factory()->create();
     $case = SurgicalCase::factory()->create(['hospital_id' => $hospital->id]);
 
-    $superAdmin = makeFase1SuperAdmin();
+    $superAdmin = makeFase1PlatformAdmin();
     $this->actingAs($superAdmin);
 
     Volt::test('procedures.index')
@@ -141,7 +141,7 @@ test('super admin cannot saveBaseRate on pricing.settings for another hospital',
     $hospital = Hospital::factory()->create();
     $role = SurgicalRole::factory()->create(['hospital_id' => $hospital->id, 'active' => true]);
 
-    $superAdmin = makeFase1SuperAdmin();
+    $superAdmin = makeFase1PlatformAdmin();
     $superAdmin->givePermissionTo('pricing.manage');
     $this->actingAs($superAdmin);
 

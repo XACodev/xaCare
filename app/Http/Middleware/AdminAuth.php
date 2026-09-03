@@ -18,11 +18,11 @@ class AdminAuth
         $user = $request->user();
 
         // El super admin no siempre tiene el role Spatie "admin" asignado (solo el flag
-        // is_super_admin) — sin este OR, el middleware lo bloqueaba antes de llegar al
+        // is_platform_admin) — sin este OR, el middleware lo bloqueaba antes de llegar al
         // mount() de cada componente, aunque ese componente ya supiera tratarlo como
-        // solo-lectura (abort_if is_super_admin en las paginas de escritura, o
-        // is_super_admin permitido en las de lectura). Ver PR de fix de permisos.
-        abort_unless((bool) $user && ($user->hasRole('admin') || $user->is_super_admin), 401);
+        // solo-lectura (abort_if is_platform_admin en las paginas de escritura, o
+        // is_platform_admin permitido en las de lectura). Ver PR de fix de permisos.
+        abort_unless((bool) $user && ($user->hasRole('admin') || $user->is_platform_admin), 401);
 
         return $next($request);
     }

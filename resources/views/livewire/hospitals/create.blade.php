@@ -15,7 +15,7 @@ state([
 ]);
 
 mount(function () {
-    abort_unless(Auth::check() && Auth::user()->is_super_admin, 403);
+    abort_unless(Auth::check() && Auth::user()->is_platform_admin, 403);
 });
 
 rules([
@@ -24,7 +24,7 @@ rules([
 ]);
 
 $save = function () {
-    abort_unless((bool) Auth::user()->is_super_admin, 403);
+    abort_unless((bool) Auth::user()->is_platform_admin, 403);
 
     $data = $this->validate();
 

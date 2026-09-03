@@ -6,7 +6,7 @@ use App\Models\User;
 use Livewire\Volt\Volt;
 
 test('super admin can create a hospital and it gets its own organization settings', function () {
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $this->actingAs($superAdmin);
 
     Volt::test('hospitals.create')

@@ -14,7 +14,7 @@ beforeEach(function () {
 });
 
 test('a super admin can generate an invitation for a hospital', function () {
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $hospital = Hospital::factory()->create();
 
     $this->actingAs($superAdmin);
@@ -35,7 +35,7 @@ test('a super admin can generate an invitation for a hospital', function () {
 });
 
 test('a super admin can revoke a pending invitation', function () {
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $hospital = Hospital::factory()->create();
     $invitation = HospitalInvitation::factory()->create(['hospital_id' => $hospital->id]);
 
@@ -50,7 +50,7 @@ test('a super admin can revoke a pending invitation', function () {
 
 test('a non super admin cannot generate invitations', function () {
     $hospital = Hospital::factory()->create();
-    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'is_super_admin' => false]);
+    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'is_platform_admin' => false]);
 
     $this->actingAs($admin);
 
@@ -75,7 +75,7 @@ test('accepting a valid invitation creates an admin user for the correct hospita
 
     expect($user)->not->toBeNull()
         ->and($user->hospital_id)->toBe($hospital->id)
-        ->and($user->is_super_admin)->toBeFalse()
+        ->and($user->is_platform_admin)->toBeFalse()
         ->and($user->hasRole('admin'))->toBeTrue();
 
     $invitation->refresh();

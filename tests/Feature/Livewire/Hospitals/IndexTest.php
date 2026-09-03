@@ -6,7 +6,7 @@ use Livewire\Volt\Volt;
 
 test('super admin can list and toggle hospitals', function () {
     $hospital = Hospital::factory()->create(['is_active' => true]);
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $this->actingAs($superAdmin);
 
     Volt::test('hospitals.index')
