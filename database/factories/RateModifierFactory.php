@@ -2,12 +2,12 @@
 
 namespace Database\Factories;
 
-use App\Models\RateModifier;
-use App\Models\RoleRate;
+use App\Modules\QxLog\Models\RateModifier;
+use App\Modules\QxLog\Models\RoleRate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\RateModifier>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Modules\QxLog\Models\RateModifier>
  */
 class RateModifierFactory extends Factory
 {

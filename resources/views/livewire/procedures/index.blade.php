@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\SurgicalCase;
+use App\Modules\QxLog\Models\SurgicalCase;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Flux\Flux;

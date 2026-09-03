@@ -2,7 +2,7 @@
 
 use App\Models\Hospital;
 use App\Models\Patient;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
 use Livewire\Volt\Volt;
 
@@ -109,7 +109,7 @@ test('procedures.create always writes to the authenticated user hospital regardl
         ->call('save')
         ->assertHasNoErrors();
 
-    $case = \App\Models\SurgicalCase::latest('id')->first();
+    $case = \App\Modules\QxLog\Models\SurgicalCase::latest('id')->first();
 
     expect($case)->not->toBeNull()
         ->and($case->hospital_id)->toBe($hospitalA->id)

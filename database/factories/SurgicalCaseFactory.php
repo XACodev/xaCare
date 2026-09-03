@@ -5,7 +5,7 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\SurgicalCase>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Modules\QxLog\Models\SurgicalCase>
  */
 class SurgicalCaseFactory extends Factory
 {

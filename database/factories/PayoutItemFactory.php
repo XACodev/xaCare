@@ -2,12 +2,12 @@
 
 namespace Database\Factories;
 
-use App\Models\PayoutBatch;
-use App\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\PayoutBatch;
+use App\Modules\QxLog\Models\SurgicalAssignment;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\PayoutItem>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Modules\QxLog\Models\PayoutItem>
  */
 class PayoutItemFactory extends Factory
 {

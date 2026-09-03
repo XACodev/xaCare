@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PayoutBatch;
+use App\Modules\QxLog\Models\PayoutBatch;
 use Illuminate\Http\Request;
 
 class PayoutBatchController extends Controller

@@ -2,8 +2,8 @@
 // tests/Feature/Database/DropLegacyColumnsMigrationTest.php
 
 use App\Models\Hospital;
-use App\Models\SurgicalAssignment;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

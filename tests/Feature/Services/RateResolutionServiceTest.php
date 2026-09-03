@@ -2,11 +2,11 @@
 
 // tests/Feature/Services/RateResolutionServiceTest.php
 use App\Models\Hospital;
-use App\Models\RateModifier;
-use App\Models\RoleRate;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\RateModifier;
+use App\Modules\QxLog\Models\RoleRate;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
-use App\Services\RateResolutionService;
+use App\Modules\QxLog\Services\RateResolutionService;
 
 beforeEach(function () {
     $this->hospital = Hospital::factory()->create();

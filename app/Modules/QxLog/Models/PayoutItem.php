@@ -1,13 +1,15 @@
 <?php
 
-namespace App\Models;
+namespace App\Modules\QxLog\Models;
 
 use App\Contracts\HasHospital;
 use App\Contracts\Priced;
 use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+#[UseFactory(\Database\Factories\PayoutItemFactory::class)]
 class PayoutItem extends Model implements HasHospital, Priced
 {
     use BelongsToTenant, HasFactory;

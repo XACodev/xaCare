@@ -1,9 +1,9 @@
 <?php
 // tests/Feature/Models/SurgicalAssignmentTest.php
 use App\Models\Hospital;
-use App\Models\SurgicalAssignment;
-use App\Models\SurgicalCase;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\SurgicalCase;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
 
 test('a surgical case can have multiple assignments across roles', function () {

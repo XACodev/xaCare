@@ -3,8 +3,8 @@
 use App\Models\Admission;
 use App\Models\Hospital;
 use App\Models\Patient;
-use App\Models\SurgicalCase;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\SurgicalCase;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
 use Livewire\Volt\Volt;
 

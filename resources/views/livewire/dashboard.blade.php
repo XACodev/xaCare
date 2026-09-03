@@ -1,8 +1,8 @@
 <?php
 
 use Livewire\Volt\Component;
-use App\Models\SurgicalCase;
-use App\Models\PayoutBatch;
+use App\Modules\QxLog\Models\SurgicalCase;
+use App\Modules\QxLog\Models\PayoutBatch;
 use Illuminate\Support\Facades\Auth;
 
 new class extends Component {
@@ -34,15 +34,15 @@ new class extends Component {
 
         if ($user->role === 'admin') {
             $stats = [
-                'total_procedures' => \App\Models\SurgicalCase::count(),
-                'pending_procedures' => \App\Models\SurgicalAssignment::where('status', 'pending')->count(),
-                'total_paid' => \App\Models\PayoutBatch::where('status', '!=', 'void')->sum('total_amount'),
+                'total_procedures' => \App\Modules\QxLog\Models\SurgicalCase::count(),
+                'pending_procedures' => \App\Modules\QxLog\Models\SurgicalAssignment::where('status', 'pending')->count(),
+                'total_paid' => \App\Modules\QxLog\Models\PayoutBatch::where('status', '!=', 'void')->sum('total_amount'),
             ];
         } else {
             $stats = [
-                'total_earnings' => \App\Models\SurgicalAssignment::where('user_id', $user->id)->where('status', 'paid')->sum('calculated_amount'),
-                'pending_earnings' => \App\Models\SurgicalAssignment::where('user_id', $user->id)->where('status', 'pending')->sum('calculated_amount'),
-                'procedures_count' => \App\Models\SurgicalAssignment::where('user_id', $user->id)->count(),
+                'total_earnings' => \App\Modules\QxLog\Models\SurgicalAssignment::where('user_id', $user->id)->where('status', 'paid')->sum('calculated_amount'),
+                'pending_earnings' => \App\Modules\QxLog\Models\SurgicalAssignment::where('user_id', $user->id)->where('status', 'pending')->sum('calculated_amount'),
+                'procedures_count' => \App\Modules\QxLog\Models\SurgicalAssignment::where('user_id', $user->id)->count(),
             ];
         }
 

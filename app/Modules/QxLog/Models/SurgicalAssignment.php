@@ -1,18 +1,21 @@
 <?php
-// app/Models/SurgicalAssignment.php
-namespace App\Models;
+// app/Modules/QxLog/Models/SurgicalAssignment.php
+namespace App\Modules\QxLog\Models;
 
 use App\Contracts\HasHospital;
 use App\Contracts\Payable;
 use App\Contracts\Priced;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+#[UseFactory(\Database\Factories\SurgicalAssignmentFactory::class)]
 class SurgicalAssignment extends Model implements HasHospital, Priced, Payable
 {
     use BelongsToTenant, HasFactory, LogsActivity;

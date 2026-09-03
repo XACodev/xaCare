@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Modules\QxLog\Services;
 
 use App\Models\PricingSetting;
 use App\Models\User;

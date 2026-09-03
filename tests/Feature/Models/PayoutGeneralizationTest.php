@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\Hospital;
-use App\Models\PayoutBatch;
-use App\Models\PayoutItem;
-use App\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\PayoutBatch;
+use App\Modules\QxLog\Models\PayoutItem;
+use App\Modules\QxLog\Models\SurgicalAssignment;
 use App\Models\User;
 
 test('a payout batch can belong to any payee, not just instrumentists', function () {

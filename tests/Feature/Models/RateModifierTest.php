@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\Hospital;
-use App\Models\RateModifier;
-use App\Models\RoleRate;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\RateModifier;
+use App\Modules\QxLog\Models\RoleRate;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
 
 test('rate modifier stores trigger config as array and detects manual toggles', function () {

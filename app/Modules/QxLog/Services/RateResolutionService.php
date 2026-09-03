@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services;
+namespace App\Modules\QxLog\Services;
 
-use App\Models\RateModifier;
-use App\Models\RoleRate;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\RateModifier;
+use App\Modules\QxLog\Models\RoleRate;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
 use App\Support\TimeHelper;
 

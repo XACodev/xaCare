@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\Hospital;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\SurgicalRole;
 
 test('surgical role belongs to its hospital and is scoped by tenant', function () {
     $hospitalA = Hospital::factory()->create();

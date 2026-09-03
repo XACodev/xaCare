@@ -3,10 +3,10 @@
 
 use App\Models\Hospital;
 use App\Models\PricingSetting;
-use App\Models\RateModifier;
-use App\Models\RoleRate;
-use App\Models\SurgicalAssignment;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\RateModifier;
+use App\Modules\QxLog\Models\RoleRate;
+use App\Modules\QxLog\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\SurgicalRole;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

@@ -2,11 +2,11 @@
 
 namespace Database\Factories;
 
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\SurgicalRole;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\RoleRate>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Modules\QxLog\Models\RoleRate>
  */
 class RoleRateFactory extends Factory
 {

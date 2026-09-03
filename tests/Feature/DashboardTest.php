@@ -21,8 +21,8 @@ test('admins see admin shortcuts and stats on dashboard', function () {
     $this->actingAs($user);
 
     // Create some data
-    \App\Models\SurgicalAssignment::factory()->create(['status' => 'pending', 'hospital_id' => $hospital->id]);
-    \App\Models\PayoutBatch::factory()->create(['total_amount' => 500, 'status' => 'active']);
+    \App\Modules\QxLog\Models\SurgicalAssignment::factory()->create(['status' => 'pending', 'hospital_id' => $hospital->id]);
+    \App\Modules\QxLog\Models\PayoutBatch::factory()->create(['total_amount' => 500, 'status' => 'active']);
 
     $response = $this->get(route('dashboard'));
 

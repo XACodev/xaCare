@@ -1,8 +1,8 @@
 <?php
 
 use App\Models\Hospital;
-use App\Models\PayoutBatch;
-use App\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\PayoutBatch;
+use App\Modules\QxLog\Models\SurgicalAssignment;
 use App\Models\User;
 use Livewire\Volt\Volt;
 use Spatie\Permission\Models\Permission;
@@ -64,7 +64,7 @@ test('liquidating redirects to the payout voucher', function () {
         ->set('selected', $assignments->pluck('id')->all())
         ->call('liquidate');
 
-    $batch = \App\Models\PayoutBatch::firstOrFail();
+    $batch = \App\Modules\QxLog\Models\PayoutBatch::firstOrFail();
 
     $component->assertRedirect(route('payouts.voucher', $batch->id));
 
@@ -106,11 +106,11 @@ test('does not show payees or assignments from another hospital', function () {
     $instrumentistB = User::factory()->create(['hospital_id' => $hospitalB->id]);
     $instrumentistB->assignRole('instrumentist');
 
-    $roleA = \App\Models\SurgicalRole::factory()->create(['hospital_id' => $hospitalA->id]);
-    $roleB = \App\Models\SurgicalRole::factory()->create(['hospital_id' => $hospitalB->id]);
+    $roleA = \App\Modules\QxLog\Models\SurgicalRole::factory()->create(['hospital_id' => $hospitalA->id]);
+    $roleB = \App\Modules\QxLog\Models\SurgicalRole::factory()->create(['hospital_id' => $hospitalB->id]);
 
-    $caseA = \App\Models\SurgicalCase::factory()->create(['hospital_id' => $hospitalA->id]);
-    $caseB = \App\Models\SurgicalCase::factory()->create(['hospital_id' => $hospitalB->id]);
+    $caseA = \App\Modules\QxLog\Models\SurgicalCase::factory()->create(['hospital_id' => $hospitalA->id]);
+    $caseB = \App\Modules\QxLog\Models\SurgicalCase::factory()->create(['hospital_id' => $hospitalB->id]);
 
     $assignmentA = SurgicalAssignment::factory()->create([
         'hospital_id' => $hospitalA->id,

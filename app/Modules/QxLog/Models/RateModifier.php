@@ -1,15 +1,17 @@
 <?php
 
-namespace App\Models;
+namespace App\Modules\QxLog\Models;
 
 use App\Contracts\HasHospital;
 use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+#[UseFactory(\Database\Factories\RateModifierFactory::class)]
 class RateModifier extends Model implements HasHospital
 {
     use BelongsToTenant, HasFactory, LogsActivity;

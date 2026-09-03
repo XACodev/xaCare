@@ -1,8 +1,8 @@
 <?php
 
 use App\Models\Hospital;
-use App\Models\RoleRate;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\RoleRate;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
 
 test('role rate belongs to its role and optionally to a user', function () {

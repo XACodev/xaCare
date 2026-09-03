@@ -1,7 +1,7 @@
 <?php
 // database/migrations/2026_09_02_120000_drop_legacy_columns_from_surgical_cases.php
-use App\Models\SurgicalAssignment;
-use App\Models\SurgicalCase;
+use App\Modules\QxLog\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\SurgicalCase;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;

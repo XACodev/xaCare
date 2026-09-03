@@ -2,7 +2,7 @@
 
 use Livewire\Volt\Volt;
 use App\Models\User;
-use App\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\SurgicalAssignment;
 
 test('earnings are hidden by default and toggle works', function () {
     $hospital = \App\Models\Hospital::factory()->create();

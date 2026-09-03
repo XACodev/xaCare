@@ -1,8 +1,8 @@
 <?php
 
 use App\Models\OrganizationSetting;
-use App\Models\PayoutBatch;
-use App\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\PayoutBatch;
+use App\Modules\QxLog\Models\SurgicalAssignment;
 use Illuminate\Support\Facades\Auth;
 
 use function Livewire\Volt\{state, mount};

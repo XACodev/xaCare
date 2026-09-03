@@ -6,11 +6,11 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Hospital;
 use App\Models\User;
-use App\Models\SurgicalAssignment;
-use App\Models\SurgicalCase;
-use App\Models\SurgicalRole;
-use App\Models\PayoutBatch;
-use App\Models\PayoutItem;
+use App\Modules\QxLog\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\SurgicalCase;
+use App\Modules\QxLog\Models\SurgicalRole;
+use App\Modules\QxLog\Models\PayoutBatch;
+use App\Modules\QxLog\Models\PayoutItem;
 use App\Models\PricingSetting;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -201,7 +201,7 @@ class QxLogTestSeeder extends Seeder
         ];
 
         // Instanciar el servicio real para obtener los mismos datos de guardado
-        $pricingService = app(\App\Services\PricingService::class);
+        $pricingService = app(\App\Modules\QxLog\Services\PricingService::class);
 
         // Asignaciones de instrumentista creadas, para poder liquidar algunas más abajo.
         $instrumentistAssignments = collect();

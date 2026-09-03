@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\SurgicalCase;
+use App\Modules\QxLog\Models\SurgicalCase;
 
 test('standardizes text fields to title case', function () {
     $case = new SurgicalCase;

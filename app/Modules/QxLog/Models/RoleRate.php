@@ -1,10 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace App\Modules\QxLog\Models;
 
 use App\Contracts\HasHospital;
 use App\Contracts\Priced;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+#[UseFactory(\Database\Factories\RoleRateFactory::class)]
 class RoleRate extends Model implements HasHospital, Priced
 {
     use BelongsToTenant, HasFactory, LogsActivity;

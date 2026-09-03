@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\RateModifier;
-use App\Models\RoleRate;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\RateModifier;
+use App\Modules\QxLog\Models\RoleRate;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -272,25 +272,25 @@ $removeModifier = function (int $id) {
             <flux:input label="{{ __('Name') }}" wire:model="modifier_name" />
 
             <flux:select label="{{ __('Trigger') }}" wire:model.live="modifier_trigger_type">
-                <flux:select.option value="{{ \App\Models\RateModifier::TRIGGER_MANUAL_TOGGLE }}">
+                <flux:select.option value="{{ \App\Modules\QxLog\Models\RateModifier::TRIGGER_MANUAL_TOGGLE }}">
                     {{ __('Manual toggle') }}
                 </flux:select.option>
-                <flux:select.option value="{{ \App\Models\RateModifier::TRIGGER_TIME_WINDOW }}">
+                <flux:select.option value="{{ \App\Modules\QxLog\Models\RateModifier::TRIGGER_TIME_WINDOW }}">
                     {{ __('Time window') }}
                 </flux:select.option>
-                <flux:select.option value="{{ \App\Models\RateModifier::TRIGGER_DURATION_GTE }}">
+                <flux:select.option value="{{ \App\Modules\QxLog\Models\RateModifier::TRIGGER_DURATION_GTE }}">
                     {{ __('Duration threshold') }}
                 </flux:select.option>
             </flux:select>
 
             <flux:input label="{{ __('Amount (Q)') }}" type="number" step="0.01" wire:model="modifier_amount" />
 
-            @if($modifier_trigger_type === \App\Models\RateModifier::TRIGGER_TIME_WINDOW)
+            @if($modifier_trigger_type === \App\Modules\QxLog\Models\RateModifier::TRIGGER_TIME_WINDOW)
                 <div class="grid grid-cols-2 gap-4">
                     <flux:input label="{{ __('Start') }}" type="time" wire:model="modifier_trigger_hour_start" />
                     <flux:input label="{{ __('End') }}" type="time" wire:model="modifier_trigger_hour_end" />
                 </div>
-            @elseif($modifier_trigger_type === \App\Models\RateModifier::TRIGGER_DURATION_GTE)
+            @elseif($modifier_trigger_type === \App\Modules\QxLog\Models\RateModifier::TRIGGER_DURATION_GTE)
                 <flux:input label="{{ __('Minutes') }}" type="number" step="1" wire:model="modifier_trigger_minutes" />
             @endif
         </div>

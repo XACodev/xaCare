@@ -1,11 +1,11 @@
 <?php
 // tests/Feature/Livewire/Procedures/EditAssignmentTest.php
 use App\Models\Hospital;
-use App\Models\RateModifier;
-use App\Models\RoleRate;
-use App\Models\SurgicalAssignment;
-use App\Models\SurgicalCase;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\RateModifier;
+use App\Modules\QxLog\Models\RoleRate;
+use App\Modules\QxLog\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\SurgicalCase;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
 use Livewire\Volt\Volt;
 use Spatie\Permission\Models\Permission;
@@ -181,7 +181,7 @@ test('editar un caso sin tocar el toggle manual preserva el monto calculado', fu
     $modifier = RateModifier::factory()->manualToggle('Video')->create([
         'hospital_id' => $hospital->id,
         'role_rate_id' => $roleRate->id,
-        'rate_type' => \App\Models\RateModifier::RATE_FIXED_AMOUNT,
+        'rate_type' => \App\Modules\QxLog\Models\RateModifier::RATE_FIXED_AMOUNT,
         'amount' => 800,
     ]);
 

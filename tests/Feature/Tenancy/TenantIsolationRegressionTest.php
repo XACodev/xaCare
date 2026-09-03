@@ -1,11 +1,11 @@
 <?php
 
 use App\Models\Hospital;
-use App\Models\RateModifier;
-use App\Models\RoleRate;
-use App\Models\SurgicalAssignment;
-use App\Models\SurgicalCase;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\RateModifier;
+use App\Modules\QxLog\Models\RoleRate;
+use App\Modules\QxLog\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\SurgicalCase;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Volt\Volt;

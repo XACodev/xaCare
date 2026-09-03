@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Hospital;
 use App\Models\Patient;
-use App\Models\SurgicalCase;
+use App\Modules\QxLog\Models\SurgicalCase;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;

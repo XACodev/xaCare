@@ -1,11 +1,11 @@
 <?php
 
-use App\Models\RateModifier;
-use App\Models\SurgicalAssignment;
-use App\Models\SurgicalCase;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\RateModifier;
+use App\Modules\QxLog\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\SurgicalCase;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
-use App\Services\RateResolutionService;
+use App\Modules\QxLog\Services\RateResolutionService;
 use App\Support\TimeHelper;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

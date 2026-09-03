@@ -1,7 +1,7 @@
 <?php
 // tests/Feature/Models/ActivityLoggingTest.php
 use App\Models\Hospital;
-use App\Models\SurgicalAssignment;
+use App\Modules\QxLog\Models\SurgicalAssignment;
 use App\Models\User;
 
 test('cambiar el monto de una asignacion registra quien lo hizo', function () {

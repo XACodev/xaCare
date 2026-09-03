@@ -1,14 +1,17 @@
 <?php
 
-namespace App\Models;
+namespace App\Modules\QxLog\Models;
 
 use App\Contracts\HasHospital;
 use App\Contracts\Payable;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+#[UseFactory(\Database\Factories\PayoutBatchFactory::class)]
 class PayoutBatch extends Model implements HasHospital, Payable
 {
     use BelongsToTenant, HasFactory;

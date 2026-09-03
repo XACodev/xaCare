@@ -2,13 +2,13 @@
 // database/factories/SurgicalAssignmentFactory.php
 namespace Database\Factories;
 
-use App\Models\SurgicalCase;
-use App\Models\SurgicalRole;
+use App\Modules\QxLog\Models\SurgicalCase;
+use App\Modules\QxLog\Models\SurgicalRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\SurgicalAssignment>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Modules\QxLog\Models\SurgicalAssignment>
  */
 class SurgicalAssignmentFactory extends Factory
 {

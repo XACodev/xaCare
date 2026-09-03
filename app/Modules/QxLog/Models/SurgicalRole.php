@@ -1,14 +1,16 @@
 <?php
 
-namespace App\Models;
+namespace App\Modules\QxLog\Models;
 
 use App\Contracts\HasHospital;
 use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
+#[UseFactory(\Database\Factories\SurgicalRoleFactory::class)]
 class SurgicalRole extends Model implements HasHospital
 {
     use BelongsToTenant, HasFactory;
