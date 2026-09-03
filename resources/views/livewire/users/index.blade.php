@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Hospital;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
@@ -19,7 +20,10 @@ mount(function () {
     // el personal de todos los hospitales en una sola tabla.
     $u = Auth::user();
     abort_unless($u && ! $u->is_super_admin && $u->role === 'admin', 403);
-    $this->rolesAvailable = Role::pluck('name', 'id')->toArray();
+    $this->rolesAvailable = Role::whereIn('name', $u->hospital?->visibleRoleNames() ?? Hospital::CORE_ROLES)
+        ->orderBy('name')
+        ->pluck('name', 'id')
+        ->toArray();
 });
 
 $users = computed(function () {

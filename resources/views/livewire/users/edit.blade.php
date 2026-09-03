@@ -39,7 +39,12 @@ mount(function (string|int $user) {
     $u = User::withTrashed()->findOrFail($user);
     abort_if($u->is_super_admin, 404);
 
-    $this->availableRoles = Role::pluck('name', 'id')->toArray();
+    // Solo los roles habilitados para el hospital de este usuario (los "core" siempre,
+    // más los que el super admin haya habilitado específicamente para ese hospital).
+    $this->availableRoles = Role::whereIn('name', $u->hospital?->visibleRoleNames() ?? Hospital::CORE_ROLES)
+        ->orderBy('name')
+        ->pluck('name', 'id')
+        ->toArray();
 
     $this->user = $u;
     $this->name = $u->name;
@@ -55,7 +60,7 @@ rules(fn() => [
     'name' => ['required', 'string', 'max:255'],
     'username' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users', 'username')->ignore($this->user->id)],
     'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->user->id)],
-    'role' => ['required', 'string', 'max:50'],
+    'role' => ['required', 'string', 'max:50', Rule::in($this->availableRoles)],
     'password' => ['nullable', 'string', 'min:6', 'confirmed'],
     'use_pay_scheme' => ['boolean'],
     'availableRoles' => ['required', 'array'],

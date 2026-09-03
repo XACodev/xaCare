@@ -89,7 +89,10 @@ test('setting hospital_id on the component has no effect on save (field is not p
 
 test('can update user details and role', function () {
     $admin = User::factory()->create(['is_super_admin' => true, 'hospital_id' => null]);
-    $userToEdit = User::factory()->create(['name' => 'Old Name', 'role' => 'doctor', 'hospital_id' => Hospital::factory()->create()->id]);
+    // 'manager' no es un rol "core" (ver Hospital::CORE_ROLES) — hay que habilitarlo
+    // explícitamente para este hospital o el selector de roles no lo ofrece.
+    $hospital = Hospital::factory()->create(['enabled_roles' => ['manager']]);
+    $userToEdit = User::factory()->create(['name' => 'Old Name', 'role' => 'doctor', 'hospital_id' => $hospital->id]);
     $userToEdit->assignRole('doctor');
 
     $this->actingAs($admin);

@@ -8,6 +8,7 @@ use App\Services\HospitalPlanService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Role;
 
 use function Livewire\Volt\{state, mount, rules, computed};
 
@@ -24,6 +25,7 @@ state([
     'generated_link' => null,
     'staff_q' => '',
     'staff_show_deleted' => false,
+    'enabled_roles' => [],
 ]);
 
 mount(function (string|int $hospital) {
@@ -37,9 +39,30 @@ mount(function (string|int $hospital) {
     $this->is_active = $h->is_active;
     $this->subscription_status = $h->subscription_status->value;
     $this->trial_ends_at = $h->trial_ends_at?->format('Y-m-d\TH:i') ?? '';
+    $this->enabled_roles = $h->enabled_roles ?? [];
 
     $this->loadInvitations();
 });
+
+// Roles del catálogo global que NO son "core" — solo estos se pueden habilitar/deshabilitar
+// por hospital. Los core (admin/doctor/instrumentist/circulating) siempre están disponibles
+// en todos los hospitales y no aparecen aquí.
+$optionalRoles = computed(fn () => Role::whereNotIn('name', Hospital::CORE_ROLES)->orderBy('name')->pluck('name'));
+
+$toggleRole = function (string $roleName) {
+    abort_unless((bool) Auth::user()->is_super_admin, 403);
+
+    $roles = $this->enabled_roles;
+
+    if (in_array($roleName, $roles, true)) {
+        $roles = array_values(array_diff($roles, [$roleName]));
+    } else {
+        $roles[] = $roleName;
+    }
+
+    $this->hospital->update(['enabled_roles' => $roles]);
+    $this->enabled_roles = $roles;
+};
 
 rules([
     'name' => ['required', 'string', 'max:255'],
@@ -254,6 +277,30 @@ $restoreStaff = function (int $id) {
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-4">
+        <div>
+            <flux:heading size="lg">{{ __('Roles habilitados') }}</flux:heading>
+            <flux:subheading>
+                {{ __('Los roles admin/doctor/instrumentist/circulating siempre están disponibles. Los demás roles del catálogo son opt-in por hospital — habilitar uno acá no lo activa en ningún otro.') }}
+            </flux:subheading>
+        </div>
+
+        @if($this->optionalRoles->isEmpty())
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 italic">
+                {{ __('No hay roles adicionales en el catálogo todavía.') }}
+            </p>
+        @else
+            <div class="flex flex-wrap gap-3">
+                @foreach($this->optionalRoles as $roleName)
+                    <flux:checkbox
+                        :checked="in_array($roleName, $enabled_roles, true)"
+                        wire:click="toggleRole('{{ $roleName }}')"
+                        label="{{ $roleName }}" wire:key="role-toggle-{{ $roleName }}" />
+                @endforeach
+            </div>
+        @endif
     </div>
 
     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
