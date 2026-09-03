@@ -5,7 +5,9 @@ use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
-use function Livewire\Volt\{state, mount, computed};
+use function Livewire\Volt\{state, mount, computed, layout};
+
+layout('components.layouts.platform');
 
 state([
     // Create role

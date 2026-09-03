@@ -22,7 +22,7 @@ test('the staff section only lists users from this hospital, never super admins'
 
     $this->actingAs($superAdmin);
 
-    Volt::test('hospitals.edit', ['hospital' => $hospital->id])
+    Volt::test('platform.hospitals.edit', ['hospital' => $hospital->id])
         ->assertSee('Own Staff')
         ->assertDontSee('Other Hospital Staff')
         ->assertDontSee('Another Super Admin');
@@ -35,7 +35,7 @@ test('super admin can delete and restore staff from within the hospital page', f
 
     $this->actingAs($superAdmin);
 
-    $component = Volt::test('hospitals.edit', ['hospital' => $hospital->id])
+    $component = Volt::test('platform.hospitals.edit', ['hospital' => $hospital->id])
         ->call('deleteStaff', $staff->id);
 
     expect($staff->fresh()->deleted_at)->not->toBeNull();

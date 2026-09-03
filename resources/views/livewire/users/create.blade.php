@@ -116,7 +116,7 @@ $save = function () {
             <flux:subheading>{{ __('Staff for :hospital', ['hospital' => $hospitalName]) }}</flux:subheading>
         </div>
         <flux:link
-            href="{{ Auth::user()->is_platform_admin ? route('hospitals.edit', $hospital_id) : route('users.index') }}"
+            href="{{ Auth::user()->is_platform_admin ? route('platform.hospitals.edit', $hospital_id) : route('users.index') }}"
             class="text-sm">{{ __('Back') }}</flux:link>
     </div>
 

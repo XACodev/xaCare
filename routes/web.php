@@ -76,11 +76,16 @@ Route::middleware(['auth', 'hospital.subscribed'])->group(function () {
     Volt::route('users/{user}/edit', 'users.edit')->name('users.edit');
 });
 
-Route::middleware(['auth', 'platform-admin'])->group(function () {
-    Volt::route('hospitals', 'hospitals.index')->name('hospitals.index');
-    Volt::route('hospitals/create', 'hospitals.create')->name('hospitals.create');
-    Volt::route('hospitals/{hospital}/edit', 'hospitals.edit')->name('hospitals.edit');
+Route::prefix('platform')->name('platform.')->middleware(['auth', 'platform-admin'])->group(function () {
+    Volt::route('/', 'platform.dashboard')->name('dashboard');
 
-    Volt::route('roles', 'access.roles')->name('roles.index');
-    Volt::route('permissions', 'access.permissions')->name('permissions.index');
+    Volt::route('hospitals', 'platform.hospitals.index')->name('hospitals.index');
+    Volt::route('hospitals/create', 'platform.hospitals.create')->name('hospitals.create');
+    Volt::route('hospitals/{hospital}/edit', 'platform.hospitals.edit')->name('hospitals.edit');
+
+    Volt::route('roles', 'platform.roles.index')->name('roles.index');
+    Volt::route('permissions', 'platform.permissions.index')->name('permissions.index');
+
+    Volt::route('activity', 'platform.activity.index')->name('activity.index');
+    Volt::route('admins', 'platform.admins.index')->name('admins.index');
 });

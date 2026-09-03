@@ -151,7 +151,7 @@ $toggleDelete = function () {
 
 <div class="max-w-xl mx-auto p-4 space-y-6">
     <flux:button
-        href="{{ Auth::user()->is_platform_admin ? ($hospital_id ? route('hospitals.edit', $hospital_id) : route('hospitals.index')) : route('users.index') }}"
+        href="{{ Auth::user()->is_platform_admin ? ($hospital_id ? route('platform.hospitals.edit', $hospital_id) : route('platform.hospitals.index')) : route('users.index') }}"
         variant="primary" size="sm" icon="arrow-left">
         {{ __('Back') }}
     </flux:button>

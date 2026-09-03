@@ -4,7 +4,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
 
-use function Livewire\Volt\{state, mount, computed};
+use function Livewire\Volt\{state, mount, computed, layout};
+
+layout('components.layouts.platform');
 
 state([
     'name' => '',

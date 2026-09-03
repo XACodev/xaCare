@@ -13,6 +13,13 @@ new class extends Component {
         $this->showEarnings = !$this->showEarnings;
     }
 
+    public function mount(): void
+    {
+        if (Auth::user()?->is_platform_admin) {
+            $this->redirect(route('platform.dashboard'), navigate: true);
+        }
+    }
+
     public function with(): array
     {
         $user = Auth::user();

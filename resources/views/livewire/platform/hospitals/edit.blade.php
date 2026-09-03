@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
-use function Livewire\Volt\{state, mount, rules, computed};
+use function Livewire\Volt\{state, mount, rules, computed, layout};
+
+layout('components.layouts.platform');
 
 state([
     'hospital' => null,
@@ -173,7 +175,7 @@ $restoreStaff = function (int $id) {
             <flux:heading size="xl">{{ __('Edit Hospital') }}</flux:heading>
             <flux:subheading>{{ __('Solo Administrador de plataforma') }}</flux:subheading>
         </div>
-        <flux:link href="{{ route('hospitals.index') }}" class="text-sm">{{ __('Back') }}</flux:link>
+        <flux:link href="{{ route('platform.hospitals.index') }}" class="text-sm">{{ __('Back') }}</flux:link>
     </div>
 
     @if($success_message)

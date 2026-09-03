@@ -19,7 +19,7 @@ test('a super admin can generate an invitation for a hospital', function () {
 
     $this->actingAs($superAdmin);
 
-    Volt::test('hospitals.edit', ['hospital' => $hospital->id])
+    Volt::test('platform.hospitals.edit', ['hospital' => $hospital->id])
         ->set('invitation_note', 'Dr. Juan Pérez, Hospital San Rafael')
         ->call('generateInvitation')
         ->assertHasNoErrors()
@@ -41,7 +41,7 @@ test('a super admin can revoke a pending invitation', function () {
 
     $this->actingAs($superAdmin);
 
-    Volt::test('hospitals.edit', ['hospital' => $hospital->id])
+    Volt::test('platform.hospitals.edit', ['hospital' => $hospital->id])
         ->call('revokeInvitation', $invitation->id)
         ->assertHasNoErrors();
 
@@ -54,7 +54,7 @@ test('a non super admin cannot generate invitations', function () {
 
     $this->actingAs($admin);
 
-    $this->get(route('hospitals.edit', $hospital->id))->assertForbidden();
+    $this->get(route('platform.hospitals.edit', $hospital->id))->assertForbidden();
 });
 
 test('accepting a valid invitation creates an admin user for the correct hospital and logs them in', function () {

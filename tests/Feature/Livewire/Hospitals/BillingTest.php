@@ -9,7 +9,7 @@ test('creating a hospital starts a trial and syncs plan features', function () {
     $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $this->actingAs($superAdmin);
 
-    Volt::test('hospitals.create')
+    Volt::test('platform.hospitals.create')
         ->set('name', 'Hospital Con Trial')
         ->set('plan', 'pro')
         ->call('save')
@@ -29,7 +29,7 @@ test('super admin can change plan and subscription status', function () {
     $hospital = Hospital::factory()->create(['plan' => 'basic']);
     $this->actingAs($superAdmin);
 
-    Volt::test('hospitals.edit', ['hospital' => $hospital->id])
+    Volt::test('platform.hospitals.edit', ['hospital' => $hospital->id])
         ->set('plan', 'pro')
         ->set('subscription_status', SubscriptionStatus::Active->value)
         ->set('trial_ends_at', '')

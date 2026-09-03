@@ -3,7 +3,9 @@
 use App\Models\Hospital;
 use Illuminate\Support\Facades\Auth;
 
-use function Livewire\Volt\{state, mount, computed};
+use function Livewire\Volt\{state, mount, computed, layout};
+
+layout('components.layouts.platform');
 
 state(['q' => '']);
 
@@ -35,7 +37,7 @@ $toggleActive = function (int $id) {
             <flux:subheading>{{ __('Solo Administrador de plataforma') }}</flux:subheading>
         </div>
 
-        <flux:button href="{{ route('hospitals.create') }}" icon="plus" class="w-full sm:w-auto" variant="primary">
+        <flux:button href="{{ route('platform.hospitals.create') }}" icon="plus" class="w-full sm:w-auto" variant="primary">
             {{ __('New Hospital') }}
         </flux:button>
     </div>
@@ -70,7 +72,7 @@ $toggleActive = function (int $id) {
                         </td>
                         <td class="px-4 py-3 text-center">
                             <div class="flex items-center justify-center gap-2">
-                                <flux:button href="{{ route('hospitals.edit', $hospital->id) }}" size="sm" icon="pencil" />
+                                <flux:button href="{{ route('platform.hospitals.edit', $hospital->id) }}" size="sm" icon="pencil" />
                                 <flux:button size="sm" icon="power" variant="ghost"
                                     wire:click="toggleActive({{ $hospital->id }})"
                                     wire:confirm="{{ __('Toggle this hospital active status?') }}" />

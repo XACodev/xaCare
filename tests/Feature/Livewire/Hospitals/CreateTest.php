@@ -9,7 +9,7 @@ test('super admin can create a hospital and it gets its own organization setting
     $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $this->actingAs($superAdmin);
 
-    Volt::test('hospitals.create')
+    Volt::test('platform.hospitals.create')
         ->set('name', 'Hospital Nuevo')
         ->set('plan', 'basic')
         ->call('save')
@@ -26,5 +26,5 @@ test('non super admin cannot create a hospital', function () {
     $user = User::factory()->create(['hospital_id' => Hospital::factory()->create()->id]);
     $this->actingAs($user);
 
-    $this->get(route('hospitals.create'))->assertForbidden();
+    $this->get(route('platform.hospitals.create'))->assertForbidden();
 });

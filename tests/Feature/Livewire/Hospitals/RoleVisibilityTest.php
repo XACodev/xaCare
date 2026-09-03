@@ -31,7 +31,7 @@ test('super admin enabling a role for one hospital does not affect another', fun
 
     $this->actingAs($superAdmin);
 
-    Volt::test('hospitals.edit', ['hospital' => $hospitalA->id])
+    Volt::test('platform.hospitals.edit', ['hospital' => $hospitalA->id])
         ->call('toggleRole', 'anesthesiologist');
 
     expect($hospitalA->fresh()->enabled_roles)->toBe(['anesthesiologist']);
