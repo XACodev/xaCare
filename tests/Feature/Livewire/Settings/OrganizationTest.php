@@ -33,6 +33,19 @@ test('admin can view and save organization settings', function () {
     expect(OrganizationSetting::current()->org_name)->toBe('Hospital de Prueba');
 });
 
+test('hospital admin sees their own plan and subscription status read-only', function () {
+    $hospital = Hospital::factory()->create(['plan' => 'basic', 'subscription_status' => 'trialing']);
+    $admin = User::factory()->create(['role' => 'admin', 'hospital_id' => $hospital->id]);
+    $admin->assignRole('admin');
+    $admin->givePermissionTo('settings.manage');
+
+    $this->actingAs($admin);
+
+    Volt::test('settings.organization')
+        ->assertSee(config('billing.plans.basic.name'))
+        ->assertSee('trialing');
+});
+
 test('admin without settings.manage permission cannot access the page', function () {
     $admin = User::factory()->create(['role' => 'admin', 'hospital_id' => Hospital::factory()->create()->id]);
     $admin->assignRole('admin');

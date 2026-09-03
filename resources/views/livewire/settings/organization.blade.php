@@ -17,6 +17,7 @@ state([
     'logo' => null,
     'logo_url' => null,
     'success' => null,
+    'hospital' => null,
 ]);
 
 mount(function () {
@@ -28,6 +29,11 @@ mount(function () {
     $this->org_name = $s->org_name;
     $this->voucher_legend = $s->voucher_legend;
     $this->logo_url = $s->logoUrl();
+
+    // Solo lectura: el plan/estado de suscripción lo asigna el super admin
+    // (es el ciclo de vida del cliente que paga), pero el admin de hospital debe
+    // poder ver su propio estado sin tener que preguntarle a nadie.
+    $this->hospital = Auth::user()->hospital;
 });
 
 rules([
@@ -141,4 +147,49 @@ $removeLogo = function () {
             </flux:button>
         </div>
     </div>
+
+    @if($hospital)
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-4">
+            <div>
+                <flux:heading size="lg">{{ __('Plan de suscripción') }}</flux:heading>
+                <flux:subheading>
+                    {{ __('Solo lectura — para cambiar de plan o reactivar tu cuenta, contacta al equipo de soporte.') }}
+                </flux:subheading>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <flux:text variant="subtle" size="sm">{{ __('Plan') }}</flux:text>
+                    <div class="font-medium">
+                        {{ config("billing.plans.{$hospital->plan}.name", ucfirst($hospital->plan)) }}
+                    </div>
+                </div>
+                <div>
+                    <flux:text variant="subtle" size="sm">{{ __('Estado') }}</flux:text>
+                    <div>
+                        <flux:badge size="sm" color="{{ $hospital->subscriptionAllowsAccess() ? 'green' : 'red' }}">
+                            {{ $hospital->subscription_status->value }}
+                        </flux:badge>
+                    </div>
+                </div>
+                @if($hospital->subscription_status->value === 'trialing' && $hospital->trial_ends_at)
+                    <div>
+                        <flux:text variant="subtle" size="sm">{{ __('Trial termina') }}</flux:text>
+                        <div class="font-medium">{{ $hospital->trial_ends_at->format('Y-m-d') }}</div>
+                    </div>
+                @endif
+            </div>
+
+            @if(!empty($hospital->features))
+                <div>
+                    <flux:text variant="subtle" size="sm">{{ __('Funciones incluidas') }}</flux:text>
+                    <div class="flex flex-wrap gap-2 mt-1">
+                        @foreach($hospital->features as $feature)
+                            <flux:badge size="sm">{{ $feature }}</flux:badge>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        </div>
+    @endif
 </div>
