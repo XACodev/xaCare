@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
 
 <head>
@@ -19,9 +19,10 @@
         </flux:sidebar.brand>
 
         @php($me = auth()->user())
+        @php($hasQxlog = $me?->hospital?->hasFeature('qxlog') || $me?->is_platform_admin)
 
         <flux:navlist variant="outline">
-            @if($me && $me->role !== "admin")
+            @if($me && $me->role !== "admin" && $hasQxlog)
                 <flux:navlist.group :heading="__('Procedures')" class="grid">
                     <flux:navlist.item icon="clipboard-document-list" :href="route('procedures.create')"
                         :current="request()->routeIs('procedures.create')" wire:navigate>
@@ -47,22 +48,24 @@
                         {{ __('Nuevo Ingreso') }}
                     </flux:navlist.item>
                 </flux:navlist.group>
-                <flux:navlist.group :heading="__('Payouts')" class="grid">
-                    <flux:navlist.item icon="home" :href="route('payouts.create')"
-                        :current="request()->routeIs('payouts.create')" wire:navigate>
-                        {{ __('Make Payment') }}
-                    </flux:navlist.item>
-                </flux:navlist.group>
-                <flux:navlist.group :heading="__('History')" class="grid">
-                    <flux:navlist.item icon="layout-grid" :href="route('payouts.index')"
-                        :current="request()->routeIs('payouts.index')" wire:navigate>
-                        {{ __('Payment History') }}
-                    </flux:navlist.item>
-                    <flux:navlist.item icon="layout-grid" :href="route('procedures.index')"
-                        :current="request()->routeIs('procedures.index')" wire:navigate>
-                        {{ __('Procedure History') }}
-                    </flux:navlist.item>
-                </flux:navlist.group>
+                @if($hasQxlog)
+                    <flux:navlist.group :heading="__('Payouts')" class="grid">
+                        <flux:navlist.item icon="home" :href="route('payouts.create')"
+                            :current="request()->routeIs('payouts.create')" wire:navigate>
+                            {{ __('Make Payment') }}
+                        </flux:navlist.item>
+                    </flux:navlist.group>
+                    <flux:navlist.group :heading="__('History')" class="grid">
+                        <flux:navlist.item icon="layout-grid" :href="route('payouts.index')"
+                            :current="request()->routeIs('payouts.index')" wire:navigate>
+                            {{ __('Payment History') }}
+                        </flux:navlist.item>
+                        <flux:navlist.item icon="layout-grid" :href="route('procedures.index')"
+                            :current="request()->routeIs('procedures.index')" wire:navigate>
+                            {{ __('Procedure History') }}
+                        </flux:navlist.item>
+                    </flux:navlist.group>
+                @endif
                 <flux:navlist.group :heading="__('Configurations')" class="grid">
                     @if(!$me->is_platform_admin)
                         <flux:navlist.item icon="user" :href="route('users.index')"
@@ -70,14 +73,16 @@
                             {{ __('Mi Staff') }}
                         </flux:navlist.item>
                     @endif
-                    <flux:navlist.item icon="users" :href="route('pricing.instrumentists')"
-                        :current="request()->routeIs('pricing.instrumentists')" wire:navigate>
-                        {{ __('Configure Instrumentists') }}
-                    </flux:navlist.item>
-                    <flux:navlist.item icon="wrench" :href="route('pricing.settings')"
-                        :current="request()->routeIs('pricing.settings')" wire:navigate>
-                        {{ __('Instrumentist Pricing') }}
-                    </flux:navlist.item>
+                    @if($hasQxlog)
+                        <flux:navlist.item icon="users" :href="route('pricing.instrumentists')"
+                            :current="request()->routeIs('pricing.instrumentists')" wire:navigate>
+                            {{ __('Configure Instrumentists') }}
+                        </flux:navlist.item>
+                        <flux:navlist.item icon="wrench" :href="route('pricing.settings')"
+                            :current="request()->routeIs('pricing.settings')" wire:navigate>
+                            {{ __('Instrumentist Pricing') }}
+                        </flux:navlist.item>
+                    @endif
                     @can('settings.manage')
                         <flux:navlist.item icon="building-office" :href="route('settings.organization')"
                             :current="request()->routeIs('settings.organization')" wire:navigate>

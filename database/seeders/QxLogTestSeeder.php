@@ -40,7 +40,7 @@ class QxLogTestSeeder extends Seeder
 
         $hospital = Hospital::firstOrCreate(
             ['slug' => 'hnsc'],
-            ['name' => 'Centro Médico y Hospital Nuestra Señora del Carmen', 'plan' => 'basic', 'features' => [], 'is_active' => true],
+            ['name' => 'Centro Médico y Hospital Nuestra Señora del Carmen', 'plan' => 'basic', 'features' => config('billing.plans.basic.features', []), 'is_active' => true],
         );
 
         $admin = User::firstOrCreate(
