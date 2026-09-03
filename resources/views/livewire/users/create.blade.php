@@ -28,28 +28,39 @@ mount(function () {
     $u = Auth::user();
     abort_unless($u && ($u->is_super_admin || $u->role === 'admin'), 403);
 
-    $this->availableRoles = Role::pluck('name', 'id')->toArray();
-
     if ($u->is_super_admin) {
         // El super admin siempre llega aquí desde la ficha de un hospital concreto
         // (Hospitales > editar > Staff > Nuevo usuario) — nunca elige el hospital desde
         // un selector suelto, para no mezclar el staff de todos los hospitales.
         $hospital = Hospital::query()->findOrFail(request()->integer('hospital_id'));
-        $this->hospital_id = $hospital->id;
-        $this->hospitalName = $hospital->name;
     } else {
         // Admin de hospital: siempre crea staff de su propio tenant, nunca elige otro.
-        $this->hospital_id = $u->hospital_id;
+        $hospital = $u->hospital;
     }
+
+    $this->hospital_id = $hospital->id;
+    $this->hospitalName = $hospital->name;
+
+    // Solo los roles habilitados para ESTE hospital (los "core" siempre, más los que el
+    // super admin haya habilitado específicamente) — un rol nuevo del catálogo global no
+    // aparece hasta que se habilita hospital por hospital.
+    $this->availableRoles = Role::whereIn('name', $hospital->visibleRoleNames())
+        ->orderBy('name')
+        ->pluck('name', 'id')
+        ->toArray();
 });
 
 rules(fn () => [
     'name' => ['required', 'string', 'max:255'],
     'username' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users', 'username')],
     'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-    'role' => ['required', 'string', 'max:50'],
+    // Recalculado desde hospital_id (ya forzado al hospital real en save() antes de
+    // validate()), NUNCA desde $this->availableRoles: esa propiedad es publica de
+    // Livewire y se puede sobreescribir en el payload de "updates" de una request
+    // manipulada, sin pasar por mount() — confiar en ella para el Rule::in() no
+    // protegia nada.
+    'role' => ['required', 'string', 'max:50', Rule::in(Hospital::find($this->hospital_id)?->visibleRoleNames() ?? [])],
     'hospital_id' => ['required', 'integer', 'exists:hospitals,id'],
-    'availableRoles' => ['required', 'array'],
     'password' => ['required', 'string', 'min:6', 'confirmed'],
     'use_pay_scheme' => ['boolean'],
     'phone' => ['nullable', 'string', 'max:8'],

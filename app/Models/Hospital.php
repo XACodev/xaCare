@@ -12,6 +12,13 @@ class Hospital extends Model
 {
     use HasFactory;
 
+    /**
+     * Roles del catálogo global que TODO hospital puede asignar siempre, sin
+     * necesidad de habilitación explícita. Cualquier rol nuevo que se cree fuera
+     * de esta lista nace invisible para todos los hospitales (ver enabled_roles).
+     */
+    public const CORE_ROLES = ['admin', 'doctor', 'instrumentist', 'circulating'];
+
     protected $fillable = [
         'name',
         'slug',
@@ -23,6 +30,7 @@ class Hospital extends Model
         'stripe_id',
         'pm_type',
         'pm_last_four',
+        'enabled_roles',
     ];
 
     protected function casts(): array
@@ -32,12 +40,27 @@ class Hospital extends Model
             'is_active' => 'boolean',
             'subscription_status' => SubscriptionStatus::class,
             'trial_ends_at' => 'datetime',
+            'enabled_roles' => 'array',
         ];
     }
 
     public function hasFeature(string $feature): bool
     {
         return in_array($feature, $this->features ?? [], true);
+    }
+
+    /**
+     * Nombres de rol que este hospital puede ver/asignar: los "core" (siempre) más
+     * los que el super admin haya habilitado específicamente para este hospital.
+     *
+     * @return list<string>
+     */
+    public function visibleRoleNames(): array
+    {
+        return array_values(array_unique([
+            ...self::CORE_ROLES,
+            ...($this->enabled_roles ?? []),
+        ]));
     }
 
     public function subscriptionAllowsAccess(): bool
