@@ -106,6 +106,13 @@ $saveBaseRate = function () {
         abort_if(Auth::user()->hospital_id !== $role->hospital_id, 403);
     }
 
+    // user_id opcional: si se proporciona, el usuario debe pertenecer al mismo
+    // hospital que el rol. Evita asociar tarifas a personal de otro tenant.
+    if ($this->user_id) {
+        $targetUser = User::find($this->user_id);
+        abort_if(! $targetUser || $targetUser->hospital_id !== $role->hospital_id, 403);
+    }
+
     RoleRate::updateOrCreate(
         ['surgical_role_id' => $this->selected_role_id, 'user_id' => $this->user_id, 'procedure_type' => null],
         ['base_rate' => $this->base_rate, 'active' => true, 'hospital_id' => $role->hospital_id],
@@ -159,7 +166,17 @@ $addModifier = function () {
 
 $removeModifier = function (int $id) {
     abort_unless((bool) Auth::user()->can('pricing.manage'), 403);
-    RateModifier::where('id', $id)->delete();
+    abort_if((bool) Auth::user()?->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
+
+    // Solo permitir borrar modifiers del RoleRate que se está editando actualmente.
+    abort_if(! $this->default_rate, 403);
+
+    $modifier = RateModifier::where('id', $id)
+        ->where('role_rate_id', $this->default_rate->id)
+        ->first();
+
+    abort_if(! $modifier, 403);
+    $modifier->delete();
 
     unset($this->modifiers);
 };

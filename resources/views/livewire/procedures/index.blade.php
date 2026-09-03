@@ -25,6 +25,7 @@ mount(function () {
 $instrumentists = computed(function () {
     return User::query()
         ->where('role', 'instrumentist')
+        ->when(Auth::user()?->hospital_id, fn ($q) => $q->where('hospital_id', Auth::user()->hospital_id))
         ->orderBy('name')
         ->get(['id', 'name']);
 });
@@ -98,6 +99,8 @@ $confirmDelete = function (int $id) {
 };
 
 $delete = function () {
+    abort_if((bool) Auth::user()?->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
+
     if ($this->procedure_to_delete) {
         SurgicalCase::findOrFail($this->procedure_to_delete)->delete();
         $this->procedure_to_delete = null;

@@ -112,6 +112,7 @@ $save = function () {
     $this->success_message = null;
     $user = Auth::user();
     abort_unless($user && $user->can('procedures.edit'), 403);
+    abort_if((bool) $user?->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
     abort_unless($this->case->status === 'pending', 403);
 
     $durationMinutes = TimeHelper::durationMinutes($this->procedure_date, $this->start_time, $this->end_time);
@@ -243,7 +244,10 @@ $save = function () {
             <flux:heading size="lg">{{ __('Assignments') }}</flux:heading>
 
             {{-- La persona asignada se selecciona de la lista de usuarios; el rol no se reasigna al editar. --}}
-            @php($allUsers = \App\Models\User::orderBy('name')->get(['id', 'name']))
+            @php($allUsers = \App\Models\User::query()
+                ->when(Auth::user()?->hospital_id, fn ($q) => $q->where('hospital_id', Auth::user()->hospital_id))
+                ->orderBy('name')
+                ->get(['id', 'name']))
 
             @foreach($assignments as $index => $row)
                 <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-4 space-y-3">
