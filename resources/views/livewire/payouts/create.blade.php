@@ -27,7 +27,7 @@ mount(function () {
     $user = Auth::user();
     abort_unless((bool) $user, 401);
     abort_unless($user->can("payouts.create"), 403);
-    abort_if((bool) $user->is_super_admin, 403, 'Super admin es de solo lectura; usa una cuenta de hospital para operar.');
+    abort_if((bool) $user->is_super_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
 
     $this->payees = User::query()
         ->whereHas('assignments', fn ($q) => $q->where('status', 'pending'))

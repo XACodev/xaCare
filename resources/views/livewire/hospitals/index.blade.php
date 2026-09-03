@@ -32,7 +32,7 @@ $toggleActive = function (int $id) {
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <flux:heading size="xl">{{ __('Hospitals') }}</flux:heading>
-            <flux:subheading>{{ __('Only Super Admin') }}</flux:subheading>
+            <flux:subheading>{{ __('Solo Administrador de plataforma') }}</flux:subheading>
         </div>
 
         <flux:button href="{{ route('hospitals.create') }}" icon="plus" class="w-full sm:w-auto" variant="primary">
