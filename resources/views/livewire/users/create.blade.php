@@ -54,9 +54,13 @@ rules(fn () => [
     'name' => ['required', 'string', 'max:255'],
     'username' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users', 'username')],
     'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-    'role' => ['required', 'string', 'max:50', Rule::in($this->availableRoles)],
+    // Recalculado desde hospital_id (ya forzado al hospital real en save() antes de
+    // validate()), NUNCA desde $this->availableRoles: esa propiedad es publica de
+    // Livewire y se puede sobreescribir en el payload de "updates" de una request
+    // manipulada, sin pasar por mount() — confiar en ella para el Rule::in() no
+    // protegia nada.
+    'role' => ['required', 'string', 'max:50', Rule::in(Hospital::find($this->hospital_id)?->visibleRoleNames() ?? [])],
     'hospital_id' => ['required', 'integer', 'exists:hospitals,id'],
-    'availableRoles' => ['required', 'array'],
     'password' => ['required', 'string', 'min:6', 'confirmed'],
     'use_pay_scheme' => ['boolean'],
     'phone' => ['nullable', 'string', 'max:8'],

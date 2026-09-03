@@ -77,3 +77,52 @@ test('a hospital admin cannot assign a role that is not visible to their hospita
         ->call('save')
         ->assertHasErrors(['role']);
 });
+
+test('tampering the availableRoles property directly does not bypass the role catalog check', function () {
+    // availableRoles es una property publica de Livewire — se puede sobreescribir en el
+    // payload de una request manipulada, sin pasar por mount(). El Rule::in() de
+    // validacion NO debe confiar en ella; debe recalcularse desde el hospital real.
+    Role::create(['name' => 'anesthesiologist', 'guard_name' => 'web']);
+    $hospital = Hospital::factory()->create();
+    $admin = User::factory()->create(['role' => 'admin', 'hospital_id' => $hospital->id]);
+
+    $this->actingAs($admin);
+
+    Volt::test('users.create')
+        ->set('availableRoles', ['999' => 'anesthesiologist'])
+        ->set('name', 'Sneaky')
+        ->set('username', 'sneaky2')
+        ->set('email', 'sneaky2@example.com')
+        ->set('role', 'anesthesiologist')
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password')
+        ->call('save')
+        ->assertHasErrors(['role']);
+
+    expect(User::where('email', 'sneaky2@example.com')->exists())->toBeFalse();
+});
+
+test('editing a user whose role was later disabled does not break unrelated saves', function () {
+    Role::create(['name' => 'anesthesiologist', 'guard_name' => 'web']);
+    $hospital = Hospital::factory()->create(['enabled_roles' => ['anesthesiologist']]);
+    // Usernames explicitos: fake()->userName() a veces genera algo con punto (ej.
+    // "jane.doe23"), que no pasa la regla alpha_dash y vuelve este test intermitente sin
+    // relacion con lo que se esta probando.
+    $admin = User::factory()->create(['role' => 'admin', 'username' => 'roleadmin1', 'hospital_id' => $hospital->id]);
+    $staff = User::factory()->create(['name' => 'Old Name', 'role' => 'anesthesiologist', 'username' => 'rolestaff1', 'hospital_id' => $hospital->id]);
+    $staff->assignRole('anesthesiologist');
+
+    // El super admin deshabilita el rol despues de que ya estaba en uso.
+    $hospital->update(['enabled_roles' => []]);
+
+    $this->actingAs($admin);
+
+    Volt::test('users.edit', ['user' => $staff->id])
+        ->assertSee('anesthesiologist') // sigue en el selector, aunque ya no este habilitado
+        ->set('name', 'New Name')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($staff->fresh()->name)->toBe('New Name');
+    expect($staff->fresh()->hasRole('anesthesiologist'))->toBeTrue();
+});

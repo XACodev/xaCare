@@ -40,8 +40,19 @@ mount(function (string|int $user) {
     abort_if($u->is_super_admin, 404);
 
     // Solo los roles habilitados para el hospital de este usuario (los "core" siempre,
-    // más los que el super admin haya habilitado específicamente para ese hospital).
-    $this->availableRoles = Role::whereIn('name', $u->hospital?->visibleRoleNames() ?? Hospital::CORE_ROLES)
+    // más los que el super admin haya habilitado específicamente para ese hospital), MÁS
+    // el rol que el usuario ya tiene asignado aunque se haya deshabilitado después — si no,
+    // el <select> queda sin ninguna opción coincidiendo con su rol actual y guardar
+    // cualquier otro cambio (nombre, teléfono...) sin tocar el rol falla con un error de
+    // validación confuso, para un escenario que la propia feature permite (deshabilitar un
+    // rol que ya estaba en uso).
+    $currentRoleName = $u->getRoleNames()->first();
+    $visibleRoleNames = $u->hospital?->visibleRoleNames() ?? Hospital::CORE_ROLES;
+    if ($currentRoleName && ! in_array($currentRoleName, $visibleRoleNames, true)) {
+        $visibleRoleNames[] = $currentRoleName;
+    }
+
+    $this->availableRoles = Role::whereIn('name', $visibleRoleNames)
         ->orderBy('name')
         ->pluck('name', 'id')
         ->toArray();
@@ -56,15 +67,27 @@ mount(function (string|int $user) {
     $this->use_pay_scheme = $u->use_pay_scheme;
 });
 
-rules(fn() => [
-    'name' => ['required', 'string', 'max:255'],
-    'username' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users', 'username')->ignore($this->user->id)],
-    'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->user->id)],
-    'role' => ['required', 'string', 'max:50', Rule::in($this->availableRoles)],
-    'password' => ['nullable', 'string', 'min:6', 'confirmed'],
-    'use_pay_scheme' => ['boolean'],
-    'availableRoles' => ['required', 'array'],
-]);
+rules(function () {
+    // Recalculado desde $this->user (modelo cargado en mount, no una property publica
+    // libre) en vez de $this->availableRoles: esa property se puede sobreescribir en el
+    // payload de "updates" de una request de Livewire manipulada sin pasar por mount(),
+    // asi que confiar en ella para el Rule::in() no protegia nada de verdad. Incluye el
+    // mismo "grandfathering" del rol actual que mount().
+    $currentRoleName = $this->user->getRoleNames()->first();
+    $visibleRoleNames = $this->user->hospital?->visibleRoleNames() ?? Hospital::CORE_ROLES;
+    if ($currentRoleName && ! in_array($currentRoleName, $visibleRoleNames, true)) {
+        $visibleRoleNames[] = $currentRoleName;
+    }
+
+    return [
+        'name' => ['required', 'string', 'max:255'],
+        'username' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users', 'username')->ignore($this->user->id)],
+        'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->user->id)],
+        'role' => ['required', 'string', 'max:50', Rule::in($visibleRoleNames)],
+        'password' => ['nullable', 'string', 'min:6', 'confirmed'],
+        'use_pay_scheme' => ['boolean'],
+    ];
+});
 
 $save = function () {
     $me = Auth::user();
