@@ -13,6 +13,12 @@ Route::get('/', function () {
 // hospital named on their invitation. Isolated from every other route.
 Volt::route('invitaciones/{token}', 'hospital-invitations.accept')->name('hospital-invitations.accept');
 
+// Public, unauthenticated invitation acceptance route for platform admins.
+// Single purpose: let someone without an account create a new platform-admin
+// account from a one-time invitation link. Isolated from every other route.
+Volt::route('platform-invitaciones/{token}', 'platform.admin-invitations.accept')
+    ->name('platform.admin-invitations.accept');
+
 Volt::route('dashboard', 'dashboard')
     ->middleware(['auth', 'verified', 'hospital.subscribed'])
     ->name('dashboard');
@@ -65,22 +71,27 @@ Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
 });
 
 Route::middleware(['auth', 'hospital.subscribed'])->group(function () {
-    // Sin middleware `admin` (Spatie hasRole('admin')) a propósito: el super admin no
-    // siempre tiene ese role Spatie asignado, solo el flag `is_super_admin`. Cada
-    // componente Volt valida su propio acceso en mount(), igual que procedures.index.
+    // Sin middleware `admin` (Spatie hasRole('admin')) a propósito: el administrador de
+    // plataforma no siempre tiene ese role Spatie asignado, solo el flag `is_platform_admin`.
+    // Cada componente Volt valida su propio acceso en mount(), igual que procedures.index.
     // `users.index` es solo para el admin de hospital (su propio staff, vía TenantScope).
-    // El super admin gestiona staff desde la ficha de cada hospital (hospitals.edit,
+    // El administrador de plataforma gestiona staff desde la ficha de cada hospital (hospitals.edit,
     // sección "Staff"), y crea/edita usando estas mismas dos rutas pasando `?hospital_id=`.
     Volt::route('users', 'users.index')->name('users.index');
     Volt::route('users/create', 'users.create')->name('users.create');
     Volt::route('users/{user}/edit', 'users.edit')->name('users.edit');
 });
 
-Route::middleware(['auth', 'superadmin'])->group(function () {
-    Volt::route('hospitals', 'hospitals.index')->name('hospitals.index');
-    Volt::route('hospitals/create', 'hospitals.create')->name('hospitals.create');
-    Volt::route('hospitals/{hospital}/edit', 'hospitals.edit')->name('hospitals.edit');
+Route::prefix('platform')->name('platform.')->middleware(['auth', 'platform-admin'])->group(function () {
+    Volt::route('/', 'platform.dashboard')->name('dashboard');
 
-    Volt::route('roles', 'access.roles')->name('roles.index');
-    Volt::route('permissions', 'access.permissions')->name('permissions.index');
+    Volt::route('hospitals', 'platform.hospitals.index')->name('hospitals.index');
+    Volt::route('hospitals/create', 'platform.hospitals.create')->name('hospitals.create');
+    Volt::route('hospitals/{hospital}/edit', 'platform.hospitals.edit')->name('hospitals.edit');
+
+    Volt::route('roles', 'platform.roles.index')->name('roles.index');
+    Volt::route('permissions', 'platform.permissions.index')->name('permissions.index');
+
+    Volt::route('activity', 'platform.activity.index')->name('activity.index');
+    Volt::route('admins', 'platform.admins.index')->name('admins.index');
 });

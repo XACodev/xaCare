@@ -58,7 +58,7 @@ rules(fn () => [
 mount(function () {
     abort_unless((bool) Auth::check(), 401, 'Unauthorized');
     abort_unless(in_array(Auth::user()->role, ['instrumentist', 'admin'], true), 403, 'Unauthorized');
-    abort_if((bool) Auth::user()->is_super_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
+    abort_if((bool) Auth::user()->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
 
     $roles = SurgicalRole::query()->where('active', true)->orderBy('sort_order')->get();
     $instrumentistRole = $roles->firstWhere('slug', 'instrumentista');

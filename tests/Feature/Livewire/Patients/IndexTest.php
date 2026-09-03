@@ -3,7 +3,7 @@
 use App\Models\User;
 
 test('super admin can view the patients index', function () {
-    $superAdmin = User::factory()->create(['is_super_admin' => true, 'hospital_id' => null]);
+    $superAdmin = User::factory()->create(['is_platform_admin' => true, 'hospital_id' => null]);
 
     $this->actingAs($superAdmin)
         ->get(route('patients.index'))

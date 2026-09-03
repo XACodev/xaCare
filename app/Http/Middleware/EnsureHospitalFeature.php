@@ -14,7 +14,7 @@ class EnsureHospitalFeature
 
         abort_unless((bool) $user, 403);
 
-        if ($user->is_super_admin) {
+        if ($user->is_platform_admin) {
             return $next($request);
         }
 

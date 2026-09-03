@@ -64,7 +64,7 @@
                     </flux:navlist.item>
                 </flux:navlist.group>
                 <flux:navlist.group :heading="__('Configurations')" class="grid">
-                    @if(!$me->is_super_admin)
+                    @if(!$me->is_platform_admin)
                         <flux:navlist.item icon="user" :href="route('users.index')"
                             :current="request()->routeIs('users.index')" wire:navigate>
                             {{ __('Mi Staff') }}
@@ -95,23 +95,6 @@
         </flux:navlist>
 
         <flux:spacer />
-
-        <flux:navlist variant="outline">
-            @if($me?->is_super_admin)
-                <flux:navlist.item icon="building-office-2" :href="route('hospitals.index')"
-                    :current="request()->routeIs('hospitals.*')" wire:navigate>
-                    {{ __('Hospitals') }}
-                </flux:navlist.item>
-                <flux:navlist.item icon="user" :href="route('roles.index')" :current="request()->routeIs('roles.index')"
-                    wire:navigate>
-                    {{ __('Roles') }}
-                </flux:navlist.item>
-                <flux:navlist.item icon="user" :href="route('permissions.index')"
-                    :current="request()->routeIs('permissions.index')" wire:navigate>
-                    {{ __('Permissions') }}
-                </flux:navlist.item>
-            @endif
-        </flux:navlist>
 
         <flux:sidebar.nav>
             <flux:sidebar.item icon="cog" :href="route('profile.edit')" :current="request()->routeIs('profile.edit')"

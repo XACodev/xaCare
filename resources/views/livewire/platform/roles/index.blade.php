@@ -5,7 +5,9 @@ use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
-use function Livewire\Volt\{state, mount, computed};
+use function Livewire\Volt\{state, mount, computed, layout};
+
+layout('components.layouts.platform');
 
 state([
     // Create role
@@ -24,6 +26,8 @@ state([
 ]);
 
 mount(function () {
+    abort_unless(Auth::check() && Auth::user()->is_platform_admin, 403);
+
     $this->roles = Role::query()
         ->where('guard_name', 'web')
         ->orderBy('name')
@@ -50,6 +54,8 @@ $refreshRoles = function () {
 };
 
 $createRole = function () {
+    abort_unless((bool) Auth::user()?->is_platform_admin, 403);
+
     $name = trim((string) $this->new_role);
     if ($name === '') {
         throw ValidationException::withMessages(['new_role' => 'Role name is required.']);
@@ -94,6 +100,8 @@ $togglePermission = function (string $name) {
 };
 
 $saveRole = function () {
+    abort_unless((bool) Auth::user()?->is_platform_admin, 403);
+
     if (!$this->selected_role_id) {
         return;
     }
@@ -120,6 +128,8 @@ $saveRole = function () {
 };
 
 $deleteRole = function () {
+    abort_unless((bool) Auth::user()?->is_platform_admin, 403);
+
     if (!$this->selected_role_id) return;
 
     $role = Role::query()->where('guard_name', 'web')->findOrFail((int) $this->selected_role_id);

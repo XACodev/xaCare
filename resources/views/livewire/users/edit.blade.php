@@ -30,14 +30,14 @@ state([
 
 mount(function (string|int $user) {
     $me = Auth::user();
-    abort_unless($me && ($me->is_super_admin || $me->role === 'admin'), 403);
+    abort_unless($me && ($me->is_platform_admin || $me->role === 'admin'), 403);
 
     // TenantScope ya restringe esta consulta al hospital del admin logueado: un admin de
     // hospital que intente editar un usuario ajeno recibe 404, nunca los datos de otro
     // tenant. Las cuentas super admin nunca se editan desde aquí (se gestionan desde
     // Configuración), sin importar quién lo intente.
     $u = User::withTrashed()->findOrFail($user);
-    abort_if($u->is_super_admin, 404);
+    abort_if($u->is_platform_admin, 404);
 
     // Solo los roles habilitados para el hospital de este usuario (los "core" siempre,
     // más los que el super admin haya habilitado específicamente para ese hospital), MÁS
@@ -91,7 +91,7 @@ rules(function () {
 
 $save = function () {
     $me = Auth::user();
-    abort_unless($me && ($me->is_super_admin || $me->role === 'admin'), 403);
+    abort_unless($me && ($me->is_platform_admin || $me->role === 'admin'), 403);
 
     $data = $this->validate();
 
@@ -132,7 +132,7 @@ $save = function () {
 
 $toggleDelete = function () {
     $me = Auth::user();
-    abort_unless($me && ($me->is_super_admin || $me->role === 'admin'), 403);
+    abort_unless($me && ($me->is_platform_admin || $me->role === 'admin'), 403);
 
     if ($me->id === $this->user->id) {
         abort(403, 'No puedes desactivar tu propio usuario.');
@@ -151,7 +151,7 @@ $toggleDelete = function () {
 
 <div class="max-w-xl mx-auto p-4 space-y-6">
     <flux:button
-        href="{{ Auth::user()->is_super_admin ? ($hospital_id ? route('hospitals.edit', $hospital_id) : route('hospitals.index')) : route('users.index') }}"
+        href="{{ Auth::user()->is_platform_admin ? ($hospital_id ? route('platform.hospitals.edit', $hospital_id) : route('platform.hospitals.index')) : route('users.index') }}"
         variant="primary" size="sm" icon="arrow-left">
         {{ __('Back') }}
     </flux:button>

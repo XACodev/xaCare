@@ -46,7 +46,7 @@ class CreateSA extends Command
             'password' => bcrypt($password),
             'role' => $role,
             'phone' => env('SA_PHONE'),
-            'is_super_admin' => env('SA_SA'),
+            'is_platform_admin' => env('SA_SA'),
             'use_pay_scheme' => false,
         ]);
 

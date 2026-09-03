@@ -6,7 +6,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
-use function Livewire\Volt\{state, mount, rules};
+use function Livewire\Volt\{state, mount, rules, layout};
+
+layout('components.layouts.platform');
 
 state([
     'name' => '',
@@ -15,7 +17,7 @@ state([
 ]);
 
 mount(function () {
-    abort_unless(Auth::check() && Auth::user()->is_super_admin, 403);
+    abort_unless(Auth::check() && Auth::user()->is_platform_admin, 403);
 });
 
 rules([
@@ -24,7 +26,7 @@ rules([
 ]);
 
 $save = function () {
-    abort_unless((bool) Auth::user()->is_super_admin, 403);
+    abort_unless((bool) Auth::user()->is_platform_admin, 403);
 
     $data = $this->validate();
 
@@ -57,7 +59,7 @@ $save = function () {
             <flux:heading size="xl">{{ __('New Hospital') }}</flux:heading>
             <flux:subheading>{{ __('Solo Administrador de plataforma') }}</flux:subheading>
         </div>
-        <flux:link href="{{ route('hospitals.index') }}" class="text-sm">{{ __('Back') }}</flux:link>
+        <flux:link href="{{ route('platform.hospitals.index') }}" class="text-sm">{{ __('Back') }}</flux:link>
     </div>
 
     @if($success_message)

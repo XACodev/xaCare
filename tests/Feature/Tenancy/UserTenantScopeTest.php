@@ -18,7 +18,7 @@ test('users are scoped to the authenticated user hospital', function () {
 
 test('super admin never appears in a hospital-scoped user listing', function () {
     $hospital = Hospital::factory()->create();
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     User::factory()->create(['hospital_id' => $hospital->id]);
 
     $admin = User::factory()->create(['hospital_id' => $hospital->id]);

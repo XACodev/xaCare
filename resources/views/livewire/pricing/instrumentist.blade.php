@@ -33,7 +33,7 @@ $instrumentists = computed(function () {
 
 $toggle = function (int $id) {
     abort_unless((bool) Auth::user()->can('pricing.manage'), 403);
-    abort_if((bool) Auth::user()->is_super_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
+    abort_if((bool) Auth::user()->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
 
     $u = User::findOrFail($id);
 

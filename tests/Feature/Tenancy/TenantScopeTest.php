@@ -36,7 +36,7 @@ test('super admin without hospital sees all tenants', function () {
     Patient::factory()->create(['hospital_id' => $hospitalA->id]);
     Patient::factory()->create(['hospital_id' => $hospitalB->id]);
 
-    $sa = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $sa = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $this->actingAs($sa);
 
     expect(Patient::count())->toBe(2);

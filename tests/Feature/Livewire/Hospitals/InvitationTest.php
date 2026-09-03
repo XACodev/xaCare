@@ -14,12 +14,12 @@ beforeEach(function () {
 });
 
 test('a super admin can generate an invitation for a hospital', function () {
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $hospital = Hospital::factory()->create();
 
     $this->actingAs($superAdmin);
 
-    Volt::test('hospitals.edit', ['hospital' => $hospital->id])
+    Volt::test('platform.hospitals.edit', ['hospital' => $hospital->id])
         ->set('invitation_note', 'Dr. Juan Pérez, Hospital San Rafael')
         ->call('generateInvitation')
         ->assertHasNoErrors()
@@ -35,13 +35,13 @@ test('a super admin can generate an invitation for a hospital', function () {
 });
 
 test('a super admin can revoke a pending invitation', function () {
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $hospital = Hospital::factory()->create();
     $invitation = HospitalInvitation::factory()->create(['hospital_id' => $hospital->id]);
 
     $this->actingAs($superAdmin);
 
-    Volt::test('hospitals.edit', ['hospital' => $hospital->id])
+    Volt::test('platform.hospitals.edit', ['hospital' => $hospital->id])
         ->call('revokeInvitation', $invitation->id)
         ->assertHasNoErrors();
 
@@ -50,11 +50,11 @@ test('a super admin can revoke a pending invitation', function () {
 
 test('a non super admin cannot generate invitations', function () {
     $hospital = Hospital::factory()->create();
-    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'is_super_admin' => false]);
+    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'is_platform_admin' => false]);
 
     $this->actingAs($admin);
 
-    $this->get(route('hospitals.edit', $hospital->id))->assertForbidden();
+    $this->get(route('platform.hospitals.edit', $hospital->id))->assertForbidden();
 });
 
 test('accepting a valid invitation creates an admin user for the correct hospital and logs them in', function () {
@@ -75,7 +75,7 @@ test('accepting a valid invitation creates an admin user for the correct hospita
 
     expect($user)->not->toBeNull()
         ->and($user->hospital_id)->toBe($hospital->id)
-        ->and($user->is_super_admin)->toBeFalse()
+        ->and($user->is_platform_admin)->toBeFalse()
         ->and($user->hasRole('admin'))->toBeTrue();
 
     $invitation->refresh();

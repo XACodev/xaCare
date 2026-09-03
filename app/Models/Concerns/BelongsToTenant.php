@@ -20,22 +20,22 @@ trait BelongsToTenant
         });
 
         static::saving(function ($model) {
-            static::abortIfSuperAdminWriteBlocked();
+            static::abortIfPlatformAdminWriteBlocked();
         });
 
         static::deleting(function ($model) {
-            static::abortIfSuperAdminWriteBlocked();
+            static::abortIfPlatformAdminWriteBlocked();
         });
     }
 
-    protected static function abortIfSuperAdminWriteBlocked(): void
+    protected static function abortIfPlatformAdminWriteBlocked(): void
     {
-        if (static::allowsSuperAdminWrites()) {
+        if (static::allowsPlatformAdminWrites()) {
             return;
         }
 
-        if (Auth::hasUser() && Auth::user()?->is_super_admin) {
-            abort(403, 'Super admin es de solo lectura sobre datos operativos de hospitales.');
+        if (Auth::hasUser() && Auth::user()?->is_platform_admin) {
+            abort(403, 'Administrador de plataforma es de solo lectura sobre datos operativos de hospitales.');
         }
     }
 
@@ -43,7 +43,7 @@ trait BelongsToTenant
      * Los modelos que el super admin sí necesita poder escribir (ej. User, para gestión de
      * administradores de hospital) deben sobreescribir esto a `true`.
      */
-    public static function allowsSuperAdminWrites(): bool
+    public static function allowsPlatformAdminWrites(): bool
     {
         return false;
     }

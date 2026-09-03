@@ -12,7 +12,7 @@ class EnsureHospitalSubscribed
     {
         $user = $request->user();
 
-        if (! $user || $user->is_super_admin || ! $user->hospital_id) {
+        if (! $user || $user->is_platform_admin || ! $user->hospital_id) {
             return $next($request);
         }
 

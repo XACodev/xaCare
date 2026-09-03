@@ -60,7 +60,7 @@ class BackfillPatients extends Command
         // invoca con --hospital (corrida legacy de un único hospital "default"); si se
         // iteran todos, asignar huérfanos en cada vuelta cruzaría o se los quedaría el primero.
         if ($assignOrphanRows) {
-            User::whereNull('hospital_id')->where('is_super_admin', false)->update(['hospital_id' => $hospital->id]);
+            User::whereNull('hospital_id')->where('is_platform_admin', false)->update(['hospital_id' => $hospital->id]);
             SurgicalCase::withoutGlobalScopes()
                 ->whereNull('hospital_id')
                 ->update(['hospital_id' => $hospital->id]);

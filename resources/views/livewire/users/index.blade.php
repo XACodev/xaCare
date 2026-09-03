@@ -19,7 +19,7 @@ mount(function () {
     // hospital (Hospitales > editar > Staff), no desde una lista global — evita mezclar
     // el personal de todos los hospitales en una sola tabla.
     $u = Auth::user();
-    abort_unless($u && ! $u->is_super_admin && $u->role === 'admin', 403);
+    abort_unless($u && ! $u->is_platform_admin && $u->role === 'admin', 403);
     $this->rolesAvailable = Role::whereIn('name', $u->hospital?->visibleRoleNames() ?? Hospital::CORE_ROLES)
         ->orderBy('name')
         ->pluck('name', 'id')
@@ -29,7 +29,7 @@ mount(function () {
 $users = computed(function () {
     // TenantScope filtra automaticamente a "solo mi hospital". Nunca incluye cuentas
     // super admin (hospital_id null no coincide con el filtro).
-    $query = User::query()->where('is_super_admin', false)->orderBy('name');
+    $query = User::query()->where('is_platform_admin', false)->orderBy('name');
 
     if ($this->show_deleted) {
         $query->onlyTrashed();
@@ -53,7 +53,7 @@ $users = computed(function () {
 
 $deleteUser = function (int $id) {
     $me = Auth::user();
-    abort_unless(! $me->is_super_admin && $me->role === 'admin', 403);
+    abort_unless(! $me->is_platform_admin && $me->role === 'admin', 403);
 
     if ($me->id === $id) {
         abort(403, 'No puedes eliminar tu propio usuario.');
@@ -62,16 +62,16 @@ $deleteUser = function (int $id) {
     // TenantScope ya limita esta consulta al hospital del admin logueado — no puede
     // alcanzar un usuario ajeno por id.
     $u = User::findOrFail($id);
-    abort_if($u->is_super_admin, 404);
+    abort_if($u->is_platform_admin, 404);
     $u->delete();
 };
 
 $restoreUser = function (int $id) {
     $me = Auth::user();
-    abort_unless(! $me->is_super_admin && $me->role === 'admin', 403);
+    abort_unless(! $me->is_platform_admin && $me->role === 'admin', 403);
 
     $u = User::onlyTrashed()->findOrFail($id);
-    abort_if($u->is_super_admin, 404);
+    abort_if($u->is_platform_admin, 404);
     $u->restore();
 };
 

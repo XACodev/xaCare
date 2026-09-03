@@ -31,7 +31,7 @@ test('forHospital resolves settings for a specific hospital regardless of the vi
     $hospitalA = Hospital::factory()->create();
     $hospitalB = Hospital::factory()->create();
 
-    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_super_admin' => true]);
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $this->actingAs($superAdmin);
 
     $settingsA = OrganizationSetting::forHospital($hospitalA->id);

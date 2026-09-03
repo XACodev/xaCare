@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
-use function Livewire\Volt\{state, mount, rules, computed};
+use function Livewire\Volt\{state, mount, rules, computed, layout};
+
+layout('components.layouts.platform');
 
 state([
     'hospital' => null,
@@ -29,7 +31,7 @@ state([
 ]);
 
 mount(function (string|int $hospital) {
-    abort_unless(Auth::check() && Auth::user()->is_super_admin, 403);
+    abort_unless(Auth::check() && Auth::user()->is_platform_admin, 403);
 
     $h = Hospital::findOrFail($hospital);
 
@@ -50,7 +52,7 @@ mount(function (string|int $hospital) {
 $optionalRoles = computed(fn () => Role::whereNotIn('name', Hospital::CORE_ROLES)->orderBy('name')->pluck('name'));
 
 $toggleRole = function (string $roleName) {
-    abort_unless((bool) Auth::user()->is_super_admin, 403);
+    abort_unless((bool) Auth::user()->is_platform_admin, 403);
 
     $roles = $this->enabled_roles;
 
@@ -73,7 +75,7 @@ rules([
 ]);
 
 $save = function () {
-    abort_unless((bool) Auth::user()->is_super_admin, 403);
+    abort_unless((bool) Auth::user()->is_platform_admin, 403);
 
     $data = $this->validate();
 
@@ -102,7 +104,7 @@ $loadInvitations = function () {
 };
 
 $generateInvitation = function () {
-    abort_unless((bool) Auth::user()->is_super_admin, 403);
+    abort_unless((bool) Auth::user()->is_platform_admin, 403);
 
     [$invitation, $plainTextToken] = HospitalInvitation::generateFor(
         hospitalId: $this->hospital->id,
@@ -117,7 +119,7 @@ $generateInvitation = function () {
 };
 
 $revokeInvitation = function (int $invitationId) {
-    abort_unless((bool) Auth::user()->is_super_admin, 403);
+    abort_unless((bool) Auth::user()->is_platform_admin, 403);
 
     HospitalInvitation::withoutGlobalScopes()
         ->where('hospital_id', $this->hospital->id)
@@ -132,7 +134,7 @@ $revokeInvitation = function (int $invitationId) {
 $staff = computed(function () {
     $query = User::withoutGlobalScopes()
         ->where('hospital_id', $this->hospital->id)
-        ->where('is_super_admin', false)
+        ->where('is_platform_admin', false)
         ->orderBy('name');
 
     if ($this->staff_show_deleted) {
@@ -152,14 +154,14 @@ $staff = computed(function () {
 });
 
 $deleteStaff = function (int $id) {
-    abort_unless((bool) Auth::user()->is_super_admin, 403);
+    abort_unless((bool) Auth::user()->is_platform_admin, 403);
 
     $u = User::withoutGlobalScopes()->where('hospital_id', $this->hospital->id)->findOrFail($id);
     $u->delete();
 };
 
 $restoreStaff = function (int $id) {
-    abort_unless((bool) Auth::user()->is_super_admin, 403);
+    abort_unless((bool) Auth::user()->is_platform_admin, 403);
 
     $u = User::withoutGlobalScopes()->onlyTrashed()->where('hospital_id', $this->hospital->id)->findOrFail($id);
     $u->restore();
@@ -173,7 +175,7 @@ $restoreStaff = function (int $id) {
             <flux:heading size="xl">{{ __('Edit Hospital') }}</flux:heading>
             <flux:subheading>{{ __('Solo Administrador de plataforma') }}</flux:subheading>
         </div>
-        <flux:link href="{{ route('hospitals.index') }}" class="text-sm">{{ __('Back') }}</flux:link>
+        <flux:link href="{{ route('platform.hospitals.index') }}" class="text-sm">{{ __('Back') }}</flux:link>
     </div>
 
     @if($success_message)

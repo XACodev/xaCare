@@ -18,6 +18,7 @@
 - Do not merge `develop` → `main` — this plan targets `develop` only.
 - Every task must leave the full Pest suite green before its commit, except where a task's own description explicitly says otherwise (schema-only steps verified by other means).
 - Local dev: PHP via Herd (`php`, `composer` on PATH), site at `https://xacare.test`, DB is SQLite (`database/database.sqlite`).
+- Livewire's framework default full-page layout is `components.layouts.app` (the hospital layout) — any Volt component meant to render inside the new platform layout MUST explicitly declare it: class-based components override `public function layout(): mixed { return view('components.layouts.platform', [...]); }`; functional components call the `layout('components.layouts.platform')` helper (imported via `use function Livewire\Volt\{..., layout};`). Never rely on the framework default for a `platform.*` component.
 
 ---
 
@@ -179,7 +180,7 @@ This is one atomic rename from the test suite's point of view (a column that no 
 - Modify (production code): `app/Console/Commands/BackfillPatients.php`, `app/Console/Commands/CreateSA.php`, `app/Http/Middleware/AdminAuth.php`, `app/Http/Middleware/EnsureHospitalFeature.php`, `app/Http/Middleware/EnsureHospitalSubscribed.php`, `app/Models/Concerns/BelongsToTenant.php`, `app/Models/HospitalInvitation.php`, `app/Models/User.php`, `app/Providers/AppServiceProvider.php`, `database/seeders/QxLogInitialAdminsSeeder.php`, `database/seeders/QxLogTestSeeder.php`, `resources/views/livewire/admissions/create.blade.php`, `resources/views/livewire/hospital-invitations/accept.blade.php`, `resources/views/livewire/hospitals/create.blade.php`, `resources/views/livewire/hospitals/edit.blade.php`, `resources/views/livewire/hospitals/index.blade.php`, `resources/views/livewire/patients/create.blade.php`, `resources/views/livewire/patients/index.blade.php`, `resources/views/livewire/payouts/create.blade.php`, `resources/views/livewire/pricing/instrumentist.blade.php`, `resources/views/livewire/procedures/create.blade.php`, `resources/views/livewire/procedures/index.blade.php`, `resources/views/livewire/users/create.blade.php`, `resources/views/livewire/users/edit.blade.php`, `resources/views/livewire/users/index.blade.php`
 - Modify (tests, plain rename in place): `tests/Feature/Billing/InsuranceGateTest.php`, `tests/Feature/Http/AdminAuthMiddlewareTest.php`, `tests/Feature/Livewire/Hospitals/BillingTest.php`, `tests/Feature/Livewire/Hospitals/CreateTest.php`, `tests/Feature/Livewire/Hospitals/IndexTest.php`, `tests/Feature/Livewire/Hospitals/InvitationTest.php`, `tests/Feature/Livewire/Hospitals/RoleVisibilityTest.php`, `tests/Feature/Livewire/Hospitals/StaffTest.php`, `tests/Feature/Livewire/Patients/IndexTest.php`, `tests/Feature/Livewire/Procedures/IndexTest.php`, `tests/Feature/Livewire/Users/CreateTest.php`, `tests/Feature/Livewire/Users/EditTest.php`, `tests/Feature/Tenancy/OrganizationSettingTenantTest.php`, `tests/Feature/Tenancy/TenantScopeTest.php`, `tests/Feature/Tenancy/UserTenantScopeTest.php`
 - Rename (git mv + content rename): `tests/Feature/Routes/SuperAdminReadOnlyTest.php` → `tests/Feature/Routes/PlatformAdminReadOnlyTest.php`; `tests/Feature/Tenancy/SuperAdminReadOnlyFase1Test.php` → `tests/Feature/Tenancy/PlatformAdminReadOnlyFase1Test.php`
-- Explicitly NOT touched: `database/migrations/2026_01_07_165455_add_qxlog_fields_to_users_table.php` (historical migration — it correctly says `is_super_admin` because that's what it added at the time; never edit an already-applied migration), `resources/views/components/layouts/app/sidebar.blade.php` and `resources/views/components/layouts/app/header.blade.php` (handled in Task 6 — the platform-admin branches in these files get *removed*, not renamed)
+- Explicitly NOT touched: `database/migrations/2026_01_07_165455_add_qxlog_fields_to_users_table.php` (historical migration — it correctly says `is_super_admin` because that's what it added at the time; never edit an already-applied migration), `resources/views/components/layouts/app/sidebar.blade.php` and `resources/views/components/layouts/app/header.blade.php` (handled in Task 5 — the platform-admin branch in the sidebar gets *removed*, not renamed, and the dead header file gets deleted)
 
 **Interfaces:**
 - Produces: `is_platform_admin` used everywhere in place of `is_super_admin`; `User::allowsPlatformAdminWrites()` (was `allowsSuperAdminWrites()`); `BelongsToTenant::abortIfPlatformAdminWriteBlocked()` (was `abortIfSuperAdminWriteBlocked()`); test helpers `makePlatformAdmin()` (was `makeSuperAdmin()`) and `makeFase1PlatformAdmin()` (was `makeFase1SuperAdmin()`).
@@ -301,7 +302,7 @@ Mirrors `App\Models\HospitalInvitation` but is not tenant-scoped (no `hospital_i
 - Test: `tests/Unit/Models/PlatformAdminInvitationTest.php`
 
 **Interfaces:**
-- Produces: `PlatformAdminInvitation::generateFor(int $invitedBy, ?string $note = null, int $expiresInDays = 7): array{0: PlatformAdminInvitation, 1: string}`, `PlatformAdminInvitation::findValidByPlainTextToken(string $plainTextToken): ?self`, `->status(): string` (`'pending'|'accepted'|'expired'`), `->isExpired(): bool`, `->isAccepted(): bool`, `->isPending(): bool`. Task 9 (the invite/accept UI) consumes exactly these.
+- Produces: `PlatformAdminInvitation::generateFor(int $invitedBy, ?string $note = null, int $expiresInDays = 7): array{0: PlatformAdminInvitation, 1: string}`, `PlatformAdminInvitation::findValidByPlainTextToken(string $plainTextToken): ?self`, `->status(): string` (`'pending'|'accepted'|'expired'`), `->isExpired(): bool`, `->isAccepted(): bool`, `->isPending(): bool`. Task 8 (the invite/accept UI) consumes exactly these.
 
 - [ ] **Step 1: Write the failing model tests**
 
@@ -557,7 +558,9 @@ git commit -m "feat: add PlatformAdminInvitation model for platform admin onboar
 
 ---
 
-### Task 5: Move Hospitals/Roles/Permissions under `platform/*` and switch to `/platform` routes
+### Task 5: Platform layout, sidebar, and moving Hospitals/Roles/Permissions under `platform/*`
+
+This task merges what were originally planned as two separate tasks ("move hospitals/roles/permissions" and "new platform layout/sidebar"). They cannot be split: the platform sidebar's navigation links call `route('platform.hospitals.index')`, `route('platform.activity.index')`, `route('platform.admins.index')`, etc. directly in `:href` attributes, and Blade's `route()` helper throws `RouteNotFoundException` at render time for any name that doesn't exist yet — so the sidebar cannot render (and no test that renders it can pass) until every route it links to is registered. This task registers all seven `platform.*` routes at once: `dashboard`, `hospitals.index`, `hospitals.create`, `hospitals.edit`, `roles.index`, `permissions.index`, `activity.index`, `admins.index`. `activity.index` and `admins.index` get minimal placeholder components here (mirroring the dashboard-placeholder pattern) — Task 7 and Task 8 replace their bodies with real functionality without touching the route.
 
 **Files:**
 - Move: `resources/views/livewire/hospitals/index.blade.php` → `resources/views/livewire/platform/hospitals/index.blade.php`
@@ -565,142 +568,22 @@ git commit -m "feat: add PlatformAdminInvitation model for platform admin onboar
 - Move: `resources/views/livewire/hospitals/edit.blade.php` → `resources/views/livewire/platform/hospitals/edit.blade.php`
 - Move: `resources/views/livewire/access/roles.blade.php` → `resources/views/livewire/platform/roles/index.blade.php`
 - Move: `resources/views/livewire/access/permissions.blade.php` → `resources/views/livewire/platform/permissions/index.blade.php`
+- Create: `resources/views/components/layouts/platform.blade.php`
+- Create: `resources/views/components/layouts/platform/sidebar.blade.php`
+- Create: `resources/views/livewire/platform/dashboard.blade.php` (placeholder shell — full metrics come in Task 6)
+- Create: `resources/views/livewire/platform/activity/index.blade.php` (placeholder shell — full feed comes in Task 7)
+- Create: `resources/views/livewire/platform/admins/index.blade.php` (placeholder shell — full invite/list/revoke UI comes in Task 8)
+- Modify: `resources/views/components/layouts/app/sidebar.blade.php` (remove the platform-admin branch)
+- Delete: `resources/views/components/layouts/app/header.blade.php` (dead code — not referenced by any layout call; verified via repo-wide grep before this plan was written)
+- Modify: `resources/views/livewire/dashboard.blade.php` (redirect platform admins to `platform.dashboard`)
 - Modify: `routes/web.php`
 - Modify: `resources/views/livewire/users/create.blade.php:119`
 - Modify: `resources/views/livewire/users/edit.blade.php:154`
 - Modify (route-name-only changes, no other content): `tests/Feature/Livewire/Hospitals/IndexTest.php`, `tests/Feature/Livewire/Hospitals/CreateTest.php`, `tests/Feature/Livewire/Hospitals/InvitationTest.php`, `tests/Feature/Livewire/Hospitals/RoleVisibilityTest.php`, `tests/Feature/Livewire/Hospitals/StaffTest.php`, `tests/Feature/Livewire/Hospitals/BillingTest.php`
-
-**Interfaces:**
-- Produces: named routes `platform.hospitals.index`, `platform.hospitals.create`, `platform.hospitals.edit`, `platform.roles.index`, `platform.permissions.index`, all under URL prefix `/platform` and middleware `['auth', 'platform-admin']`.
-
-- [ ] **Step 1: Move the Volt view files**
-
-```bash
-mkdir -p resources/views/livewire/platform/hospitals resources/views/livewire/platform/roles resources/views/livewire/platform/permissions
-git mv resources/views/livewire/hospitals/index.blade.php resources/views/livewire/platform/hospitals/index.blade.php
-git mv resources/views/livewire/hospitals/create.blade.php resources/views/livewire/platform/hospitals/create.blade.php
-git mv resources/views/livewire/hospitals/edit.blade.php resources/views/livewire/platform/hospitals/edit.blade.php
-git mv resources/views/livewire/access/roles.blade.php resources/views/livewire/platform/roles/index.blade.php
-git mv resources/views/livewire/access/permissions.blade.php resources/views/livewire/platform/permissions/index.blade.php
-rmdir resources/views/livewire/hospitals resources/views/livewire/access 2>/dev/null || true
-```
-
-- [ ] **Step 2: Update the moved files' internal `route()` calls**
-
-In `resources/views/livewire/platform/hospitals/index.blade.php`, change `route('hospitals.create')` → `route('platform.hospitals.create')` and `route('hospitals.edit', $hospital->id)` → `route('platform.hospitals.edit', $hospital->id)`.
-
-In `resources/views/livewire/platform/hospitals/create.blade.php`, change `route('hospitals.index')` → `route('platform.hospitals.index')`.
-
-In `resources/views/livewire/platform/hospitals/edit.blade.php`, change `route('hospitals.index')` → `route('platform.hospitals.index')`.
-
-- [ ] **Step 3: Update `routes/web.php`**
-
-Replace:
-
-```php
-Route::middleware(['auth', 'platform-admin'])->group(function () {
-    Volt::route('hospitals', 'hospitals.index')->name('hospitals.index');
-    Volt::route('hospitals/create', 'hospitals.create')->name('hospitals.create');
-    Volt::route('hospitals/{hospital}/edit', 'hospitals.edit')->name('hospitals.edit');
-
-    Volt::route('roles', 'access.roles')->name('roles.index');
-    Volt::route('permissions', 'access.permissions')->name('permissions.index');
-});
-```
-
-with:
-
-```php
-Route::prefix('platform')->name('platform.')->middleware(['auth', 'platform-admin'])->group(function () {
-    Volt::route('hospitals', 'platform.hospitals.index')->name('hospitals.index');
-    Volt::route('hospitals/create', 'platform.hospitals.create')->name('hospitals.create');
-    Volt::route('hospitals/{hospital}/edit', 'platform.hospitals.edit')->name('hospitals.edit');
-
-    Volt::route('roles', 'platform.roles.index')->name('roles.index');
-    Volt::route('permissions', 'platform.permissions.index')->name('permissions.index');
-});
-```
-
-- [ ] **Step 4: Update the two files outside `platform/*` that link into it**
-
-In `resources/views/livewire/users/create.blade.php:119`, change:
-
-```php
-href="{{ Auth::user()->is_platform_admin ? route('hospitals.edit', $hospital_id) : route('users.index') }}"
-```
-
-to:
-
-```php
-href="{{ Auth::user()->is_platform_admin ? route('platform.hospitals.edit', $hospital_id) : route('users.index') }}"
-```
-
-In `resources/views/livewire/users/edit.blade.php:154`, change:
-
-```php
-href="{{ Auth::user()->is_platform_admin ? ($hospital_id ? route('hospitals.edit', $hospital_id) : route('hospitals.index')) : route('users.index') }}"
-```
-
-to:
-
-```php
-href="{{ Auth::user()->is_platform_admin ? ($hospital_id ? route('platform.hospitals.edit', $hospital_id) : route('platform.hospitals.index')) : route('users.index') }}"
-```
-
-- [ ] **Step 5: Update the affected tests' route/component names**
-
-```bash
-sed -i '' \
-  -e "s/Volt::test('hospitals\.index'/Volt::test('platform.hospitals.index'/g" \
-  -e "s/route('hospitals\.index'/route('platform.hospitals.index'/g" \
-  tests/Feature/Livewire/Hospitals/IndexTest.php
-
-sed -i '' \
-  -e "s/Volt::test('hospitals\.create'/Volt::test('platform.hospitals.create'/g" \
-  -e "s/route('hospitals\.create'/route('platform.hospitals.create'/g" \
-  tests/Feature/Livewire/Hospitals/BillingTest.php tests/Feature/Livewire/Hospitals/CreateTest.php
-
-sed -i '' \
-  -e "s/Volt::test('hospitals\.edit'/Volt::test('platform.hospitals.edit'/g" \
-  -e "s/route('hospitals\.edit'/route('platform.hospitals.edit'/g" \
-  tests/Feature/Livewire/Hospitals/InvitationTest.php tests/Feature/Livewire/Hospitals/RoleVisibilityTest.php tests/Feature/Livewire/Hospitals/StaffTest.php tests/Feature/Livewire/Hospitals/BillingTest.php
-```
-
-Note: `tests/Feature/Livewire/Hospitals/InvitationTest.php` and `RoleVisibilityTest.php` also use `Volt::test('hospital-invitations.accept', ...)` and `Volt::test('users.create'/'users.edit', ...)` — those are unrelated components and must NOT be touched by this rename (the `sed` patterns above are scoped tightly enough not to match them, but double-check the diff before committing).
-
-- [ ] **Step 6: Run the full suite**
-
-Run: `php artisan test`
-Expected: all tests pass.
-
-- [ ] **Step 7: Manually verify in the browser**
-
-Log in as `thealejandro` (platform admin) on `https://xacare.test`, visit `/platform/hospitals`, `/platform/hospitals/create`, and edit a hospital via `/platform/hospitals/{id}/edit` — confirm each page loads without error and its internal links (Back, New Hospital, edit pencil) point at the new URLs. This step exists because moving Volt component directories can silently break a route that a text-only grep wouldn't catch.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add -A
-git commit -m "refactor: move hospitals/roles/permissions under platform/* routes"
-```
-
----
-
-### Task 6: New platform layout, sidebar, and login redirect
-
-**Files:**
-- Create: `resources/views/components/layouts/platform.blade.php`
-- Create: `resources/views/components/layouts/platform/sidebar.blade.php`
-- Modify: `resources/views/components/layouts/app/sidebar.blade.php` (remove the platform-admin branch, lines currently ~99-114)
-- Delete: `resources/views/components/layouts/app/header.blade.php` (dead code — not referenced by any layout call; verified via repo-wide grep before this plan was written)
-- Modify: `resources/views/livewire/dashboard.blade.php` (redirect platform admins to `platform.dashboard`)
-- Create: `resources/views/livewire/platform/dashboard.blade.php` (placeholder shell — full metrics come in Task 7)
-- Modify: `routes/web.php` (register `platform.dashboard` route)
 - Test: `tests/Feature/Routes/PlatformRoutesAccessTest.php`
 
 **Interfaces:**
-- Consumes: `PlatformAdminInvitation` is not used here.
-- Produces: route `platform.dashboard` (URL `/platform`), layout `components.layouts.platform`. Task 7 replaces the placeholder body of `platform/dashboard.blade.php` with real metrics but keeps its `layout()` call and route untouched.
+- Produces: layout `components.layouts.platform`; named routes `platform.dashboard`, `platform.hospitals.index`, `platform.hospitals.create`, `platform.hospitals.edit`, `platform.roles.index`, `platform.permissions.index`, `platform.activity.index`, `platform.admins.index`, all under URL prefix `/platform` and middleware `['auth', 'platform-admin']`. Task 6, 7, and 8 each replace one placeholder component's body in place — none of them touch routing or the layout.
 
 - [ ] **Step 1: Write the failing access-control test**
 
@@ -728,6 +611,8 @@ test('a hospital admin is forbidden from every platform route', function () {
     $this->get(route('platform.hospitals.index'))->assertForbidden();
     $this->get(route('platform.roles.index'))->assertForbidden();
     $this->get(route('platform.permissions.index'))->assertForbidden();
+    $this->get(route('platform.activity.index'))->assertForbidden();
+    $this->get(route('platform.admins.index'))->assertForbidden();
 });
 
 test('a guest is redirected to login for every platform route', function () {
@@ -735,37 +620,50 @@ test('a guest is redirected to login for every platform route', function () {
 });
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [ ] **Step 2: Run the test to verify it fails**
 
 Run: `php artisan test --filter=PlatformRoutesAccessTest`
-Expected: FAIL (`platform.dashboard` route not defined)
+Expected: FAIL (none of the `platform.*` route names exist yet)
 
-- [ ] **Step 3: Register the dashboard route**
+- [ ] **Step 3: Move the Hospitals/Roles/Permissions Volt view files**
 
-In `routes/web.php`, inside the `Route::prefix('platform')->name('platform.')->middleware(['auth', 'platform-admin'])->group(...)` block added in Task 5, add as the first line:
-
-```php
-Volt::route('/', 'platform.dashboard')->name('dashboard');
+```bash
+mkdir -p resources/views/livewire/platform/hospitals resources/views/livewire/platform/roles resources/views/livewire/platform/permissions resources/views/livewire/platform/activity resources/views/livewire/platform/admins
+git mv resources/views/livewire/hospitals/index.blade.php resources/views/livewire/platform/hospitals/index.blade.php
+git mv resources/views/livewire/hospitals/create.blade.php resources/views/livewire/platform/hospitals/create.blade.php
+git mv resources/views/livewire/hospitals/edit.blade.php resources/views/livewire/platform/hospitals/edit.blade.php
+git mv resources/views/livewire/access/roles.blade.php resources/views/livewire/platform/roles/index.blade.php
+git mv resources/views/livewire/access/permissions.blade.php resources/views/livewire/platform/permissions/index.blade.php
+rmdir resources/views/livewire/hospitals resources/views/livewire/access 2>/dev/null || true
 ```
 
-- [ ] **Step 4: Create the placeholder dashboard component**
+- [ ] **Step 4: Add explicit platform-layout declarations and fix internal `route()` calls in the moved files**
 
-```php
-<?php
+Every moved file is a *functional* Volt component (uses the `state()`/`mount()`/... helpers, not a class), so add the `layout` helper to its existing `use function Livewire\Volt\{...};` import line and call `layout('components.layouts.platform');` as the first statement after that import line. Without this, these pages would silently render inside the OLD hospital layout (Livewire's framework default is `components.layouts.app`) instead of the new platform layout — see the Global Constraints note above.
 
-use Livewire\Volt\Component;
+In `resources/views/livewire/platform/hospitals/index.blade.php`:
+- Change `use function Livewire\Volt\{state, mount, computed};` to `use function Livewire\Volt\{state, mount, computed, layout};`
+- Add `layout('components.layouts.platform');` as the first line after that import
+- Change `route('hospitals.create')` → `route('platform.hospitals.create')`
+- Change `route('hospitals.edit', $hospital->id)` → `route('platform.hospitals.edit', $hospital->id)`
 
-new class extends Component {
-    public function layout(): mixed
-    {
-        return view('components.layouts.platform', ['title' => __('Dashboard')]);
-    }
-}; ?>
+In `resources/views/livewire/platform/hospitals/create.blade.php`:
+- Change `use function Livewire\Volt\{state, mount, rules};` to `use function Livewire\Volt\{state, mount, rules, layout};`
+- Add `layout('components.layouts.platform');` as the first line after that import
+- Change `route('hospitals.index')` → `route('platform.hospitals.index')`
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">
-    <flux:heading size="xl">{{ __('Dashboard') }}</flux:heading>
-</div>
-```
+In `resources/views/livewire/platform/hospitals/edit.blade.php`:
+- Change `use function Livewire\Volt\{state, mount, rules, computed};` to `use function Livewire\Volt\{state, mount, rules, computed, layout};`
+- Add `layout('components.layouts.platform');` as the first line after that import
+- Change `route('hospitals.index')` → `route('platform.hospitals.index')`
+
+In `resources/views/livewire/platform/roles/index.blade.php`:
+- Change `use function Livewire\Volt\{state, mount, computed};` to `use function Livewire\Volt\{state, mount, computed, layout};`
+- Add `layout('components.layouts.platform');` as the first line after that import
+
+In `resources/views/livewire/platform/permissions/index.blade.php`:
+- Change `use function Livewire\Volt\{state, mount, computed};` to `use function Livewire\Volt\{state, mount, computed, layout};`
+- Add `layout('components.layouts.platform');` as the first line after that import
 
 - [ ] **Step 5: Create the platform layout**
 
@@ -781,6 +679,8 @@ new class extends Component {
     <x-layouts.platform.sidebar :title="$title ?? null">
         {{ $slot }}
     </x-layouts.platform.sidebar>
+
+    @fluxScripts
 </body>
 
 </html>
@@ -788,7 +688,7 @@ new class extends Component {
 
 - [ ] **Step 6: Create the platform sidebar**
 
-Modeled directly on `resources/views/components/layouts/app/sidebar.blade.php`, but with navigation exclusive to the platform admin (no hospital-operational items at all):
+Modeled on `resources/views/components/layouts/app/sidebar.blade.php`, but with navigation exclusive to the platform admin (no hospital-operational items at all). This file is included by `platform.blade.php` (Step 5), so it should NOT itself contain `<!DOCTYPE html>`/`<body>`/`@fluxScripts` — just the sidebar markup and the slot:
 
 ```php
 <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-indigo-100 dark:border-zinc-800 dark:bg-zinc-700">
@@ -895,16 +795,130 @@ Modeled directly on `resources/views/components/layouts/app/sidebar.blade.php`, 
             </form>
         </flux:menu>
     </flux:dropdown>
-    </flux:sidebar>
+</flux:sidebar>
 
-    {{ $slot }}
-
-    @fluxScripts
+{{ $slot }}
 ```
 
-Note: this file intentionally omits the `<!DOCTYPE html>`/`<body>` wrapper — that lives in `components/layouts/platform.blade.php` (Step 5), matching how `components/layouts/app/sidebar.blade.php` is the full document and `components/layouts/app.blade.php` just calls it directly with `<x-layouts.app.sidebar>`. Follow that exact same nesting: `components/layouts/platform.blade.php` should call `<x-layouts.platform.sidebar>` the same way `components/layouts/app.blade.php` calls `<x-layouts.app.sidebar>` — adjust Step 5 to match that pattern exactly rather than introducing a second nested `<body>`.
+- [ ] **Step 7: Create the three placeholder Volt components**
 
-- [ ] **Step 7: Remove the platform-admin branch from the hospital sidebar**
+`resources/views/livewire/platform/dashboard.blade.php`:
+
+```php
+<?php
+
+use Livewire\Volt\Component;
+
+new class extends Component {
+    public function layout(): mixed
+    {
+        return view('components.layouts.platform', ['title' => __('Dashboard')]);
+    }
+}; ?>
+
+<div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">
+    <flux:heading size="xl">{{ __('Dashboard') }}</flux:heading>
+</div>
+```
+
+`resources/views/livewire/platform/activity/index.blade.php`:
+
+```php
+<?php
+
+use Livewire\Volt\Component;
+
+new class extends Component {
+    public function layout(): mixed
+    {
+        return view('components.layouts.platform', ['title' => __('Actividad')]);
+    }
+}; ?>
+
+<div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">
+    <flux:heading size="xl">{{ __('Actividad') }}</flux:heading>
+</div>
+```
+
+`resources/views/livewire/platform/admins/index.blade.php`:
+
+```php
+<?php
+
+use Livewire\Volt\Component;
+
+new class extends Component {
+    public function layout(): mixed
+    {
+        return view('components.layouts.platform', ['title' => __('Administradores de plataforma')]);
+    }
+}; ?>
+
+<div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">
+    <flux:heading size="xl">{{ __('Administradores de plataforma') }}</flux:heading>
+</div>
+```
+
+- [ ] **Step 8: Replace the old route group in `routes/web.php` with the full `/platform` group**
+
+Replace:
+
+```php
+Route::middleware(['auth', 'platform-admin'])->group(function () {
+    Volt::route('hospitals', 'hospitals.index')->name('hospitals.index');
+    Volt::route('hospitals/create', 'hospitals.create')->name('hospitals.create');
+    Volt::route('hospitals/{hospital}/edit', 'hospitals.edit')->name('hospitals.edit');
+
+    Volt::route('roles', 'access.roles')->name('roles.index');
+    Volt::route('permissions', 'access.permissions')->name('permissions.index');
+});
+```
+
+with:
+
+```php
+Route::prefix('platform')->name('platform.')->middleware(['auth', 'platform-admin'])->group(function () {
+    Volt::route('/', 'platform.dashboard')->name('dashboard');
+
+    Volt::route('hospitals', 'platform.hospitals.index')->name('hospitals.index');
+    Volt::route('hospitals/create', 'platform.hospitals.create')->name('hospitals.create');
+    Volt::route('hospitals/{hospital}/edit', 'platform.hospitals.edit')->name('hospitals.edit');
+
+    Volt::route('roles', 'platform.roles.index')->name('roles.index');
+    Volt::route('permissions', 'platform.permissions.index')->name('permissions.index');
+
+    Volt::route('activity', 'platform.activity.index')->name('activity.index');
+    Volt::route('admins', 'platform.admins.index')->name('admins.index');
+});
+```
+
+- [ ] **Step 9: Update the two files outside `platform/*` that link into it**
+
+In `resources/views/livewire/users/create.blade.php:119`, change:
+
+```php
+href="{{ Auth::user()->is_platform_admin ? route('hospitals.edit', $hospital_id) : route('users.index') }}"
+```
+
+to:
+
+```php
+href="{{ Auth::user()->is_platform_admin ? route('platform.hospitals.edit', $hospital_id) : route('users.index') }}"
+```
+
+In `resources/views/livewire/users/edit.blade.php:154`, change:
+
+```php
+href="{{ Auth::user()->is_platform_admin ? ($hospital_id ? route('hospitals.edit', $hospital_id) : route('hospitals.index')) : route('users.index') }}"
+```
+
+to:
+
+```php
+href="{{ Auth::user()->is_platform_admin ? ($hospital_id ? route('platform.hospitals.edit', $hospital_id) : route('platform.hospitals.index')) : route('users.index') }}"
+```
+
+- [ ] **Step 10: Remove the platform-admin branch from the hospital sidebar**
 
 In `resources/views/components/layouts/app/sidebar.blade.php`, delete the entire block:
 
@@ -930,15 +944,15 @@ In `resources/views/components/layouts/app/sidebar.blade.php`, delete the entire
 
 (the whole `<flux:navlist>...</flux:navlist>` block, since it now has no other content). The hospital sidebar's `<flux:spacer />` that preceded it stays.
 
-- [ ] **Step 8: Delete the dead header layout**
+- [ ] **Step 11: Delete the dead header layout**
 
 ```bash
 git rm resources/views/components/layouts/app/header.blade.php
 ```
 
-- [ ] **Step 9: Redirect platform admins away from the generic dashboard**
+- [ ] **Step 12: Redirect platform admins away from the generic dashboard**
 
-`config/fortify.php` sends every user to `/dashboard` after login (`'home' => '/dashboard'`), and that page has no useful content for a platform admin. Add a redirect at the very top of `resources/views/livewire/dashboard.blade.php`'s Volt class, before the existing `with()` method:
+`config/fortify.php` sends every user to `/dashboard` after login (`'home' => '/dashboard'`), and that page has no useful content for a platform admin. Add a `mount()` method to `resources/views/livewire/dashboard.blade.php`'s Volt class, before the existing `with()` method (the file already imports `Illuminate\Support\Facades\Auth`, no new import needed):
 
 ```php
     public function mount(): void
@@ -949,28 +963,49 @@ git rm resources/views/components/layouts/app/header.blade.php
     }
 ```
 
-- [ ] **Step 10: Run the full suite**
+- [ ] **Step 13: Update the affected Hospitals tests' route/component names**
+
+```bash
+sed -i '' \
+  -e "s/Volt::test('hospitals\.index'/Volt::test('platform.hospitals.index'/g" \
+  -e "s/route('hospitals\.index'/route('platform.hospitals.index'/g" \
+  tests/Feature/Livewire/Hospitals/IndexTest.php
+
+sed -i '' \
+  -e "s/Volt::test('hospitals\.create'/Volt::test('platform.hospitals.create'/g" \
+  -e "s/route('hospitals\.create'/route('platform.hospitals.create'/g" \
+  tests/Feature/Livewire/Hospitals/BillingTest.php tests/Feature/Livewire/Hospitals/CreateTest.php
+
+sed -i '' \
+  -e "s/Volt::test('hospitals\.edit'/Volt::test('platform.hospitals.edit'/g" \
+  -e "s/route('hospitals\.edit'/route('platform.hospitals.edit'/g" \
+  tests/Feature/Livewire/Hospitals/InvitationTest.php tests/Feature/Livewire/Hospitals/RoleVisibilityTest.php tests/Feature/Livewire/Hospitals/StaffTest.php tests/Feature/Livewire/Hospitals/BillingTest.php
+```
+
+Note: `tests/Feature/Livewire/Hospitals/InvitationTest.php` and `RoleVisibilityTest.php` also use `Volt::test('hospital-invitations.accept', ...)` and `Volt::test('users.create'/'users.edit', ...)` — those are unrelated components and must NOT be touched by this rename (the `sed` patterns above are scoped tightly enough not to match them, but double-check the diff before committing).
+
+- [ ] **Step 14: Run the full suite**
 
 Run: `php artisan test`
 Expected: all tests pass, including the new `PlatformRoutesAccessTest`.
 
-- [ ] **Step 11: Manually verify in the browser**
+- [ ] **Step 15: Manually verify in the browser**
 
-Log in as `thealejandro` — confirm you land on `/platform` (not the old empty `/dashboard`), the sidebar shows only Dashboard/Hospitales/Actividad/Administradores/Roles/Permisos (no Ingresos/Payouts/Precios), and every link resolves. Then log in as `hospital` (regular hospital admin) — confirm their sidebar is unchanged and shows no platform-admin items, and that `/platform` returns a 403.
+Log in as `thealejandro` (platform admin) on `https://xacare.test` — confirm you land on `/platform` (not the old empty `/dashboard`), the sidebar shows only Dashboard/Hospitales/Actividad/Administradores/Roles/Permisos (no Ingresos/Payouts/Precios), and every link resolves without error, including `/platform/hospitals`, `/platform/hospitals/create`, and editing a hospital via `/platform/hospitals/{id}/edit` (its internal Back/New Hospital/edit-pencil links should point at the new URLs too). Then log in as `hospital` (regular hospital admin) — confirm their sidebar is unchanged and shows no platform-admin items, and that `/platform` returns a 403.
 
-- [ ] **Step 12: Commit**
+- [ ] **Step 16: Commit**
 
 ```bash
 git add -A
-git commit -m "feat: add dedicated platform layout, sidebar, and login redirect for platform admins"
+git commit -m "feat: add platform layout/sidebar and move hospitals/roles/permissions under platform/*"
 ```
 
 ---
 
-### Task 7: Dashboard metrics
+### Task 6: Dashboard metrics
 
 **Files:**
-- Modify: `resources/views/livewire/platform/dashboard.blade.php`
+- Modify: `resources/views/livewire/platform/dashboard.blade.php` (replaces the Task 5 placeholder body — same route, same file)
 - Test: `tests/Feature/Livewire/Platform/DashboardTest.php`
 
 **Interfaces:**
@@ -986,24 +1021,6 @@ use App\Enums\SubscriptionStatus;
 use App\Models\Hospital;
 use App\Models\User;
 use Livewire\Volt\Volt;
-
-test('dashboard shows hospital counts by subscription status and plan', function () {
-    Hospital::factory()->create(['plan' => 'basic', 'subscription_status' => SubscriptionStatus::Active]);
-    Hospital::factory()->create(['plan' => 'basic', 'subscription_status' => SubscriptionStatus::Trialing]);
-    Hospital::factory()->create(['plan' => 'pro', 'subscription_status' => SubscriptionStatus::Active]);
-    Hospital::factory()->create(['plan' => 'pro', 'subscription_status' => SubscriptionStatus::Canceled]);
-
-    $admin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
-
-    Volt::test('platform.dashboard')
-        ->assertSet('hospitalStats.total', 4)
-        ->assertSet('hospitalStats.active', 2)
-        ->assertSet('hospitalStats.trialing', 1)
-        ->assertSet('hospitalStats.past_due_or_canceled', 1)
-        ->assertSet('hospitalStats.by_plan.basic', 2)
-        ->assertSet('hospitalStats.by_plan.pro', 2);
-})->skip('assertSet against public properties — see Step 3 for the actual property names used')
-;
 
 test('dashboard lists hospitals whose trial ends within 7 days', function () {
     $soon = Hospital::factory()->create([
@@ -1022,16 +1039,6 @@ test('dashboard lists hospitals whose trial ends within 7 days', function () {
         ->assertSee($soon->name);
 });
 
-test('dashboard shows total platform users excluding platform admins themselves', function () {
-    $hospital = Hospital::factory()->create();
-    User::factory()->count(3)->create(['hospital_id' => $hospital->id, 'is_platform_admin' => false]);
-    $admin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
-
-    $this->actingAs($admin)
-        ->get(route('platform.dashboard'))
-        ->assertViewHas('totalPlatformUsers', 3);
-})->skip('assertViewHas does not apply to Volt single-file components — see Step 3, verified instead via Volt::test');
-
 test('dashboard shows recent activity entries', function () {
     $hospital = Hospital::factory()->create();
     $admin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
@@ -1039,17 +1046,44 @@ test('dashboard shows recent activity entries', function () {
 
     activity()->causedBy($causer)->performedOn($hospital)->log('updated');
 
-    Volt::test('platform.dashboard')
+    Volt::actingAs($admin)->test('platform.dashboard')
         ->assertSee('updated');
+});
+
+test('dashboard shows hospital counts by subscription status and plan', function () {
+    Hospital::factory()->create(['plan' => 'basic', 'subscription_status' => SubscriptionStatus::Active]);
+    Hospital::factory()->create(['plan' => 'basic', 'subscription_status' => SubscriptionStatus::Trialing]);
+    Hospital::factory()->create(['plan' => 'pro', 'subscription_status' => SubscriptionStatus::Active]);
+    Hospital::factory()->create(['plan' => 'pro', 'subscription_status' => SubscriptionStatus::Canceled]);
+
+    $admin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
+
+    $component = Volt::actingAs($admin)->test('platform.dashboard');
+
+    expect($component->get('hospitalStats'))->toMatchArray([
+        'total' => 4,
+        'active' => 2,
+        'trialing' => 1,
+        'past_due_or_canceled' => 1,
+    ]);
+    expect($component->get('hospitalStats')['by_plan']->toArray())->toBe(['basic' => 2, 'pro' => 2]);
+});
+
+test('dashboard shows total platform users excluding platform admins themselves', function () {
+    $hospital = Hospital::factory()->create();
+    User::factory()->count(3)->create(['hospital_id' => $hospital->id, 'is_platform_admin' => false]);
+    $admin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
+
+    $component = Volt::actingAs($admin)->test('platform.dashboard');
+
+    expect($component->get('totalPlatformUsers'))->toBe(3);
 });
 ```
 
-The two `->skip(...)` calls above exist to document intent while writing this task; delete both skipped tests in Step 4 below and replace them with the corrected assertions once the real component property names are known (Step 3 defines them as `hospitalStats`, `trialsEndingSoon`, `totalPlatformUsers`, `recentActivity` — use `Volt::test('platform.dashboard')->assertSet(...)` for all of them, not `assertViewHas`, since Volt components expose public properties directly).
-
-- [ ] **Step 2: Run the tests to verify they fail (ignoring the two intentionally-skipped ones)**
+- [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `php artisan test --filter=DashboardTest`
-Expected: FAIL (component has no `hospitalStats`/`trialsEndingSoon`/`totalPlatformUsers`/`recentActivity` properties yet; 2 skipped)
+Expected: FAIL (component has no `hospitalStats`/`trialsEndingSoon`/`totalPlatformUsers`/`recentActivity` properties yet)
 
 - [ ] **Step 3: Implement the dashboard component**
 
@@ -1181,60 +1215,21 @@ new class extends Component {
 </div>
 ```
 
-- [ ] **Step 4: Delete the two placeholder skipped tests and replace with real assertions**
-
-Replace the first skipped test with:
-
-```php
-test('dashboard shows hospital counts by subscription status and plan', function () {
-    Hospital::factory()->create(['plan' => 'basic', 'subscription_status' => SubscriptionStatus::Active]);
-    Hospital::factory()->create(['plan' => 'basic', 'subscription_status' => SubscriptionStatus::Trialing]);
-    Hospital::factory()->create(['plan' => 'pro', 'subscription_status' => SubscriptionStatus::Active]);
-    Hospital::factory()->create(['plan' => 'pro', 'subscription_status' => SubscriptionStatus::Canceled]);
-
-    $admin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
-
-    $component = Volt::actingAs($admin)->test('platform.dashboard');
-
-    expect($component->get('hospitalStats'))->toMatchArray([
-        'total' => 4,
-        'active' => 2,
-        'trialing' => 1,
-        'past_due_or_canceled' => 1,
-    ]);
-    expect($component->get('hospitalStats')['by_plan']->toArray())->toBe(['basic' => 2, 'pro' => 2]);
-});
-```
-
-Replace the second skipped test with:
-
-```php
-test('dashboard shows total platform users excluding platform admins themselves', function () {
-    $hospital = Hospital::factory()->create();
-    User::factory()->count(3)->create(['hospital_id' => $hospital->id, 'is_platform_admin' => false]);
-    $admin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
-
-    $component = Volt::actingAs($admin)->test('platform.dashboard');
-
-    expect($component->get('totalPlatformUsers'))->toBe(3);
-});
-```
-
-- [ ] **Step 5: Run the full dashboard test file**
+- [ ] **Step 4: Run the dashboard test file**
 
 Run: `php artisan test --filter=DashboardTest`
 Expected: PASS (4 tests)
 
-- [ ] **Step 6: Run the full suite**
+- [ ] **Step 5: Run the full suite**
 
 Run: `php artisan test`
 Expected: all tests pass.
 
-- [ ] **Step 7: Manually verify in the browser**
+- [ ] **Step 6: Manually verify in the browser**
 
 Visit `/platform` as `thealejandro` — confirm the four stat cards, the plan breakdown, the trials list, and the activity feed all render with real numbers from the seeded data.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add resources/views/livewire/platform/dashboard.blade.php tests/Feature/Livewire/Platform/DashboardTest.php
@@ -1243,16 +1238,15 @@ git commit -m "feat: add real metrics to the platform admin dashboard"
 
 ---
 
-### Task 8: Activity index page
+### Task 7: Activity index page
 
 **Files:**
-- Create: `resources/views/livewire/platform/activity/index.blade.php`
-- Modify: `routes/web.php` (add `platform.activity.index` route)
+- Modify: `resources/views/livewire/platform/activity/index.blade.php` (replaces the Task 5 placeholder body — same route, same file)
 - Test: `tests/Feature/Livewire/Platform/ActivityIndexTest.php`
 
 **Interfaces:**
-- Consumes: `App\Models\Activity` (same as Task 7).
-- Produces: route `platform.activity.index` (URL `/platform/activity`), already linked from the dashboard's "Ver todo" and the sidebar (Task 6).
+- Consumes: `App\Models\Activity` (same as Task 6).
+- Produces: nothing new — the route `platform.activity.index` and its sidebar/dashboard links already exist from Task 5; this task only replaces the placeholder's body with the real paginated feed.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1274,31 +1268,16 @@ test('activity index lists paginated activity log entries', function () {
         ->assertOk()
         ->assertSee('creó el hospital');
 });
-
-test('a hospital admin cannot see the platform activity page', function () {
-    $hospital = Hospital::factory()->create();
-    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'is_platform_admin' => false, 'role' => 'admin']);
-
-    $this->actingAs($admin)
-        ->get(route('platform.activity.index'))
-        ->assertForbidden();
-});
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+(Access control for this route — hospital admin forbidden, guest redirected — is already covered by `PlatformRoutesAccessTest` from Task 5; this test file only needs to cover the feed's own content.)
+
+- [ ] **Step 2: Run the test to verify it fails**
 
 Run: `php artisan test --filter=ActivityIndexTest`
-Expected: FAIL (`platform.activity.index` route not defined)
+Expected: FAIL (placeholder component has no `activity` data / pagination yet, "creó el hospital" not present in the rendered placeholder)
 
-- [ ] **Step 3: Register the route**
-
-In `routes/web.php`, inside the `platform.` group, add:
-
-```php
-Volt::route('activity', 'platform.activity.index')->name('activity.index');
-```
-
-- [ ] **Step 4: Implement the component**
+- [ ] **Step 3: Implement the component**
 
 ```php
 <?php
@@ -1345,31 +1324,31 @@ new class extends Component {
 </div>
 ```
 
-- [ ] **Step 5: Run the tests**
+- [ ] **Step 4: Run the test**
 
 Run: `php artisan test --filter=ActivityIndexTest`
-Expected: PASS (2 tests)
+Expected: PASS
 
-- [ ] **Step 6: Run the full suite**
+- [ ] **Step 5: Run the full suite**
 
 Run: `php artisan test`
 Expected: all tests pass.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add resources/views/livewire/platform/activity/index.blade.php routes/web.php tests/Feature/Livewire/Platform/ActivityIndexTest.php
-git commit -m "feat: add platform activity index page"
+git add resources/views/livewire/platform/activity/index.blade.php tests/Feature/Livewire/Platform/ActivityIndexTest.php
+git commit -m "feat: replace platform activity placeholder with the real feed"
 ```
 
 ---
 
-### Task 9: Invite/list/revoke platform admins + public acceptance page
+### Task 8: Invite/list/revoke platform admins + public acceptance page
 
 **Files:**
-- Create: `resources/views/livewire/platform/admins/index.blade.php`
+- Modify: `resources/views/livewire/platform/admins/index.blade.php` (replaces the Task 5 placeholder body — same route, same file)
 - Create: `resources/views/livewire/platform/admin-invitations/accept.blade.php`
-- Modify: `routes/web.php` (add `platform.admins.index` inside the group, and the public `platform.admin-invitations.accept` route outside any auth middleware)
+- Modify: `routes/web.php` (add the public `platform.admin-invitations.accept` route outside any auth middleware — `platform.admins.index` itself already exists from Task 5)
 - Test: `tests/Feature/Livewire/Platform/AdminInvitationTest.php`
 
 **Interfaces:**
@@ -1411,14 +1390,6 @@ test('a platform admin can revoke a pending invitation', function () {
         ->assertHasNoErrors();
 
     expect(PlatformAdminInvitation::find($invitation->id))->toBeNull();
-});
-
-test('a non platform admin cannot reach the admins page', function () {
-    $admin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => false, 'role' => 'admin']);
-
-    $this->actingAs($admin)
-        ->get(route('platform.admins.index'))
-        ->assertForbidden();
 });
 
 test('accepting a valid platform admin invitation creates a platform admin and logs them in', function () {
@@ -1465,27 +1436,23 @@ test('a platform admin invitation token that never existed is rejected with the 
 });
 ```
 
+(Access control for `platform.admins.index` — hospital admin forbidden, guest redirected — is already covered by `PlatformRoutesAccessTest` from Task 5.)
+
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `php artisan test --filter=AdminInvitationTest`
-Expected: FAIL (`platform.admins.index` / `platform.admin-invitations.accept` routes and components don't exist yet)
+Expected: FAIL (`platform.admin-invitations.accept` route/component doesn't exist yet, and the `platform.admins.index` placeholder has no `generateInvitation`/`revokeInvitation` actions)
 
-- [ ] **Step 3: Register the routes**
+- [ ] **Step 3: Register the public acceptance route**
 
-In `routes/web.php`, inside the `platform.` group, add:
-
-```php
-Volt::route('admins', 'platform.admins.index')->name('admins.index');
-```
-
-Outside any auth middleware (alongside the existing public `invitaciones/{token}` route near the top of the file), add:
+In `routes/web.php`, outside any auth middleware (alongside the existing public `invitaciones/{token}` route near the top of the file), add:
 
 ```php
 Volt::route('platform-invitaciones/{token}', 'platform.admin-invitations.accept')
     ->name('platform.admin-invitations.accept');
 ```
 
-- [ ] **Step 4: Implement `platform.admins.index`**
+- [ ] **Step 4: Replace the `platform.admins.index` placeholder with the real component**
 
 ```php
 <?php
@@ -1494,7 +1461,9 @@ use App\Models\PlatformAdminInvitation;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
-use function Livewire\Volt\{state, computed};
+use function Livewire\Volt\{state, computed, layout};
+
+layout('components.layouts.platform');
 
 state([
     'invitation_note' => '',
@@ -1717,7 +1686,7 @@ $accept = function () {
 - [ ] **Step 6: Run the tests**
 
 Run: `php artisan test --filter=AdminInvitationTest`
-Expected: PASS (6 tests)
+Expected: PASS (5 tests)
 
 - [ ] **Step 7: Run the full suite**
 
@@ -1737,14 +1706,14 @@ git commit -m "feat: add platform admin invite/accept flow and admins list"
 
 ---
 
-### Task 10: Independent security review
+### Task 9: Independent security review
 
 This is the project's established pattern for anything touching permissions or multi-tenancy (see PR #16, #17, #19, #21 in `infra-runbooks/xacare/ESTADO-Y-HANDOFF.md`): implement, run the full suite, then have an independent reviewer look at the whole diff before merging to `develop`.
 
 - [ ] **Step 1: Confirm the full suite is green**
 
 Run: `php artisan test`
-Expected: all tests pass (183 original + new tests from Tasks 4, 6, 7, 8, 9).
+Expected: all tests pass (183 original + new tests from Tasks 4, 5, 6, 7, 8).
 
 - [ ] **Step 2: Dispatch an independent reviewer**
 
