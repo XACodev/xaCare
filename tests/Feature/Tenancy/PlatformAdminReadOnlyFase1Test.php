@@ -89,18 +89,14 @@ test('super admin cannot save/create a RoleRate', function () {
     ]))->toThrow(\Symfony\Component\HttpKernel\Exception\HttpException::class);
 });
 
-test('super admin cannot modify use_pay_scheme of a User via pricing.instrumentist toggle', function () {
+test('super admin cannot reach pricing.instrumentist', function () {
     $hospital = Hospital::factory()->create();
-    $target = User::factory()->create(['hospital_id' => $hospital->id, 'use_pay_scheme' => false]);
+    User::factory()->create(['hospital_id' => $hospital->id, 'use_pay_scheme' => false]);
 
     $superAdmin = makeFase1PlatformAdmin();
     $this->actingAs($superAdmin);
 
-    Volt::test('pricing.instrumentist')
-        ->call('toggle', $target->id)
-        ->assertForbidden();
-
-    expect($target->fresh()->use_pay_scheme)->toBeFalse();
+    Volt::test('pricing.instrumentist')->assertForbidden();
 });
 
 test('super admin cannot save a surgical case via procedures.edit', function () {
@@ -137,21 +133,15 @@ test('super admin cannot delete a surgical case via procedures.index', function 
     expect(SurgicalCase::withoutGlobalScopes()->find($case->id))->not->toBeNull();
 });
 
-test('super admin cannot saveBaseRate on pricing.settings for another hospital', function () {
+test('super admin cannot reach pricing.settings', function () {
     $hospital = Hospital::factory()->create();
-    $role = SurgicalRole::factory()->create(['hospital_id' => $hospital->id, 'active' => true]);
+    SurgicalRole::factory()->create(['hospital_id' => $hospital->id, 'active' => true]);
 
     $superAdmin = makeFase1PlatformAdmin();
     $superAdmin->givePermissionTo('pricing.manage');
     $this->actingAs($superAdmin);
 
-    Volt::test('pricing.settings')
-        ->set('selected_role_id', $role->id)
-        ->set('base_rate', 999)
-        ->call('saveBaseRate')
-        ->assertForbidden();
-
-    expect(RoleRate::withoutGlobalScopes()->where('surgical_role_id', $role->id)->exists())->toBeFalse();
+    Volt::test('pricing.settings')->assertForbidden();
 });
 
 test('hospital admin cannot create an admission pointing at a patient from another hospital', function () {

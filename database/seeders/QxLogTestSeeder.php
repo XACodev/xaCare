@@ -38,6 +38,11 @@ class QxLogTestSeeder extends Seeder
             ]
         );
 
+        $hospital = Hospital::firstOrCreate(
+            ['slug' => 'hnsc'],
+            ['name' => 'Centro Médico y Hospital Nuestra Señora del Carmen', 'plan' => 'basic', 'features' => [], 'is_active' => true],
+        );
+
         $admin = User::firstOrCreate(
             ['username' => 'hospital'],
             [
@@ -47,6 +52,7 @@ class QxLogTestSeeder extends Seeder
                 'role' => 'admin',
                 'is_platform_admin' => false,
                 'use_pay_scheme' => false,
+                'hospital_id' => $hospital->id,
                 'password' => Hash::make('1981'),
             ]
         );
@@ -61,6 +67,7 @@ class QxLogTestSeeder extends Seeder
                 'username' => 'ana',
                 'password' => Hash::make('123456'),
                 'role' => 'instrumentist',
+                'hospital_id' => $hospital->id,
                 'use_pay_scheme' => true,
             ]
         );
@@ -72,6 +79,7 @@ class QxLogTestSeeder extends Seeder
                 'username' => 'carlos',
                 'password' => Hash::make('123456'),
                 'role' => 'instrumentist',
+                'hospital_id' => $hospital->id,
                 'use_pay_scheme' => false,
             ]
         );
@@ -83,6 +91,7 @@ class QxLogTestSeeder extends Seeder
                 'username' => 'sofia',
                 'password' => Hash::make('123456'),
                 'role' => 'instrumentist',
+                'hospital_id' => $hospital->id,
                 'use_pay_scheme' => true,
             ]
         );
@@ -97,6 +106,7 @@ class QxLogTestSeeder extends Seeder
                 'username' => 'juan',
                 'password' => Hash::make('123456'),
                 'role' => 'doctor',
+                'hospital_id' => $hospital->id,
             ]
         );
 
@@ -107,6 +117,7 @@ class QxLogTestSeeder extends Seeder
                 'username' => 'maria',
                 'password' => Hash::make('123456'),
                 'role' => 'doctor',
+                'hospital_id' => $hospital->id,
             ]
         );
 
@@ -117,6 +128,7 @@ class QxLogTestSeeder extends Seeder
                 'username' => 'crodero',
                 'password' => Hash::make('123456'),
                 'role' => 'doctor',
+                'hospital_id' => $hospital->id,
             ]
         );
 
@@ -130,6 +142,7 @@ class QxLogTestSeeder extends Seeder
                 'username' => 'pedro',
                 'password' => Hash::make('123456'),
                 'role' => 'circulating',
+                'hospital_id' => $hospital->id,
             ]
         );
 
@@ -140,17 +153,13 @@ class QxLogTestSeeder extends Seeder
                 'username' => 'lucia',
                 'password' => Hash::make('123456'),
                 'role' => 'circulating',
+                'hospital_id' => $hospital->id,
             ]
         );
 
         // ======================
         // PRICING SETTINGS (deben existir antes)
         // ======================
-        $hospital = Hospital::firstOrCreate(
-            ['slug' => 'hnsc'],
-            ['name' => 'Centro Médico y Hospital Nuestra Señora del Carmen', 'plan' => 'basic', 'features' => [], 'is_active' => true],
-        );
-
         $settings = PricingSetting::withoutGlobalScopes()->firstOrCreate(['id' => 1], [
             'hospital_id' => $hospital->id,
             'default_rate' => 200,

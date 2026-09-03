@@ -37,6 +37,7 @@ rules(fn () => [
 mount(function () {
     abort_unless(Auth::check(), 401);
     abort_unless((bool) Auth::user()->can('pricing.manage'), 403);
+    abort_if((bool) Auth::user()?->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
 
     // Follows the same `request()->integer(...)` query-param convention used by
     // payouts/create.blade.php's `payee_id` preselection, rather than a typed mount()
@@ -94,11 +95,20 @@ $selectRole = function (int $roleId) {
 
 $saveBaseRate = function () {
     abort_unless((bool) Auth::user()->can('pricing.manage'), 403);
+    abort_if((bool) Auth::user()?->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
     $this->validate();
+
+    $role = SurgicalRole::findOrFail($this->selected_role_id);
+
+    // El hospital del rol es la fuente de verdad; no dependemos de que el usuario
+    // autenticado tenga hospital_id asignado (p. ej. datos legacy sin backfill).
+    if (Auth::user()?->hospital_id) {
+        abort_if(Auth::user()->hospital_id !== $role->hospital_id, 403);
+    }
 
     RoleRate::updateOrCreate(
         ['surgical_role_id' => $this->selected_role_id, 'user_id' => $this->user_id, 'procedure_type' => null],
-        ['base_rate' => $this->base_rate, 'active' => true],
+        ['base_rate' => $this->base_rate, 'active' => true, 'hospital_id' => $role->hospital_id],
     );
 
     unset($this->default_rate);
