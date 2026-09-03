@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Hospital;
+use App\Models\HospitalInvitation;
 use App\Models\Patient;
 use App\Models\User;
 
@@ -40,4 +41,30 @@ test('super admin without hospital sees all tenants', function () {
     $this->actingAs($sa);
 
     expect(Patient::count())->toBe(2);
+});
+
+test('creating a tenant model without hospital_id and without authenticated hospital aborts', function () {
+    $sa = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
+    $this->actingAs($sa);
+
+    $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+
+    Patient::create([
+        'primer_apellido' => 'Gomez',
+        'primer_nombre' => 'Ana',
+    ]);
+});
+
+test('platform admin can create a tenant model with explicit hospital_id', function () {
+    $hospital = Hospital::factory()->create();
+    $sa = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
+    $this->actingAs($sa);
+
+    $invitation = HospitalInvitation::create([
+        'hospital_id' => $hospital->id,
+        'token' => 'test-token',
+        'expires_at' => now()->addDay(),
+    ]);
+
+    expect($invitation->hospital_id)->toBe($hospital->id);
 });

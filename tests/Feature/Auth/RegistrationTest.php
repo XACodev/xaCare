@@ -1,13 +1,11 @@
 <?php
 
-test('registration screen can be rendered', function () {
-    $response = $this->get(route('register'));
+use App\Models\User;
 
-    $response->assertStatus(200);
-});
+test('registration routes are disabled in SaaS mode', function () {
+    $this->get('/register')->assertNotFound();
 
-test('new users can register', function () {
-    $response = $this->post(route('register.store'), [
+    $this->post('/register', [
         'name' => 'John Doe',
         'username' => 'johndoe',
         'role' => 'doctor',
@@ -15,10 +13,8 @@ test('new users can register', function () {
         'email' => 'test@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
-    ]);
+    ])->assertNotFound();
 
-    $response->assertSessionHasNoErrors()
-        ->assertRedirect(route('dashboard', absolute: false));
-
-    $this->assertAuthenticated();
+    $this->assertGuest();
+    expect(User::where('email', 'test@example.com')->exists())->toBeFalse();
 });

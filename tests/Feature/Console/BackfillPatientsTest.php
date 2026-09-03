@@ -8,7 +8,7 @@ use App\Models\User;
 test('backfill assigns hospital and creates patients from procedure names', function () {
     $hospital = Hospital::factory()->create(['slug' => 'hnsc']);
 
-    $user = User::factory()->create(['hospital_id' => null, 'role' => 'instrumentist']);
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'instrumentist']);
 
     foreach (['Ana Gomez', 'Ana Gomez', 'Luis Perez'] as $name) {
         SurgicalCase::withoutGlobalScopes()->create([

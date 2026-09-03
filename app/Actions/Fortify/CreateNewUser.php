@@ -47,6 +47,8 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $this->passwordRules(),
         ])->validate();
 
+        abort_if(empty($input['hospital_id']) && empty($input['is_platform_admin']), 422, 'Los usuarios de hospital deben tener un hospital asignado.');
+
         return User::create([
             'name' => $input['name'],
             'username' => $input['username'],
@@ -54,6 +56,8 @@ class CreateNewUser implements CreatesNewUsers
             'phone' => $input['phone'],
             'email' => $input['email'],
             'password' => $input['password'],
+            'hospital_id' => $input['hospital_id'] ?? null,
+            'is_platform_admin' => $input['is_platform_admin'] ?? false,
         ]);
     }
 }

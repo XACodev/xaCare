@@ -144,7 +144,8 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Registration disabled for SaaS: users are created via hospital/platform invitations only.
+        // Features::registration(),
         Features::resetPasswords(),
         Features::emailVerification(),
         // Features::updateProfileInformation(),

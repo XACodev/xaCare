@@ -31,6 +31,7 @@ class User extends Authenticatable
         'role',
         'is_platform_admin',
         'use_pay_scheme',
+        'phone',
     ];
 
     /**
@@ -69,6 +70,15 @@ class User extends Authenticatable
     public static function allowsPlatformAdminWrites(): bool
     {
         return true;
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function ($user) {
+            if (! $user->is_platform_admin && is_null($user->hospital_id)) {
+                abort(422, 'Los usuarios de hospital deben tener un hospital asignado.');
+            }
+        });
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Models\Concerns;
 
 use App\Models\Hospital;
 use App\Models\Scopes\TenantScope;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,6 +17,18 @@ trait BelongsToTenant
         static::creating(function ($model) {
             if (! $model->hospital_id && Auth::hasUser() && Auth::user()?->hospital_id) {
                 $model->hospital_id = Auth::user()->hospital_id;
+            }
+
+            // User tiene su propia validación en saving (permite platform admins con
+            // hospital_id null). El resto de modelos tenant requieren hospital_id cuando
+            // hay un usuario autenticado; sin usuario (migraciones/seeders/comandos)
+            // dejamos que la BD aplique sus propias constraints.
+            if ($model instanceof User) {
+                return;
+            }
+
+            if (Auth::hasUser() && ! $model->hospital_id) {
+                abort(422, 'No se puede crear '.class_basename($model).' sin un hospital asignado.');
             }
         });
 
