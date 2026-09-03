@@ -3,7 +3,7 @@
     "name": "thealejandro/qxlog",
     "type": "project",
     "description": "Sistema de Registro de Quirofano (QxLog)",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "keywords": [
         "laravel",
         "framework"
