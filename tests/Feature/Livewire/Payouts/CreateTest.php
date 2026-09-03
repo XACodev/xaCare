@@ -35,7 +35,7 @@ test('shows pending and selected procedure counts', function () {
         'calculated_amount' => 100,
     ]);
 
-    Volt::test('payouts.create')
+    Volt::test('qxlog.payouts.create')
         ->set('payee_id', $instrumentist->id)
         ->assertSee(__(':count procedures', ['count' => 3]))
         ->set('selected', [$assignments->first()->id])
@@ -59,7 +59,7 @@ test('liquidating redirects to the payout voucher', function () {
         'calculated_amount' => 150,
     ]);
 
-    $component = Volt::test('payouts.create')
+    $component = Volt::test('qxlog.payouts.create')
         ->set('payee_id', $instrumentist->id)
         ->set('selected', $assignments->pluck('id')->all())
         ->call('liquidate');
@@ -130,7 +130,7 @@ test('does not show payees or assignments from another hospital', function () {
         'calculated_amount' => 200,
     ]);
 
-    $component = Volt::actingAs($admin)->test('payouts.create');
+    $component = Volt::actingAs($admin)->test('qxlog.payouts.create');
 
     // Solo se listan beneficiarios del hospital A.
     expect($component->get('payees')->pluck('id')->all())->toContain($instrumentistA->id)
@@ -168,7 +168,7 @@ test('cannot liquidate the same assignments twice', function () {
 
     $ids = $assignments->pluck('id')->all();
 
-    Volt::test('payouts.create')
+    Volt::test('qxlog.payouts.create')
         ->set('payee_id', $instrumentist->id)
         ->set('selected', $ids)
         ->call('liquidate')
@@ -176,7 +176,7 @@ test('cannot liquidate the same assignments twice', function () {
 
     expect(PayoutBatch::count())->toBe(1);
 
-    Volt::test('payouts.create')
+    Volt::test('qxlog.payouts.create')
         ->set('payee_id', $instrumentist->id)
         ->set('selected', $ids)
         ->call('liquidate')

@@ -96,7 +96,7 @@ test('super admin cannot reach pricing.instrumentist', function () {
     $superAdmin = makeFase1PlatformAdmin();
     $this->actingAs($superAdmin);
 
-    Volt::test('pricing.instrumentist')->assertForbidden();
+    Volt::test('qxlog.pricing.instrumentist')->assertForbidden();
 });
 
 test('super admin cannot save a surgical case via procedures.edit', function () {
@@ -110,7 +110,7 @@ test('super admin cannot save a surgical case via procedures.edit', function () 
     $superAdmin->givePermissionTo('procedures.edit');
     $this->actingAs($superAdmin);
 
-    Volt::test('procedures.edit', ['procedure' => $case])
+    Volt::test('qxlog.procedures.edit', ['procedure' => $case])
         ->set('patient_name', 'Tampered')
         ->call('save')
         ->assertForbidden();
@@ -125,7 +125,7 @@ test('super admin cannot delete a surgical case via procedures.index', function 
     $superAdmin = makeFase1PlatformAdmin();
     $this->actingAs($superAdmin);
 
-    Volt::test('procedures.index')
+    Volt::test('qxlog.procedures.index')
         ->set('procedure_to_delete', $case->id)
         ->call('delete')
         ->assertForbidden();
@@ -141,7 +141,7 @@ test('super admin cannot reach pricing.settings', function () {
     $superAdmin->givePermissionTo('pricing.manage');
     $this->actingAs($superAdmin);
 
-    Volt::test('pricing.settings')->assertForbidden();
+    Volt::test('qxlog.pricing.settings')->assertForbidden();
 });
 
 test('hospital admin cannot create an admission pointing at a patient from another hospital', function () {

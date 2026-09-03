@@ -51,7 +51,7 @@ test('rejects editing a case whose status changed to non-pending after load', fu
 
     $this->actingAs($admin);
 
-    $component = Volt::test('procedures.edit', ['procedure' => $case]);
+    $component = Volt::test('qxlog.procedures.edit', ['procedure' => $case]);
 
     // Simulate the case being liquidated by another process before save.
     $case->update(['status' => 'paid']);
@@ -109,7 +109,7 @@ test('rejects assignments ids that do not belong to the edited case', function (
 
     $this->actingAs($admin);
 
-    Volt::test('procedures.edit', ['procedure' => $case])
+    Volt::test('qxlog.procedures.edit', ['procedure' => $case])
         ->set('assignments.0.id', $otherAssignment->id)
         ->call('save')
         ->assertStatus(403);
@@ -154,7 +154,7 @@ test('rejects an assigned user from another hospital', function () {
 
     $this->actingAs($admin);
 
-    $component = Volt::test('procedures.edit', ['procedure' => $case]);
+    $component = Volt::test('qxlog.procedures.edit', ['procedure' => $case]);
     $component->set('assignments.0.user_id', $foreignUser->id);
 
     expect($component->get('assignments')[0]['user_id'])->toBe($foreignUser->id);
@@ -229,7 +229,7 @@ test('editar un caso sin tocar el toggle manual preserva el monto calculado', fu
 
     $this->actingAs($admin);
 
-    $component = Volt::test('procedures.edit', ['procedure' => $case]);
+    $component = Volt::test('qxlog.procedures.edit', ['procedure' => $case]);
 
     // La fila hidratada debe traer el id del modificador manual como aplicado.
     expect($component->get('assignments')[0]['manual_toggles'])->toBe([$modifier->id]);

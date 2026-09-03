@@ -14,7 +14,7 @@ test('procedures.create aborts when instrumentist has no hospital_id', function 
 
     $this->actingAs($user);
 
-    Volt::test('procedures.create')
+    Volt::test('qxlog.procedures.create')
         ->assertStatus(422);
 });
 
@@ -27,7 +27,7 @@ test('procedures.create rejects a patient from another hospital', function () {
 
     $this->actingAs($user);
 
-    Volt::test('procedures.create')
+    Volt::test('qxlog.procedures.create')
         ->set('patient_id', $patient->id)
         ->set('procedure_type', 'Apendicectomia')
         ->set('start_time', '08:00')
@@ -45,7 +45,7 @@ test('procedures.create rejects a surgical role from another hospital', function
 
     $this->actingAs($user);
 
-    Volt::test('procedures.create')
+    Volt::test('qxlog.procedures.create')
         ->set('procedure_type', 'Apendicectomia')
         ->set('start_time', '08:00')
         ->set('end_time', '09:00')
@@ -63,7 +63,7 @@ test('procedures.create rejects an assigned user from another hospital', functio
 
     $this->actingAs($user);
 
-    Volt::test('procedures.create')
+    Volt::test('qxlog.procedures.create')
         ->set('procedure_type', 'Apendicectomia')
         ->set('start_time', '08:00')
         ->set('end_time', '09:00')
@@ -81,7 +81,7 @@ test('user suggestions only include users from the same hospital', function () {
 
     $this->actingAs($user);
 
-    $component = Volt::test('procedures.create');
+    $component = Volt::test('qxlog.procedures.create');
     $suggestions = ($component->instance()->userSuggestions)('User');
 
     expect($suggestions)->toHaveCount(1)
@@ -98,7 +98,7 @@ test('procedures.create always writes to the authenticated user hospital regardl
 
     $this->actingAs($user);
 
-    Volt::test('procedures.create')
+    Volt::test('qxlog.procedures.create')
         ->set('procedure_type', 'Apendicectomia')
         ->set('procedure_date', now()->toDateString())
         ->set('start_time', '08:00')
@@ -124,7 +124,7 @@ test('procedures.create rejects future and too-old dates', function () {
 
     $this->actingAs($user);
 
-    Volt::test('procedures.create')
+    Volt::test('qxlog.procedures.create')
         ->set('procedure_type', 'Apendicectomia')
         ->set('procedure_date', now()->addDay()->toDateString())
         ->set('start_time', '08:00')
@@ -134,7 +134,7 @@ test('procedures.create rejects future and too-old dates', function () {
         ->call('save')
         ->assertHasErrors(['procedure_date']);
 
-    Volt::test('procedures.create')
+    Volt::test('qxlog.procedures.create')
         ->set('procedure_type', 'Apendicectomia')
         ->set('procedure_date', now()->subWeeks(3)->toDateString())
         ->set('start_time', '08:00')

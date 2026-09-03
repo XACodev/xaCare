@@ -52,7 +52,7 @@ test('rules reject a role from another hospital before saveBaseRate runs', funct
 
     $this->actingAs($admin);
 
-    Volt::test('pricing.settings')
+    Volt::test('qxlog.pricing.settings')
         ->set('selected_role_id', $foreignRole->id)
         ->set('base_rate', 999)
         ->call('saveBaseRate')
@@ -75,7 +75,7 @@ test('saveBaseRate rejects a per-user override for a user from another hospital'
 
     $this->actingAs($admin);
 
-    $component = Volt::test('pricing.settings');
+    $component = Volt::test('qxlog.pricing.settings');
     $component->set('selected_role_id', $role->id);
     $component->set('user_id', $foreignUser->id);
     $component->set('base_rate', 999);
@@ -96,6 +96,6 @@ test('a user without hospital_id is rejected from pricing settings', function ()
 
     $this->actingAs($admin);
 
-    Volt::test('pricing.settings')
+    Volt::test('qxlog.pricing.settings')
         ->assertStatus(422);
 });

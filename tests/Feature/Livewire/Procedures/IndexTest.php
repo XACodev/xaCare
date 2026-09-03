@@ -10,7 +10,7 @@ test('hospital admin can view the procedures index', function () {
 
     $this->actingAs($admin);
 
-    Volt::test('procedures.index')->assertOk();
+    Volt::test('qxlog.procedures.index')->assertOk();
 });
 
 test('super admin can view the procedures index', function () {
@@ -18,7 +18,7 @@ test('super admin can view the procedures index', function () {
 
     $this->actingAs($superAdmin);
 
-    Volt::test('procedures.index')->assertOk();
+    Volt::test('qxlog.procedures.index')->assertOk();
 });
 
 test('instrumentist cannot view the procedures index', function () {
@@ -27,5 +27,5 @@ test('instrumentist cannot view the procedures index', function () {
 
     $this->actingAs($instrumentist);
 
-    Volt::test('procedures.index')->assertForbidden();
+    Volt::test('qxlog.procedures.index')->assertForbidden();
 });

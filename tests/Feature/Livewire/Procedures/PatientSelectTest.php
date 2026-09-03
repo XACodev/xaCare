@@ -20,7 +20,7 @@ test('instrumentist selects a patient and it is stored on the procedure', functi
     Admission::factory()->create(['hospital_id' => $hospital->id, 'patient_id' => $patient->id, 'va_a_quirofano' => true]);
     $this->actingAs($user);
 
-    Volt::test('procedures.create')
+    Volt::test('qxlog.procedures.create')
         ->call('selectPatient', $patient->id)
         ->set('procedure_type', 'Apendicectomia')
         ->set('start_time', '08:00')
@@ -39,7 +39,7 @@ test('instrumentist can register a procedure with a free-text patient name for e
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'instrumentist', 'use_pay_scheme' => false]);
     $this->actingAs($user);
 
-    Volt::test('procedures.create')
+    Volt::test('qxlog.procedures.create')
         ->set('patient_query', 'Paciente de Emergencia')
         ->set('procedure_type', 'Cesarea')
         ->set('start_time', '02:00')
@@ -58,7 +58,7 @@ test('registering a procedure requires a patient, selected or typed', function (
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'instrumentist']);
     $this->actingAs($user);
 
-    Volt::test('procedures.create')
+    Volt::test('qxlog.procedures.create')
         ->set('procedure_type', 'Cesarea')
         ->set('start_time', '02:00')
         ->set('end_time', '03:00')

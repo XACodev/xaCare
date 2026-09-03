@@ -64,7 +64,7 @@ beforeEach(function () {
 test('procedures.index only lists instrumentists from the same hospital', function () {
     $this->actingAs($this->adminA);
 
-    $component = Volt::test('procedures.index');
+    $component = Volt::test('qxlog.procedures.index');
     $instrumentists = $component->instance()->instrumentists;
 
     expect($instrumentists->pluck('id'))->toContain($this->instrumentistA->id);
@@ -98,7 +98,7 @@ test('pricing.settings rejects user_id from another hospital when saving base ra
     $this->actingAs($this->adminA);
 
     Volt::actingAs($this->adminA)
-        ->test('pricing.settings')
+        ->test('qxlog.pricing.settings')
         ->set('selected_role_id', $this->roleA->id)
         ->set('user_id', $this->instrumentistB->id)
         ->set('base_rate', 1500)
@@ -112,7 +112,7 @@ test('pricing.settings accepts user_id from the same hospital when saving base r
     $this->actingAs($this->adminA);
 
     Volt::actingAs($this->adminA)
-        ->test('pricing.settings')
+        ->test('qxlog.pricing.settings')
         ->set('selected_role_id', $this->roleA->id)
         ->set('user_id', $this->instrumentistA->id)
         ->set('base_rate', 1500)
@@ -152,7 +152,7 @@ test('pricing.settings removeModifier cannot delete modifiers from another role 
     ]);
 
     Volt::actingAs($this->adminA)
-        ->test('pricing.settings')
+        ->test('qxlog.pricing.settings')
         ->set('selected_role_id', $this->roleA->id)
         ->call('removeModifier', $modifierB->id)
         ->assertForbidden();
@@ -174,7 +174,7 @@ test('platform admin cannot delete a procedure', function () {
 
     $this->actingAs($platformAdmin);
 
-    Volt::test('procedures.index')
+    Volt::test('qxlog.procedures.index')
         ->set('procedure_to_delete', $case->id)
         ->call('delete')
         ->assertForbidden();
@@ -203,7 +203,7 @@ test('platform admin cannot save an edited procedure', function () {
 
     $this->actingAs($platformAdmin);
 
-    Volt::test('procedures.edit', ['procedure' => $case])
+    Volt::test('qxlog.procedures.edit', ['procedure' => $case])
         ->set('patient_name', 'Tampered')
         ->call('save')
         ->assertForbidden();

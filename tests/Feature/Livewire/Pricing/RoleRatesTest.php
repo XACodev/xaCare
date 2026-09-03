@@ -19,7 +19,7 @@ test('un admin puede configurar la tarifa base default de un rol', function () {
     $admin->givePermissionTo('pricing.manage');
     $role = SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Cirujano']);
 
-    Volt::actingAs($admin)->test('pricing.settings')
+    Volt::actingAs($admin)->test('qxlog.pricing.settings')
         ->set('selected_role_id', $role->id)
         ->set('base_rate', 1500)
         ->call('saveBaseRate');

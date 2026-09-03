@@ -41,27 +41,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('two-factor.show');
 });
 
-Route::middleware(['auth', 'hospital.subscribed'])->group(function () {
-    Volt::route('procedures/create', 'procedures.create')->name('procedures.create');
-
-    Volt::route('instrumentist/payouts', 'instrumentist.payouts')->name('instrumentist.payouts');
-    Volt::route('instrumentist/payouts/{batch}/voucher', 'payouts.voucher')->name('instrumentist.payouts.voucher');
-});
-
 Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
     Volt::route('patients', 'patients.index')->name('patients.index');
     Volt::route('patients/create', 'patients.create')->name('patients.create');
     Volt::route('admissions/create', 'admissions.create')->name('admissions.create');
-
-    Volt::route('payouts/create', 'payouts.create')->name('payouts.create');
-    Volt::route('payouts/{batch}/voucher', 'payouts.voucher')->name('payouts.voucher');
-    Volt::route('payouts', 'payouts.index')->name('payouts.index');
-
-    Volt::route('procedures', 'procedures.index')->name('procedures.index');
-    Volt::route('procedures/{procedure}/edit', 'procedures.edit')->name('procedures.edit');
-
-    Volt::route('pricing/settings', 'pricing.settings')->name('pricing.settings');
-    Volt::route('pricing/instrumentists', 'pricing.instrumentist')->name('pricing.instrumentists');
 
     Volt::route('settings/organization', 'settings.organization')->name('settings.organization');
 
