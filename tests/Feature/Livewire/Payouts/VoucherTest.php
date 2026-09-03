@@ -117,3 +117,40 @@ test('hides liquidate again button when instrumentist has no pending procedures'
         ->assertSuccessful()
         ->assertDontSee(__('Liquidate again'));
 });
+
+test('instrumentist can view their own payout voucher', function () {
+    $hospital = Hospital::factory()->create();
+
+    $admin = User::factory()->create(['hospital_id' => $hospital->id]);
+    $admin->assignRole('admin');
+
+    $instrumentist = User::factory()->create(['hospital_id' => $hospital->id]);
+    $instrumentist->assignRole('instrumentist');
+    $instrumentist->givePermissionTo('payouts.view');
+
+    $batch = makePaidBatchWithItem($instrumentist, $admin);
+
+    $this->actingAs($instrumentist)
+        ->get(route('instrumentist.payouts.voucher', $batch->id))
+        ->assertSuccessful();
+});
+
+test('instrumentist cannot view another instrumentist payout voucher', function () {
+    $hospital = Hospital::factory()->create();
+
+    $admin = User::factory()->create(['hospital_id' => $hospital->id]);
+    $admin->assignRole('admin');
+
+    $payee = User::factory()->create(['hospital_id' => $hospital->id]);
+    $payee->assignRole('instrumentist');
+
+    $other = User::factory()->create(['hospital_id' => $hospital->id]);
+    $other->assignRole('instrumentist');
+    $other->givePermissionTo('payouts.view');
+
+    $batch = makePaidBatchWithItem($payee, $admin);
+
+    $this->actingAs($other)
+        ->get(route('instrumentist.payouts.voucher', $batch->id))
+        ->assertForbidden();
+});

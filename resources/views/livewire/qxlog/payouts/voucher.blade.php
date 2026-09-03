@@ -37,6 +37,12 @@ mount(function (string|int $batch) {
         ])
         ->findOrFail($batch);
 
+    abort_unless(
+        Auth::user()->hasRole('admin') || Auth::id() === $b->payee_id,
+        403,
+        'No puedes ver el comprobante de pago de otro empleado.'
+    );
+
     $this->mode = request('mode', 'summary');
 
     $this->usePayScheme = (bool) data_get($b->items, '0.snapshot.pricing_snapshot.use_pay_scheme', false);
