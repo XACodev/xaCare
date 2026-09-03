@@ -105,18 +105,18 @@ $liquidate = function () {
         throw ValidationException::withMessages(['selected' => __('Select an item to liquidate.')]);
     }
 
-    $assignments = SurgicalAssignment::query()
-        ->where('hospital_id', $this->hospitalId)
-        ->where('user_id', $data['payee_id'])->where('status', 'pending')
-        ->whereIn('id', $selectedIds)->lockForUpdate()->get();
+    $batch = DB::transaction(function () use ($admin, $data, $selectedIds) {
+        $assignments = SurgicalAssignment::query()
+            ->where('hospital_id', $this->hospitalId)
+            ->where('user_id', $data['payee_id'])->where('status', 'pending')
+            ->whereIn('id', $selectedIds)->lockForUpdate()->get();
 
-    if ($assignments->count() !== count($selectedIds)) {
-        throw ValidationException::withMessages(['selected' => __('Selection changed. Reload and try again.')]);
-    }
+        if ($assignments->count() !== count($selectedIds)) {
+            throw ValidationException::withMessages(['selected' => __('Selection changed. Reload and try again.')]);
+        }
 
-    $total = (float) $assignments->sum('calculated_amount');
+        $total = (float) $assignments->sum('calculated_amount');
 
-    $batch = DB::transaction(function () use ($admin, $data, $assignments, $total) {
         $batch = PayoutBatch::create([
             'hospital_id' => $this->hospitalId,
             'payee_id' => (int) $data['payee_id'],

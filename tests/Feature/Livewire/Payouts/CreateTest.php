@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Hospital;
+use App\Models\PayoutBatch;
 use App\Models\SurgicalAssignment;
 use App\Models\User;
 use Livewire\Volt\Volt;
@@ -146,4 +147,41 @@ test('does not show payees or assignments from another hospital', function () {
     $component->assertHasErrors(['selected.0']);
 
     expect($assignmentB->fresh()->status)->toBe('pending');
+});
+
+test('cannot liquidate the same assignments twice', function () {
+    $hospital = Hospital::factory()->create();
+
+    $admin = User::factory()->create(['hospital_id' => $hospital->id]);
+    $admin->assignRole('admin');
+
+    $instrumentist = User::factory()->create(['hospital_id' => $hospital->id]);
+    $instrumentist->assignRole('instrumentist');
+
+    $this->actingAs($admin);
+
+    $assignments = SurgicalAssignment::factory()->count(2)->create([
+        'user_id' => $instrumentist->id,
+        'status' => 'pending',
+        'calculated_amount' => 150,
+    ]);
+
+    $ids = $assignments->pluck('id')->all();
+
+    Volt::test('payouts.create')
+        ->set('payee_id', $instrumentist->id)
+        ->set('selected', $ids)
+        ->call('liquidate')
+        ->assertHasNoErrors();
+
+    expect(PayoutBatch::count())->toBe(1);
+
+    Volt::test('payouts.create')
+        ->set('payee_id', $instrumentist->id)
+        ->set('selected', $ids)
+        ->call('liquidate')
+        ->assertHasErrors(['selected']);
+
+    expect(PayoutBatch::count())->toBe(1);
+    expect($assignments->first()->fresh()->status)->toBe('paid');
 });
