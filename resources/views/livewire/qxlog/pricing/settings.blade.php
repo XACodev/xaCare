@@ -175,6 +175,7 @@ $addModifier = function () {
     };
 
     RateModifier::create([
+        'hospital_id' => $role->hospital_id,
         'role_rate_id' => $this->default_rate->id,
         'name' => $this->modifier_name,
         'trigger_type' => $this->modifier_trigger_type,
