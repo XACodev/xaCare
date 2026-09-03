@@ -115,3 +115,16 @@ test('validation requires role', function () {
         ->call('save')
         ->assertHasErrors(['role']);
 });
+
+test('hospital admin without hospital_id gets a clear 422 error', function () {
+    $admin = User::withoutEvents(fn () => User::factory()->create([
+        'is_platform_admin' => false,
+        'role' => 'admin',
+        'hospital_id' => null,
+    ]));
+
+    $this->actingAs($admin);
+
+    Volt::test('users.create')
+        ->assertStatus(422);
+});

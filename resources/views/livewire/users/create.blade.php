@@ -35,6 +35,7 @@ mount(function () {
         $hospital = Hospital::query()->findOrFail(request()->integer('hospital_id'));
     } else {
         // Admin de hospital: siempre crea staff de su propio tenant, nunca elige otro.
+        abort_if(! $u->hospital_id, 422, 'Tu usuario no tiene un hospital asignado. Contacta al administrador de la plataforma.');
         $hospital = $u->hospital;
     }
 

@@ -156,3 +156,17 @@ test('cannot delete self', function () {
         ->call('toggleDelete')
         ->assertForbidden();
 });
+
+test('hospital admin without hospital_id gets a clear 422 error', function () {
+    $admin = User::withoutEvents(fn () => User::factory()->create([
+        'is_platform_admin' => false,
+        'role' => 'admin',
+        'hospital_id' => null,
+    ]));
+    $userToEdit = User::factory()->create(['role' => 'doctor']);
+
+    $this->actingAs($admin);
+
+    Volt::test('users.edit', ['user' => $userToEdit->id])
+        ->assertStatus(422);
+});

@@ -18,6 +18,9 @@ use Illuminate\Support\Str;
 use function Livewire\Volt\{state, computed, mount, rules, updated};
 
 state([
+    // Tenant
+    'hospitalId' => null,
+
     // Form
     'procedure_date' => now()->toDateString(),
     'start_time' => now()->subHour()->format('H:i'),
@@ -42,14 +45,14 @@ rules(fn () => [
     'procedure_date' => ['required', 'date'],
     'start_time' => ['required', 'date_format:H:i'],
     'end_time' => ['required', 'date_format:H:i'],
-    'patient_id' => ['nullable', 'integer', Rule::exists('patients', 'id')->when(Auth::user()?->hospital_id, fn ($rule) => $rule->where('hospital_id', Auth::user()->hospital_id))],
+    'patient_id' => ['nullable', 'integer', Rule::exists('patients', 'id')->where('hospital_id', $this->hospitalId)],
     'patient_query' => ['nullable', 'string', 'max:255'],
     'patient_name' => ['nullable', 'string', 'max:255'],
     'procedure_type' => ['required', 'string', 'max:255'],
     'is_videosurgery' => ['boolean'],
     'assignments' => ['array', 'min:1'],
-    'assignments.*.role_id' => ['required', 'integer', Rule::exists('surgical_roles', 'id')->when(Auth::user()?->hospital_id, fn ($rule) => $rule->where('hospital_id', Auth::user()->hospital_id))],
-    'assignments.*.user_id' => ['nullable', 'integer', Rule::exists('users', 'id')->when(Auth::user()?->hospital_id, fn ($rule) => $rule->where('hospital_id', Auth::user()->hospital_id))],
+    'assignments.*.role_id' => ['required', 'integer', Rule::exists('surgical_roles', 'id')->where('hospital_id', $this->hospitalId)],
+    'assignments.*.user_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('hospital_id', $this->hospitalId)],
     'assignments.*.user_query' => ['nullable', 'string', 'max:255'],
     'assignments.*.is_courtesy' => ['boolean'],
     'assignments.*.note' => ['nullable', 'string', 'max:255'],
@@ -57,10 +60,17 @@ rules(fn () => [
 
 mount(function () {
     abort_unless((bool) Auth::check(), 401, 'Unauthorized');
-    abort_unless(in_array(Auth::user()->role, ['instrumentist', 'admin'], true), 403, 'Unauthorized');
+    abort_unless(in_array(Auth::user()->role, ['instrumentist', 'admin'], true), 403, 'No tienes permiso para registrar procedimientos.');
     abort_if((bool) Auth::user()->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
 
-    $roles = SurgicalRole::query()->where('active', true)->orderBy('sort_order')->get();
+    $this->hospitalId = Auth::user()->hospital_id;
+    abort_if(! $this->hospitalId, 422, 'Tu usuario no tiene un hospital asignado. Contacta al administrador de la plataforma.');
+
+    $roles = SurgicalRole::query()
+        ->where('hospital_id', $this->hospitalId)
+        ->where('active', true)
+        ->orderBy('sort_order')
+        ->get();
     $instrumentistRole = $roles->firstWhere('slug', 'instrumentista');
 
     // Fila inicial: el instrumentista logueado, en el rol Instrumentista si existe.
@@ -74,10 +84,15 @@ mount(function () {
     ]];
 });
 
-$roles = computed(fn () => SurgicalRole::query()->where('active', true)->orderBy('sort_order')->get());
+$roles = computed(fn () => SurgicalRole::query()
+    ->where('hospital_id', $this->hospitalId)
+    ->where('active', true)
+    ->orderBy('sort_order')
+    ->get());
 
 $userSuggestions = computed(function () {
     return fn (string $query) => User::query()
+        ->where('hospital_id', $this->hospitalId)
         ->when(trim($query) !== '', function ($q) use ($query) {
             $normalized = Str::ascii(Str::lower($query));
             $q->whereRaw('LOWER(name) LIKE ?', ["%{$normalized}%"]);
@@ -212,6 +227,7 @@ $save = function () {
 
     DB::transaction(function () use ($data, $patientId, $patientName, $durationMinutes) {
         $case = SurgicalCase::create([
+            'hospital_id' => $this->hospitalId,
             'procedure_date' => $data['procedure_date'],
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
@@ -278,6 +294,7 @@ $pending_procedures = computed(function () {
     return SurgicalAssignment::query()
         ->where('user_id', $user->id)
         ->where('status', 'pending')
+        ->whereHas('surgicalCase', fn ($q) => $q->where('hospital_id', $this->hospitalId))
         ->with('surgicalCase')
         ->orderByDesc('created_at')
         ->limit(50)
@@ -288,7 +305,11 @@ $pending_total = computed(function () {
     $user = Auth::user();
     if (!$user) return 0;
 
-    return (float) SurgicalAssignment::query()->where('user_id', $user->id)->where('status', 'pending')->sum('calculated_amount');
+    return (float) SurgicalAssignment::query()
+        ->where('user_id', $user->id)
+        ->where('status', 'pending')
+        ->whereHas('surgicalCase', fn ($q) => $q->where('hospital_id', $this->hospitalId))
+        ->sum('calculated_amount');
 });
 
 $patient_suggestions = computed(function () {
