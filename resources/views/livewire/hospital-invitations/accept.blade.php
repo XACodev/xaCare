@@ -3,6 +3,7 @@
 use App\Models\HospitalInvitation;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -50,25 +51,46 @@ $accept = function () {
 
     $data = $this->validate();
 
-    $user = User::create([
-        'name' => $data['name'],
-        'username' => $data['username'],
-        'email' => $data['email'],
-        'password' => Hash::make($data['password']),
-        // hospital_id ALWAYS comes from the invitation record, never from
-        // the submitted form — this is what makes it impossible for
-        // whoever accepts the link to choose which hospital they join.
-        'hospital_id' => $invitation->hospital_id,
-        'is_platform_admin' => false,
-        'role' => 'admin',
-    ]);
+    $user = null;
 
-    $user->assignRole('admin');
+    DB::transaction(function () use ($invitation, $data, &$user) {
+        // Lock the invitation row so two concurrent acceptances cannot both
+        // pass the validity check and create users from the same one-time link.
+        $locked = HospitalInvitation::withoutGlobalScopes()
+            ->where('id', $invitation->id)
+            ->lockForUpdate()
+            ->first();
 
-    $invitation->forceFill([
-        'accepted_at' => now(),
-        'accepted_by' => $user->id,
-    ])->save();
+        if (! $locked || $locked->accepted_at !== null || $locked->expires_at->isPast()) {
+            return;
+        }
+
+        $user = User::create([
+            'name' => $data['name'],
+            'username' => $data['username'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            // hospital_id ALWAYS comes from the invitation record, never from
+            // the submitted form — this is what makes it impossible for
+            // whoever accepts the link to choose which hospital they join.
+            'hospital_id' => $locked->hospital_id,
+            'is_platform_admin' => false,
+            'role' => 'admin',
+        ]);
+
+        $user->assignRole('admin');
+
+        $locked->forceFill([
+            'accepted_at' => now(),
+            'accepted_by' => $user->id,
+        ])->save();
+    });
+
+    if (! $user) {
+        $this->valid = false;
+
+        return;
+    }
 
     Auth::login($user);
 

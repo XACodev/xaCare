@@ -5,6 +5,7 @@ use App\Models\RoleRate;
 use App\Models\SurgicalRole;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 use function Livewire\Volt\{state, computed, mount, rules};
@@ -38,6 +39,7 @@ mount(function () {
     abort_unless(Auth::check(), 401);
     abort_unless((bool) Auth::user()->can('pricing.manage'), 403);
     abort_if((bool) Auth::user()?->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
+    abort_if(! Auth::user()?->hospital_id, 422, 'Tu usuario no tiene un hospital asignado.');
 
     // Follows the same `request()->integer(...)` query-param convention used by
     // payouts/create.blade.php's `payee_id` preselection, rather than a typed mount()
@@ -98,31 +100,51 @@ $saveBaseRate = function () {
     abort_if((bool) Auth::user()?->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
     $this->validate();
 
-    $role = SurgicalRole::findOrFail($this->selected_role_id);
+    $user = Auth::user();
+    abort_if(! $user?->hospital_id, 422, 'Tu usuario no tiene un hospital asignado.');
 
-    // El hospital del rol es la fuente de verdad; no dependemos de que el usuario
-    // autenticado tenga hospital_id asignado (p. ej. datos legacy sin backfill).
-    if (Auth::user()?->hospital_id) {
-        abort_if(Auth::user()->hospital_id !== $role->hospital_id, 403);
-    }
+    $role = SurgicalRole::withoutGlobalScopes()->findOrFail($this->selected_role_id);
+    abort_if($user->hospital_id !== $role->hospital_id, 403, 'El rol no pertenece a tu hospital.');
 
     // user_id opcional: si se proporciona, el usuario debe pertenecer al mismo
     // hospital que el rol. Evita asociar tarifas a personal de otro tenant.
     if ($this->user_id) {
-        $targetUser = User::find($this->user_id);
+        $targetUser = User::withoutGlobalScopes()->find($this->user_id);
         abort_if(! $targetUser || $targetUser->hospital_id !== $role->hospital_id, 403);
     }
 
-    RoleRate::updateOrCreate(
-        ['surgical_role_id' => $this->selected_role_id, 'user_id' => $this->user_id, 'procedure_type' => null],
-        ['base_rate' => $this->base_rate, 'active' => true, 'hospital_id' => $role->hospital_id],
-    );
+    // Use a transaction + row lock to prevent duplicate RoleRate rows under
+    // concurrent saves. updateOrCreate() alone is not atomic enough when the
+    // unique key contains nullable columns.
+    DB::transaction(function () use ($role) {
+        $rate = RoleRate::query()
+            ->where('surgical_role_id', $this->selected_role_id)
+            ->whereNull('procedure_type')
+            ->when($this->user_id, fn ($q) => $q->where('user_id', $this->user_id), fn ($q) => $q->whereNull('user_id'))
+            ->lockForUpdate()
+            ->first();
+
+        if ($rate) {
+            $rate->update(['base_rate' => $this->base_rate, 'active' => true]);
+        } else {
+            RoleRate::create([
+                'hospital_id' => $role->hospital_id,
+                'surgical_role_id' => $this->selected_role_id,
+                'user_id' => $this->user_id,
+                'procedure_type' => null,
+                'base_rate' => $this->base_rate,
+                'active' => true,
+            ]);
+        }
+    });
 
     unset($this->default_rate);
 };
 
 $addModifier = function () {
     abort_unless((bool) Auth::user()->can('pricing.manage'), 403);
+    abort_if((bool) Auth::user()?->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
+    abort_if(! Auth::user()?->hospital_id, 422, 'Tu usuario no tiene un hospital asignado.');
 
     $this->validate([
         'modifier_name' => ['required', 'string', 'max:255'],
@@ -137,9 +159,14 @@ $addModifier = function () {
         'modifier_trigger_minutes' => ['required_if:modifier_trigger_type,'.RateModifier::TRIGGER_DURATION_GTE, 'nullable', 'integer', 'min:1'],
     ]);
 
+    $role = SurgicalRole::withoutGlobalScopes()->findOrFail($this->selected_role_id);
+    abort_if(Auth::user()->hospital_id !== $role->hospital_id, 403);
+
     if (! $this->default_rate) {
         $this->saveBaseRate();
     }
+
+    abort_if(! $this->default_rate || $this->default_rate->surgical_role_id !== $this->selected_role_id, 403);
 
     $triggerConfig = match ($this->modifier_trigger_type) {
         RateModifier::TRIGGER_TIME_WINDOW => ['start' => $this->modifier_trigger_hour_start, 'end' => $this->modifier_trigger_hour_end],
@@ -167,9 +194,14 @@ $addModifier = function () {
 $removeModifier = function (int $id) {
     abort_unless((bool) Auth::user()->can('pricing.manage'), 403);
     abort_if((bool) Auth::user()?->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
+    abort_if(! Auth::user()?->hospital_id, 422, 'Tu usuario no tiene un hospital asignado.');
 
     // Solo permitir borrar modifiers del RoleRate que se está editando actualmente.
     abort_if(! $this->default_rate, 403);
+
+    $role = SurgicalRole::withoutGlobalScopes()->findOrFail($this->selected_role_id);
+    abort_if(Auth::user()->hospital_id !== $role->hospital_id, 403);
+    abort_if($this->default_rate->surgical_role_id !== $this->selected_role_id, 403);
 
     $modifier = RateModifier::where('id', $id)
         ->where('role_rate_id', $this->default_rate->id)

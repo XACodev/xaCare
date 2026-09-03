@@ -133,6 +133,28 @@ test('a token that never existed is rejected with the exact same generic message
     $usedComponent->assertSee('no es válido o ya expiró');
 });
 
+test('accept is rejected when the invitation was used after the page loaded', function () {
+    $hospital = Hospital::factory()->create();
+    [$invitation, $plainToken] = HospitalInvitation::generateFor($hospital->id);
+
+    $component = Volt::test('hospital-invitations.accept', ['token' => $plainToken])
+        ->assertSet('valid', true)
+        ->set('name', 'Second Admin')
+        ->set('username', 'secondadmin')
+        ->set('email', 'secondadmin@example.com')
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password');
+
+    // Simulate another process accepting the invitation while the form was open.
+    $invitation->update(['accepted_at' => now(), 'accepted_by' => null]);
+
+    $component->call('accept')
+        ->assertSet('valid', false)
+        ->assertSee('no es válido o ya expiró');
+
+    expect(User::withoutGlobalScopes()->where('email', 'secondadmin@example.com')->count())->toBe(0);
+});
+
 test('accepting an invitation isolates the new user to their hospital only', function () {
     $hospitalA = Hospital::factory()->create();
     $hospitalB = Hospital::factory()->create();

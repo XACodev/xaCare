@@ -70,6 +70,28 @@ test('an expired platform admin invitation token is rejected with the generic me
         ->assertSee('no es válido o ya expiró');
 });
 
+test('accept is rejected when the platform admin invitation was used after the page loaded', function () {
+    $inviter = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
+    [$invitation, $plainToken] = PlatformAdminInvitation::generateFor($inviter->id, 'Test invite');
+
+    $component = Volt::test('platform.admin-invitations.accept', ['token' => $plainToken])
+        ->assertSet('valid', true)
+        ->set('name', 'Second Platform Admin')
+        ->set('username', 'secondplatformadmin')
+        ->set('email', 'secondplatformadmin@example.com')
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password');
+
+    // Simulate another process accepting the invitation while the form was open.
+    $invitation->update(['accepted_at' => now(), 'accepted_by' => null]);
+
+    $component->call('accept')
+        ->assertSet('valid', false)
+        ->assertSee('no es válido o ya expiró');
+
+    expect(User::where('email', 'secondplatformadmin@example.com')->count())->toBe(0);
+});
+
 test('a platform admin invitation token that never existed is rejected with the same generic message', function () {
     Volt::test('platform.admin-invitations.accept', ['token' => 'never-existed'])
         ->assertSet('valid', false)

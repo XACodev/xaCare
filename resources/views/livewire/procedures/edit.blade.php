@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 
-use function Livewire\Volt\{state, mount, computed};
+use function Livewire\Volt\{state, mount, computed, rules};
 
 state([
     'case' => null,
@@ -24,6 +24,23 @@ state([
     'is_videosurgery' => false,
     'assignments' => [],
     'success_message' => null,
+]);
+
+rules([
+    'procedure_date' => ['required', 'date'],
+    'start_time' => ['required', 'date_format:H:i'],
+    'end_time' => ['required', 'date_format:H:i'],
+    'patient_name' => ['required', 'string', 'max:255'],
+    'procedure_type' => ['required', 'string', 'max:255'],
+    'is_videosurgery' => ['boolean'],
+    'assignments' => ['required', 'array', 'min:1'],
+    'assignments.*.id' => ['required', 'integer'],
+    'assignments.*.role_id' => ['required', 'integer'],
+    'assignments.*.user_id' => ['nullable', 'integer'],
+    'assignments.*.is_courtesy' => ['boolean'],
+    'assignments.*.note' => ['nullable', 'string', 'max:255'],
+    'assignments.*.manual_toggles' => ['nullable', 'array'],
+    'assignments.*.manual_toggles.*' => ['integer'],
 ]);
 
 mount(function (SurgicalCase $procedure) {
@@ -113,34 +130,67 @@ $save = function () {
     $user = Auth::user();
     abort_unless($user && $user->can('procedures.edit'), 403);
     abort_if((bool) $user?->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
-    abort_unless($this->case->status === 'pending', 403);
 
-    $durationMinutes = TimeHelper::durationMinutes($this->procedure_date, $this->start_time, $this->end_time);
+    $data = $this->validate();
+
+    $durationMinutes = TimeHelper::durationMinutes($data['procedure_date'], $data['start_time'], $data['end_time']);
     if ($durationMinutes <= 0) {
         throw ValidationException::withMessages(['end_time' => 'La hora de finalización debe ser posterior a la hora de inicio.']);
     }
 
-    DB::transaction(function () use ($durationMinutes) {
-        $this->case->update([
-            'procedure_date' => $this->procedure_date,
-            'start_time' => $this->start_time,
-            'end_time' => $this->end_time,
+    DB::transaction(function () use ($data, $durationMinutes) {
+        // Reload the case from the database with a row lock. This prevents both
+        // model-id tampering in the Livewire payload and race conditions where
+        // the case is liquidated by another user while this edit is in flight.
+        $case = SurgicalCase::query()
+            ->where('id', $this->case->id)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        abort_unless($case->status === 'pending', 403, 'El procedimiento ya no está pendiente y no puede editarse.');
+
+        // All assignments must belong to this case; otherwise an attacker could
+        // pass arbitrary assignment ids and edit another case's payments.
+        $assignmentIds = collect($data['assignments'])->pluck('id')->filter()->all();
+        $caseAssignmentIds = $case->assignments()->pluck('id')->all();
+        if (array_diff($assignmentIds, $caseAssignmentIds)) {
+            abort(403, 'Una o más asignaciones no pertenecen a este procedimiento.');
+        }
+
+        $case->update([
+            'procedure_date' => $data['procedure_date'],
+            'start_time' => $data['start_time'],
+            'end_time' => $data['end_time'],
             'duration_minutes' => $durationMinutes,
-            'patient_name' => $this->patient_name,
-            'procedure_type' => $this->procedure_type,
-            'is_videosurgery' => (bool) $this->is_videosurgery,
+            'patient_name' => $data['patient_name'],
+            'procedure_type' => $data['procedure_type'],
+            'is_videosurgery' => (bool) $data['is_videosurgery'],
         ]);
 
-        foreach ($this->assignments as $row) {
-            $role = SurgicalRole::find($row['role_id']);
-            $assignedUser = $row['user_id'] ? User::find($row['user_id']) : null;
+        foreach ($data['assignments'] as $row) {
+            // Lookup without tenant scopes so we can explicitly reject cross-hospital
+            // ids instead of silently treating them as "not found".
+            $role = SurgicalRole::withoutGlobalScopes()->findOrFail($row['role_id']);
+            $assignedUser = $row['user_id']
+                ? User::withoutGlobalScopes()->find($row['user_id'])
+                : null;
+
+            // The role cannot be reassigned during edit (UI enforces this), but
+            // we still verify the role belongs to the same hospital as the case.
+            if ($role->hospital_id !== $case->hospital_id) {
+                abort(403, 'El rol no pertenece a este hospital.');
+            }
+
+            if ($assignedUser && $assignedUser->hospital_id !== $case->hospital_id) {
+                abort(403, 'El usuario asignado no pertenece a este hospital.');
+            }
 
             $pricing = app(RateResolutionService::class)->resolve(
                 role: $role,
                 user: $assignedUser,
-                procedureType: $this->procedure_type,
-                procedureDate: $this->procedure_date,
-                startTimeHHMM: $this->start_time,
+                procedureType: $data['procedure_type'],
+                procedureDate: $data['procedure_date'],
+                startTimeHHMM: $data['start_time'],
                 durationMinutes: $durationMinutes,
                 isCourtesy: (bool) $row['is_courtesy'],
                 manualToggleIds: array_map('intval', $row['manual_toggles'] ?? []),

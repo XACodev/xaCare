@@ -3,6 +3,7 @@
 use App\Models\PlatformAdminInvitation;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -46,20 +47,38 @@ $accept = function () {
 
     $data = $this->validate();
 
-    $user = User::create([
-        'name' => $data['name'],
-        'username' => $data['username'],
-        'email' => $data['email'],
-        'password' => Hash::make($data['password']),
-        'hospital_id' => null,
-        'is_platform_admin' => true,
-        'role' => 'admin',
-    ]);
+    $user = null;
 
-    $invitation->forceFill([
-        'accepted_at' => now(),
-        'accepted_by' => $user->id,
-    ])->save();
+    DB::transaction(function () use ($invitation, $data, &$user) {
+        $locked = PlatformAdminInvitation::where('id', $invitation->id)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $locked || $locked->accepted_at !== null || $locked->expires_at->isPast()) {
+            return;
+        }
+
+        $user = User::create([
+            'name' => $data['name'],
+            'username' => $data['username'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'hospital_id' => null,
+            'is_platform_admin' => true,
+            'role' => 'admin',
+        ]);
+
+        $locked->forceFill([
+            'accepted_at' => now(),
+            'accepted_by' => $user->id,
+        ])->save();
+    });
+
+    if (! $user) {
+        $this->valid = false;
+
+        return;
+    }
 
     Auth::login($user);
 

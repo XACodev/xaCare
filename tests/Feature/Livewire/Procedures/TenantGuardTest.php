@@ -87,3 +87,60 @@ test('user suggestions only include users from the same hospital', function () {
     expect($suggestions)->toHaveCount(1)
         ->and($suggestions[0]['name'])->toBe('Local User');
 });
+
+test('procedures.create always writes to the authenticated user hospital regardless of foreign ids', function () {
+    $hospitalA = Hospital::factory()->create();
+    $hospitalB = Hospital::factory()->create();
+
+    $user = User::factory()->create(['role' => 'instrumentist', 'hospital_id' => $hospitalA->id]);
+    $roleA = SurgicalRole::factory()->for($hospitalA, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista', 'is_payable' => true]);
+    SurgicalRole::factory()->for($hospitalB, 'hospital')->create(['name' => 'Cirujano', 'is_payable' => true]);
+
+    $this->actingAs($user);
+
+    Volt::test('procedures.create')
+        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_date', now()->toDateString())
+        ->set('start_time', '08:00')
+        ->set('end_time', '09:00')
+        ->set('patient_query', 'Paciente Emergencia')
+        ->set('assignments.0.role_id', $roleA->id)
+        ->set('assignments.0.user_id', $user->id)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $case = \App\Models\SurgicalCase::latest('id')->first();
+
+    expect($case)->not->toBeNull()
+        ->and($case->hospital_id)->toBe($hospitalA->id)
+        ->and($case->assignments)->toHaveCount(1)
+        ->and($case->assignments->first()->surgical_role_id)->toBe($roleA->id);
+});
+
+test('procedures.create rejects future and too-old dates', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['role' => 'instrumentist', 'hospital_id' => $hospital->id]);
+    SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista', 'is_payable' => true]);
+
+    $this->actingAs($user);
+
+    Volt::test('procedures.create')
+        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_date', now()->addDay()->toDateString())
+        ->set('start_time', '08:00')
+        ->set('end_time', '09:00')
+        ->set('assignments.0.role_id', SurgicalRole::first()->id)
+        ->set('assignments.0.user_id', $user->id)
+        ->call('save')
+        ->assertHasErrors(['procedure_date']);
+
+    Volt::test('procedures.create')
+        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_date', now()->subWeeks(3)->toDateString())
+        ->set('start_time', '08:00')
+        ->set('end_time', '09:00')
+        ->set('assignments.0.role_id', SurgicalRole::first()->id)
+        ->set('assignments.0.user_id', $user->id)
+        ->call('save')
+        ->assertHasErrors(['procedure_date']);
+});
