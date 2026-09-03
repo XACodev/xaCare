@@ -15,12 +15,13 @@ state([
     'payee_id' => '',
     'payees' => [],
     'selected' => [],
+    'hospitalId' => null,
 ]);
 
 rules(fn () => [
-    'payee_id' => ['required', 'integer', Rule::exists('users', 'id')->when(Auth::user()?->hospital_id, fn ($rule) => $rule->where('hospital_id', Auth::user()->hospital_id))],
+    'payee_id' => ['required', 'integer', Rule::exists('users', 'id')->where('hospital_id', $this->hospitalId)],
     'selected' => ['array'],
-    'selected.*' => ['integer', Rule::exists('surgical_assignments', 'id')->when(Auth::user()?->hospital_id, fn ($rule) => $rule->where('hospital_id', Auth::user()->hospital_id))],
+    'selected.*' => ['integer', Rule::exists('surgical_assignments', 'id')->where('hospital_id', $this->hospitalId)],
 ]);
 
 mount(function () {
@@ -28,9 +29,13 @@ mount(function () {
     abort_unless((bool) $user, 401);
     abort_unless($user->can("payouts.create"), 403);
     abort_if((bool) $user->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
+    abort_if(! $user->hospital_id, 422, 'Tu usuario no tiene un hospital asignado.');
+
+    $this->hospitalId = $user->hospital_id;
 
     $this->payees = User::query()
-        ->whereHas('assignments', fn ($q) => $q->where('status', 'pending'))
+        ->where('hospital_id', $this->hospitalId)
+        ->whereHas('assignments', fn ($q) => $q->where('status', 'pending')->where('hospital_id', $this->hospitalId))
         ->orderBy('name')
         ->get(['id', 'name'])
         ->map(fn($u) => ['id' => $u->id, 'name' => $u->name]);
@@ -47,6 +52,7 @@ $pending_assignments = computed(function () {
     if (!$this->payee_id) return collect();
 
     return SurgicalAssignment::query()
+        ->where('hospital_id', $this->hospitalId)
         ->where('user_id', $this->payee_id)
         ->where('status', 'pending')
         ->with(['surgicalCase', 'surgicalRole'])
@@ -56,7 +62,11 @@ $pending_assignments = computed(function () {
 
 $pending_total = computed(function () {
     if (!$this->payee_id) return 0.0;
-    return (float) SurgicalAssignment::query()->where('user_id', $this->payee_id)->where('status', 'pending')->sum('calculated_amount');
+    return (float) SurgicalAssignment::query()
+        ->where('hospital_id', $this->hospitalId)
+        ->where('user_id', $this->payee_id)
+        ->where('status', 'pending')
+        ->sum('calculated_amount');
 });
 
 $selected_total = computed(function () {
@@ -64,7 +74,11 @@ $selected_total = computed(function () {
     if (!$this->payee_id || empty($ids)) return 0.0;
 
     return (float) SurgicalAssignment::query()
-        ->where('user_id', $this->payee_id)->where('status', 'pending')->whereIn('id', $ids)->sum('calculated_amount');
+        ->where('hospital_id', $this->hospitalId)
+        ->where('user_id', $this->payee_id)
+        ->where('status', 'pending')
+        ->whereIn('id', $ids)
+        ->sum('calculated_amount');
 });
 
 $pending_count = computed(fn () => $this->pending_assignments->count());
@@ -92,6 +106,7 @@ $liquidate = function () {
     }
 
     $assignments = SurgicalAssignment::query()
+        ->where('hospital_id', $this->hospitalId)
         ->where('user_id', $data['payee_id'])->where('status', 'pending')
         ->whereIn('id', $selectedIds)->lockForUpdate()->get();
 
@@ -103,6 +118,7 @@ $liquidate = function () {
 
     $batch = DB::transaction(function () use ($admin, $data, $assignments, $total) {
         $batch = PayoutBatch::create([
+            'hospital_id' => $this->hospitalId,
             'payee_id' => (int) $data['payee_id'],
             'paid_by_id' => $admin->id,
             'paid_at' => now(),
@@ -112,6 +128,7 @@ $liquidate = function () {
 
         foreach ($assignments as $a) {
             $item = PayoutItem::create([
+                'hospital_id' => $this->hospitalId,
                 'payout_batch_id' => $batch->id,
                 'surgical_assignment_id' => $a->id,
                 'amount' => (float) $a->calculated_amount,

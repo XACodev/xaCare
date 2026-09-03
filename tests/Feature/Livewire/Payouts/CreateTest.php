@@ -91,3 +91,59 @@ test('preselects instrumentist from query parameter', function () {
         ->assertSuccessful()
         ->assertSee(__(':count procedures', ['count' => 1]));
 });
+
+test('does not show payees or assignments from another hospital', function () {
+    $hospitalA = Hospital::factory()->create();
+    $hospitalB = Hospital::factory()->create();
+
+    $admin = User::factory()->create(['hospital_id' => $hospitalA->id]);
+    $admin->assignRole('admin');
+
+    $instrumentistA = User::factory()->create(['hospital_id' => $hospitalA->id]);
+    $instrumentistA->assignRole('instrumentist');
+
+    $instrumentistB = User::factory()->create(['hospital_id' => $hospitalB->id]);
+    $instrumentistB->assignRole('instrumentist');
+
+    $roleA = \App\Models\SurgicalRole::factory()->create(['hospital_id' => $hospitalA->id]);
+    $roleB = \App\Models\SurgicalRole::factory()->create(['hospital_id' => $hospitalB->id]);
+
+    $caseA = \App\Models\SurgicalCase::factory()->create(['hospital_id' => $hospitalA->id]);
+    $caseB = \App\Models\SurgicalCase::factory()->create(['hospital_id' => $hospitalB->id]);
+
+    $assignmentA = SurgicalAssignment::factory()->create([
+        'hospital_id' => $hospitalA->id,
+        'surgical_case_id' => $caseA->id,
+        'surgical_role_id' => $roleA->id,
+        'user_id' => $instrumentistA->id,
+        'status' => 'pending',
+        'calculated_amount' => 100,
+    ]);
+
+    $assignmentB = SurgicalAssignment::factory()->create([
+        'hospital_id' => $hospitalB->id,
+        'surgical_case_id' => $caseB->id,
+        'surgical_role_id' => $roleB->id,
+        'user_id' => $instrumentistB->id,
+        'status' => 'pending',
+        'calculated_amount' => 200,
+    ]);
+
+    $component = Volt::actingAs($admin)->test('payouts.create');
+
+    // Solo se listan beneficiarios del hospital A.
+    expect($component->get('payees')->pluck('id')->all())->toContain($instrumentistA->id)
+        ->and($component->get('payees')->pluck('id')->all())->not->toContain($instrumentistB->id);
+
+    // Al seleccionar al beneficiario A, solo aparecen sus assignments del hospital A.
+    $component->set('payee_id', $instrumentistA->id);
+    expect($component->get('pending_assignments')->pluck('id')->all())->toContain($assignmentA->id)
+        ->and($component->get('pending_assignments')->pluck('id')->all())->not->toContain($assignmentB->id);
+
+    // No se puede liquidar un assignment de otro hospital aunque se fuerce en selected.
+    $component->set('selected', [$assignmentB->id]);
+    $component->call('liquidate');
+    $component->assertHasErrors(['selected.0']);
+
+    expect($assignmentB->fresh()->status)->toBe('pending');
+});
