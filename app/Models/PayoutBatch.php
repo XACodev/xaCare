@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Contracts\HasHospital;
+use App\Contracts\Payable;
 use App\Models\Concerns\BelongsToTenant;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class PayoutBatch extends Model
+class PayoutBatch extends Model implements HasHospital, Payable
 {
     use BelongsToTenant, HasFactory;
 
@@ -37,5 +40,15 @@ class PayoutBatch extends Model
     public function items()
     {
         return $this->hasMany(PayoutItem::class, 'payout_batch_id', 'id');
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->paid_at !== null;
+    }
+
+    public function paidAt(): ?Carbon
+    {
+        return $this->paid_at;
     }
 }

@@ -11,7 +11,7 @@ test('procedures are scoped by hospital and link to a patient', function () {
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'instrumentist']);
     $this->actingAs($user);
 
-    $procedure = SurgicalCase::create([
+    $surgicalCase = SurgicalCase::create([
         'procedure_date' => now()->toDateString(),
         'start_time' => '08:00',
         'end_time' => '09:00',
@@ -21,6 +21,6 @@ test('procedures are scoped by hospital and link to a patient', function () {
         'status' => 'pending',
     ]);
 
-    expect($procedure->hospital_id)->toBe($hospital->id);
-    expect($procedure->patient->is($patient))->toBeTrue();
+    expect($surgicalCase->hospital_id)->toBe($hospital->id);
+    expect($surgicalCase->patient->is($patient))->toBeTrue();
 });

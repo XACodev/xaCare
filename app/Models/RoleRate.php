@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Contracts\HasHospital;
+use App\Contracts\Priced;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class RoleRate extends Model
+class RoleRate extends Model implements HasHospital, Priced
 {
     use BelongsToTenant, HasFactory, LogsActivity;
 
@@ -41,6 +43,11 @@ class RoleRate extends Model
     public function modifiers(): HasMany
     {
         return $this->hasMany(RateModifier::class);
+    }
+
+    public function price(): float
+    {
+        return (float) $this->base_rate;
     }
 
     public function getActivitylogOptions(): LogOptions

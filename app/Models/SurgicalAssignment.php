@@ -2,14 +2,18 @@
 // app/Models/SurgicalAssignment.php
 namespace App\Models;
 
+use App\Contracts\HasHospital;
+use App\Contracts\Payable;
+use App\Contracts\Priced;
 use App\Models\Concerns\BelongsToTenant;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class SurgicalAssignment extends Model
+class SurgicalAssignment extends Model implements HasHospital, Priced, Payable
 {
     use BelongsToTenant, HasFactory, LogsActivity;
 
@@ -50,6 +54,21 @@ class SurgicalAssignment extends Model
     public function payoutItem()
     {
         return $this->belongsTo(PayoutItem::class);
+    }
+
+    public function price(): float
+    {
+        return (float) $this->calculated_amount;
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->status === 'paid';
+    }
+
+    public function paidAt(): ?Carbon
+    {
+        return $this->payoutItem?->payoutBatch?->paid_at;
     }
 
     public function getActivitylogOptions(): LogOptions

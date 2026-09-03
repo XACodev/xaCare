@@ -28,9 +28,9 @@ test('instrumentist selects a patient and it is stored on the procedure', functi
         ->call('save')
         ->assertHasNoErrors();
 
-    $procedure = SurgicalCase::withoutGlobalScopes()->first();
-    expect($procedure->patient_id)->toBe($patient->id);
-    expect($procedure->patient_name)->toBe('Ana Gomez');
+    $surgicalCase = SurgicalCase::withoutGlobalScopes()->first();
+    expect($surgicalCase->patient_id)->toBe($patient->id);
+    expect($surgicalCase->patient_name)->toBe('Ana Gomez');
 });
 
 test('instrumentist can register a procedure with a free-text patient name for emergency cases', function () {
@@ -47,9 +47,9 @@ test('instrumentist can register a procedure with a free-text patient name for e
         ->call('save')
         ->assertHasNoErrors();
 
-    $procedure = SurgicalCase::withoutGlobalScopes()->first();
-    expect($procedure->patient_id)->toBeNull();
-    expect($procedure->patient_name)->toBe('Paciente De Emergencia'); // Title Case cast
+    $surgicalCase = SurgicalCase::withoutGlobalScopes()->first();
+    expect($surgicalCase->patient_id)->toBeNull();
+    expect($surgicalCase->patient_name)->toBe('Paciente De Emergencia'); // Title Case cast
 });
 
 test('registering a procedure requires a patient, selected or typed', function () {

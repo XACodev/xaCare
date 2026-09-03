@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Contracts\HasHospital;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-class SurgicalRole extends Model
+class SurgicalRole extends Model implements HasHospital
 {
     use BelongsToTenant, HasFactory;
 

@@ -44,19 +44,24 @@ rules([
 ]);
 
 mount(function (SurgicalCase $procedure) {
+    // The parameter name MUST match the route placeholder `{procedure}`
+    // so Laravel injects the SurgicalCase model. Internal references
+    // below use $surgicalCase to keep the domain language consistent.
+    $surgicalCase = $procedure;
+
     $user = Auth::user();
     abort_unless($user && $user->can('procedures.edit'), 403);
-    abort_unless($procedure->status === 'pending', 403);
+    abort_unless($surgicalCase->status === 'pending', 403);
 
-    $this->case = $procedure;
-    $this->procedure_date = Carbon\Carbon::parse($procedure->procedure_date)->format('Y-m-d');
-    $this->start_time = substr($procedure->start_time, 0, 5);
-    $this->end_time = substr($procedure->end_time, 0, 5);
-    $this->patient_name = $procedure->patient_name ?? '';
-    $this->procedure_type = $procedure->procedure_type ?? '';
-    $this->is_videosurgery = (bool) $procedure->is_videosurgery;
+    $this->case = $surgicalCase;
+    $this->procedure_date = Carbon\Carbon::parse($surgicalCase->procedure_date)->format('Y-m-d');
+    $this->start_time = substr($surgicalCase->start_time, 0, 5);
+    $this->end_time = substr($surgicalCase->end_time, 0, 5);
+    $this->patient_name = $surgicalCase->patient_name ?? '';
+    $this->procedure_type = $surgicalCase->procedure_type ?? '';
+    $this->is_videosurgery = (bool) $surgicalCase->is_videosurgery;
 
-    $this->assignments = $procedure->assignments()->with(['surgicalRole', 'user'])->get()
+    $this->assignments = $surgicalCase->assignments()->with(['surgicalRole', 'user'])->get()
         ->map(function (SurgicalAssignment $a) {
             $evaluated = data_get($a->pricing_snapshot, 'modifiers_evaluated', []);
             $manualToggles = collect($evaluated)

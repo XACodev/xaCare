@@ -23,7 +23,7 @@ beforeEach(function () {
 
 function makePaidBatchWithItem(User $instrumentist, User $admin): PayoutBatch
 {
-    $procedure = SurgicalCase::factory()->create([
+    $surgicalCase = SurgicalCase::factory()->create([
         'hospital_id' => $instrumentist->hospital_id,
         'status' => 'paid',
         'calculated_amount' => 100,
@@ -31,7 +31,7 @@ function makePaidBatchWithItem(User $instrumentist, User $admin): PayoutBatch
 
     $assignment = SurgicalAssignment::factory()->create([
         'hospital_id' => $instrumentist->hospital_id,
-        'surgical_case_id' => $procedure->id,
+        'surgical_case_id' => $surgicalCase->id,
         'surgical_role_id' => SurgicalRole::factory()->create(['hospital_id' => $instrumentist->hospital_id])->id,
         'user_id' => $instrumentist->id,
         'status' => 'paid',
@@ -51,12 +51,12 @@ function makePaidBatchWithItem(User $instrumentist, User $admin): PayoutBatch
         'surgical_assignment_id' => $assignment->id,
         'amount' => 100,
         'snapshot' => [
-            'procedure_date' => $procedure->procedure_date,
-            'start_time' => $procedure->start_time,
-            'end_time' => $procedure->end_time,
-            'duration_minutes' => $procedure->duration_minutes,
-            'patient_name' => $procedure->patient_name,
-            'procedure_type' => $procedure->procedure_type,
+            'procedure_date' => $surgicalCase->procedure_date,
+            'start_time' => $surgicalCase->start_time,
+            'end_time' => $surgicalCase->end_time,
+            'duration_minutes' => $surgicalCase->duration_minutes,
+            'patient_name' => $surgicalCase->patient_name,
+            'procedure_type' => $surgicalCase->procedure_type,
             'is_videosurgery' => false,
             'calculated_amount' => 100,
             'pricing_snapshot' => [

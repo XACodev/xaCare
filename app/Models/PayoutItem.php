@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Contracts\HasHospital;
+use App\Contracts\Priced;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class PayoutItem extends Model
+class PayoutItem extends Model implements HasHospital, Priced
 {
     use BelongsToTenant, HasFactory;
 
@@ -31,5 +33,10 @@ class PayoutItem extends Model
     public function surgicalAssignment()
     {
         return $this->belongsTo(SurgicalAssignment::class);
+    }
+
+    public function price(): float
+    {
+        return (float) $this->amount;
     }
 }
