@@ -2,10 +2,10 @@
 
 // tests/Feature/Services/RateResolutionServiceTest.php
 use App\Models\Hospital;
+use App\Models\User;
 use App\Modules\QxLog\Models\RateModifier;
 use App\Modules\QxLog\Models\RoleRate;
 use App\Modules\QxLog\Models\SurgicalRole;
-use App\Models\User;
 use App\Modules\QxLog\Services\RateResolutionService;
 
 beforeEach(function () {
@@ -121,4 +121,53 @@ test('cortesia siempre fuerza el monto a cero sin importar otras reglas', functi
 
     expect($result['amount'])->toBe(0.0)
         ->and($result['snapshot']['rule'])->toBe('courtesy');
+});
+
+test('multiplicador se calcula sobre la tarifa base', function () {
+    $rate = RoleRate::factory()->for($this->role, 'surgicalRole')->create(['base_rate' => 200]);
+    RateModifier::factory()->for($rate, 'roleRate')->create([
+        'name' => 'Doble',
+        'rate_type' => RateModifier::RATE_MULTIPLIER,
+        'amount' => 2,
+        'trigger_type' => RateModifier::TRIGGER_MANUAL_TOGGLE,
+        'trigger_config' => [],
+    ]);
+
+    $result = $this->service->resolve(
+        role: $this->role, user: null, procedureType: null,
+        procedureDate: '2026-09-02', startTimeHHMM: '10:00', durationMinutes: 60, isCourtesy: false,
+        manualToggleIds: RateModifier::pluck('id')->all(),
+    );
+
+    expect($result['amount'])->toBe(400.0)
+        ->and($result['snapshot']['rule'])->toBe('Doble')
+        ->and($result['snapshot']['base_rate'])->toBe(200.0);
+});
+
+test('entre multiplicador y monto fijo gana el mayor resultado sobre la base', function () {
+    $rate = RoleRate::factory()->for($this->role, 'surgicalRole')->create(['base_rate' => 200]);
+    RateModifier::factory()->for($rate, 'roleRate')->create([
+        'name' => 'Monto fijo alto',
+        'rate_type' => RateModifier::RATE_FIXED_AMOUNT,
+        'amount' => 500,
+        'trigger_type' => RateModifier::TRIGGER_MANUAL_TOGGLE,
+        'trigger_config' => [],
+    ]);
+    RateModifier::factory()->for($rate, 'roleRate')->create([
+        'name' => 'Multiplicador bajo',
+        'rate_type' => RateModifier::RATE_MULTIPLIER,
+        'amount' => 1.5,
+        'trigger_type' => RateModifier::TRIGGER_MANUAL_TOGGLE,
+        'trigger_config' => [],
+    ]);
+
+    $result = $this->service->resolve(
+        role: $this->role, user: null, procedureType: null,
+        procedureDate: '2026-09-02', startTimeHHMM: '10:00', durationMinutes: 60, isCourtesy: false,
+        manualToggleIds: RateModifier::pluck('id')->all(),
+    );
+
+    expect($result['amount'])->toBe(500.0)
+        ->and($result['snapshot']['rule'])->toBe('Monto fijo alto')
+        ->and($result['snapshot']['candidates']['Multiplicador bajo'])->toBe(300.0);
 });

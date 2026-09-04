@@ -2,10 +2,10 @@
 
 namespace App\Modules\QxLog\Services;
 
+use App\Models\User;
 use App\Modules\QxLog\Models\RateModifier;
 use App\Modules\QxLog\Models\RoleRate;
 use App\Modules\QxLog\Models\SurgicalRole;
-use App\Models\User;
 use App\Support\TimeHelper;
 
 class RateResolutionService
@@ -52,9 +52,10 @@ class RateResolutionService
             ];
         }
 
-        $amount = (float) $roleRate->base_rate;
+        $baseRate = (float) $roleRate->base_rate;
+        $amount = $baseRate;
         $rule = 'base_rate';
-        $candidates = ['base_rate' => $amount];
+        $candidates = ['base_rate' => $baseRate];
         $evaluated = [];
 
         foreach ($roleRate->modifiers()->where('active', true)->orderBy('sort_order')->get() as $modifier) {
@@ -64,6 +65,7 @@ class RateResolutionService
                 'id' => $modifier->id,
                 'name' => $modifier->name,
                 'trigger_type' => $modifier->trigger_type,
+                'rate_type' => $modifier->rate_type,
                 'applies' => $applies,
                 'amount' => (float) $modifier->amount,
             ];
@@ -73,7 +75,7 @@ class RateResolutionService
             }
 
             $candidateAmount = $modifier->rate_type === RateModifier::RATE_MULTIPLIER
-                ? $amount * (float) $modifier->amount
+                ? $baseRate * (float) $modifier->amount
                 : (float) $modifier->amount;
 
             $candidates[$modifier->name] = $candidateAmount;
@@ -91,7 +93,7 @@ class RateResolutionService
                 'rule' => $rule,
                 'amount' => $amount,
                 'role_rate_id' => $roleRate->id,
-                'base_rate' => (float) $roleRate->base_rate,
+                'base_rate' => $baseRate,
                 'candidates' => $candidates,
                 'modifiers_evaluated' => $evaluated,
                 'is_courtesy' => false,

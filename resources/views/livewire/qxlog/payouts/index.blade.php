@@ -123,7 +123,7 @@ $batches = computed(function () {
                                     Q{{ number_format((float) $b->total_amount, 2) }}
                                 </td>
                                 <td class="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-300">
-                                    {{ $b->paidByUser->name ?? ('#' . $b->paid_by_user_id) }}
+                                    {{ $b->paidByUser->name ?? ('#' . $b->paid_by_id) }}
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <flux:button href="{{ route('payouts.voucher', $b->id) }}" variant="ghost" size="sm"
@@ -169,7 +169,7 @@ $batches = computed(function () {
                         <div class="flex items-center justify-between text-sm pt-2">
                             <div class="text-zinc-500 dark:text-zinc-400">
                                 <span class="text-xs uppercase tracking-wide">{{ __('Paid by') }}:</span>
-                                {{ $b->paidByUser->name ?? ('#' . $b->paid_by_user_id) }}
+                                {{ $b->paidByUser->name ?? ('#' . $b->paid_by_id) }}
                             </div>
                             <flux:button href="{{ route('payouts.voucher', $b->id) }}" variant="filled" size="sm">
                                 {{ __('Voucher') }}
