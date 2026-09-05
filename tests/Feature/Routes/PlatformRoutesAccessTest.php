@@ -4,7 +4,7 @@ use App\Models\Hospital;
 use App\Models\User;
 
 test('a platform admin can reach the platform dashboard', function () {
-    $admin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
+    $admin = User::factory()->withTwoFactor()->create(['hospital_id' => null, 'is_platform_admin' => true]);
 
     $this->actingAs($admin)
         ->get(route('platform.dashboard'))

@@ -77,7 +77,7 @@ Route::middleware(['auth', 'hospital.subscribed'])->group(function () {
     Volt::route('users/{user}/edit', 'users.edit')->name('users.edit');
 });
 
-Route::prefix('platform')->name('platform.')->middleware(['auth', 'platform-admin'])->group(function () {
+Route::prefix('platform')->name('platform.')->middleware(['auth', 'platform-admin', 'platform-2fa'])->group(function () {
     Volt::route('/', 'platform.dashboard')->name('dashboard');
 
     Volt::route('hospitals', 'platform.hospitals.index')->name('hospitals.index');
