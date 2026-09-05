@@ -12,6 +12,10 @@ Route::get('/', function () {
 // Público, sin autenticación. Endpoint de monitoreo externo: verifica DB y cache.
 Route::get('/health', HealthController::class)->name('health');
 
+// Páginas legales públicas, sin autenticación.
+Route::view('terms', 'legal.terms')->name('legal.terms');
+Route::view('privacy', 'legal.privacy')->name('legal.privacy');
+
 // Public, unauthenticated invitation acceptance route. Single purpose: let
 // someone without an account create the first admin account for the
 // hospital named on their invitation. Isolated from every other route.
