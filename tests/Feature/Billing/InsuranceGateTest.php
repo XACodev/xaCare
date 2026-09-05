@@ -66,5 +66,5 @@ test('a pro-plan admin can open the insurance module stub', function () {
     $this->actingAs($admin)
         ->get(route('modules.insurance'))
         ->assertOk()
-        ->assertSee('próximamente', false);
+        ->assertSee('Aseguradoras', false);
 });
