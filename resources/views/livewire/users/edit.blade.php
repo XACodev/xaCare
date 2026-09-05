@@ -30,7 +30,7 @@ state([
 
 mount(function (string|int $user) {
     $me = Auth::user();
-    abort_unless($me && ($me->is_platform_admin || $me->role === 'admin'), 403);
+    abort_unless($me && ($me->is_platform_admin || $me->hasRole('admin')), 403);
     abort_if(! $me->is_platform_admin && ! $me->hospital_id, 422, 'Tu usuario no tiene un hospital asignado. Contacta al administrador de la plataforma.');
 
     // TenantScope ya restringe esta consulta al hospital del admin logueado: un admin de
@@ -92,7 +92,7 @@ rules(function () {
 
 $save = function () {
     $me = Auth::user();
-    abort_unless($me && ($me->is_platform_admin || $me->role === 'admin'), 403);
+    abort_unless($me && ($me->is_platform_admin || $me->hasRole('admin')), 403);
 
     $data = $this->validate();
 
@@ -133,7 +133,7 @@ $save = function () {
 
 $toggleDelete = function () {
     $me = Auth::user();
-    abort_unless($me && ($me->is_platform_admin || $me->role === 'admin'), 403);
+    abort_unless($me && ($me->is_platform_admin || $me->hasRole('admin')), 403);
 
     if ($me->id === $this->user->id) {
         abort(403, 'No puedes desactivar tu propio usuario.');

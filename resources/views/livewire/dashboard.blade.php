@@ -35,7 +35,7 @@ new class extends Component {
 
         $hasQxlog = $user->hospital?->hasFeature('qxlog') || $user->is_platform_admin;
 
-        if ($hasQxlog && $user->role === 'admin') {
+        if ($hasQxlog && $user->hasRole('admin')) {
             $stats = [
                 'total_procedures' => \App\Modules\QxLog\Models\SurgicalCase::count(),
                 'pending_procedures' => \App\Modules\QxLog\Models\SurgicalAssignment::where('status', 'pending')->count(),
@@ -65,7 +65,7 @@ new class extends Component {
     <div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">
 
         <!-- Stats Section -->
-        @if($user && $user->role === 'admin' && $hasQxlog)
+        @if($user && $user->hasRole('admin') && $hasQxlog)
             <div class="grid gap-4 md:grid-cols-3">
                 <div
                     class="relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
@@ -98,7 +98,7 @@ new class extends Component {
                     </div>
                 </div>
             </div>
-        @elseif($user && $user->role === 'instrumentist' && $hasQxlog)
+        @elseif($user && $user->hasRole('instrumentist') && $hasQxlog)
             <div class="grid gap-4 md:grid-cols-3">
                  <div class="relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
                     <div class="flex items-center justify-between">
@@ -153,7 +153,7 @@ new class extends Component {
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Accesos Directos') }}</h2>
         </div>
 
-        @if($user && $user->role === 'admin')
+        @if($user && $user->hasRole('admin'))
             <div class="grid auto-rows-min gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <!-- Admin Shortcuts -->
                 @if($hasQxlog)
@@ -210,7 +210,7 @@ new class extends Component {
                     </a>
                 @endif
             </div>
-        @elseif($user && $user->role === 'instrumentist')
+        @elseif($user && $user->hasRole('instrumentist'))
             <div class="grid auto-rows-min gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <!-- Instrumentist Shortcuts -->
                 @if($hasQxlog)

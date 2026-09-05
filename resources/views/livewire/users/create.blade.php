@@ -26,7 +26,7 @@ state([
 
 mount(function () {
     $u = Auth::user();
-    abort_unless($u && ($u->is_platform_admin || $u->role === 'admin'), 403);
+    abort_unless($u && ($u->is_platform_admin || $u->hasRole('admin')), 403);
 
     if ($u->is_platform_admin) {
         // El super admin siempre llega aquí desde la ficha de un hospital concreto
@@ -70,7 +70,7 @@ rules(fn () => [
 
 $save = function () {
     $me = Auth::user();
-    abort_unless($me && ($me->is_platform_admin || $me->role === 'admin'), 403);
+    abort_unless($me && ($me->is_platform_admin || $me->hasRole('admin')), 403);
 
     // Un admin de hospital nunca puede elegir otro hospital, sin importar qué haya
     // llegado del formulario (defensa en profundidad, la vista ya oculta ese campo).

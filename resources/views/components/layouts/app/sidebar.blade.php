@@ -22,7 +22,7 @@
         @php($hasQxlog = $me?->hospital?->hasFeature('qxlog') || $me?->is_platform_admin)
 
         <flux:navlist variant="outline">
-            @if($me && $me->role !== "admin" && $hasQxlog)
+            @if($me && ! $me->hasRole('admin') && $hasQxlog)
                 <flux:navlist.group :heading="__('Procedures')" class="grid">
                     <flux:navlist.item icon="clipboard-document-list" :href="route('procedures.create')"
                         :current="request()->routeIs('procedures.create')" wire:navigate>
@@ -37,7 +37,7 @@
                 </flux:navlist.group>
             @endif
 
-            @if($me && $me->role === 'admin')
+            @if($me && $me->hasRole('admin'))
                 <flux:navlist.group :heading="__('Ingresos')" class="grid">
                     <flux:navlist.item icon="identification" :href="route('patients.index')"
                         :current="request()->routeIs('patients.*')" wire:navigate>

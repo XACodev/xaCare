@@ -19,7 +19,7 @@ state([
 mount(function () {
     abort_unless(Auth::check(), 401);
 
-    abort_unless((bool) (Auth::user()->role === 'admin' || Auth::user()->is_platform_admin), 403);
+    abort_unless((bool) (Auth::user()->hasRole('admin') || Auth::user()->is_platform_admin), 403);
 });
 
 $instrumentists = computed(function () {

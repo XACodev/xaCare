@@ -200,7 +200,7 @@ $save = function () {
     // (ej. Circulante) para alterar su propio pago — el rol se fuerza en servidor, sin
     // confiar en que el <select> de la vista esté deshabilitado. Un admin sí puede asignar
     // cualquier rol a cualquier persona, incluido a sí mismo.
-    if ($user->role === 'instrumentist') {
+    if ($user->hasRole('instrumentist')) {
         $instrumentistRoleId = SurgicalRole::query()->where('slug', 'instrumentista')->value('id');
         if ($instrumentistRoleId) {
             foreach ($data['assignments'] as $i => $row) {

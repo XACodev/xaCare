@@ -19,7 +19,7 @@ mount(function () {
     // hospital (Hospitales > editar > Staff), no desde una lista global — evita mezclar
     // el personal de todos los hospitales en una sola tabla.
     $u = Auth::user();
-    abort_unless($u && ! $u->is_platform_admin && $u->role === 'admin', 403);
+    abort_unless($u && ! $u->is_platform_admin && $u->hasRole('admin'), 403);
     $this->rolesAvailable = Role::whereIn('name', $u->hospital?->visibleRoleNames() ?? Hospital::CORE_ROLES)
         ->orderBy('name')
         ->pluck('name', 'id')
@@ -96,7 +96,7 @@ $roleCount = function (string $roleName) {
 
 $deleteUser = function (int $id) {
     $me = Auth::user();
-    abort_unless(! $me->is_platform_admin && $me->role === 'admin', 403);
+    abort_unless(! $me->is_platform_admin && $me->hasRole('admin'), 403);
 
     if ($me->id === $id) {
         abort(403, 'No puedes eliminar tu propio usuario.');
@@ -111,7 +111,7 @@ $deleteUser = function (int $id) {
 
 $restoreUser = function (int $id) {
     $me = Auth::user();
-    abort_unless(! $me->is_platform_admin && $me->role === 'admin', 403);
+    abort_unless(! $me->is_platform_admin && $me->hasRole('admin'), 403);
 
     $u = User::onlyTrashed()->findOrFail($id);
     abort_if($u->is_platform_admin, 404);
