@@ -30,6 +30,7 @@ mount(function () {
 
     $this->roles = Role::query()
         ->where('guard_name', 'web')
+        ->whereNull('team_id')
         ->orderBy('name')
         ->get()
         ->map(fn($r) => ['id' => $r->id, 'name' => $r->name])
@@ -47,6 +48,7 @@ mount(function () {
 $refreshRoles = function () {
     $this->roles = Role::query()
         ->where('guard_name', 'web')
+        ->whereNull('team_id')
         ->orderBy('name')
         ->get()
         ->map(fn($r) => ['id' => $r->id, 'name' => $r->name])
@@ -77,6 +79,7 @@ $selectRole = function (int $roleId) {
 
     $role = Role::query()
         ->where('guard_name', 'web')
+        ->whereNull('team_id')
         ->with('permissions:id,name')
         ->findOrFail($roleId);
 
@@ -106,7 +109,10 @@ $saveRole = function () {
         return;
     }
 
-    $role = Role::query()->where('guard_name', 'web')->findOrFail((int) $this->selected_role_id);
+    $role = Role::query()
+        ->where('guard_name', 'web')
+        ->whereNull('team_id')
+        ->findOrFail((int) $this->selected_role_id);
 
     // Rename
     $newName = trim((string) $this->selected_role_name);
@@ -132,8 +138,11 @@ $deleteRole = function () {
 
     if (!$this->selected_role_id) return;
 
-    $role = Role::query()->where('guard_name', 'web')->findOrFail((int) $this->selected_role_id);
-    
+    $role = Role::query()
+        ->where('guard_name', 'web')
+        ->whereNull('team_id')
+        ->findOrFail((int) $this->selected_role_id);
+
     $role->delete();
 
     $this->selected_role_id = null;

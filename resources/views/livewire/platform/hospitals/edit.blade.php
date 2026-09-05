@@ -49,7 +49,7 @@ mount(function (string|int $hospital) {
 // Roles del catálogo global que NO son "core" — solo estos se pueden habilitar/deshabilitar
 // por hospital. Los core (admin/doctor/instrumentist/circulating) siempre están disponibles
 // en todos los hospitales y no aparecen aquí.
-$optionalRoles = computed(fn () => Role::whereNotIn('name', Hospital::CORE_ROLES)->orderBy('name')->pluck('name'));
+$optionalRoles = computed(fn () => Role::whereNull('team_id')->whereNotIn('name', Hospital::CORE_ROLES)->orderBy('name')->pluck('name'));
 
 $toggleRole = function (string $roleName) {
     abort_unless((bool) Auth::user()->is_platform_admin, 403);
