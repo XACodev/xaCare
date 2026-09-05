@@ -23,7 +23,7 @@ class BackupDatabase extends Command
             return self::FAILURE;
         }
 
-        $backupDir = storage_path('app/backups');
+        $backupDir = config('backup.database_path', storage_path('app/backups'));
         File::ensureDirectoryExists($backupDir);
 
         $result = match ($connection['driver'] ?? null) {
@@ -76,9 +76,13 @@ class BackupDatabase extends Command
             '--host='.($connection['host'] ?? '127.0.0.1'),
             '--port='.($connection['port'] ?? '3306'),
             '--user='.($connection['username'] ?? 'root'),
+            '--result-file='.$destination,
             $connection['database'] ?? '',
         ];
 
+        // mysqldump escribe el volcado directamente en --result-file: evita cargar
+        // toda la base de datos en memoria en un string de PHP (result()->output())
+        // y no pierde el trabajo parcial si el proceso falla a mitad de camino.
         $result = Process::env([
             'MYSQL_PWD' => $connection['password'] ?? '',
         ])->run($command);
@@ -86,10 +90,10 @@ class BackupDatabase extends Command
         if (! $result->successful()) {
             $this->error('mysqldump falló: '.$result->errorOutput());
 
+            File::delete($destination);
+
             return self::FAILURE;
         }
-
-        File::put($destination, $result->output());
 
         $this->info("Backup creado en: {$destination}");
 
@@ -111,9 +115,13 @@ class BackupDatabase extends Command
             '--host='.($connection['host'] ?? '127.0.0.1'),
             '--port='.($connection['port'] ?? '5432'),
             '--username='.($connection['username'] ?? 'root'),
+            '--file='.$destination,
             $connection['database'] ?? '',
         ];
 
+        // pg_dump escribe el volcado directamente en --file: evita cargar toda la
+        // base de datos en memoria en un string de PHP (result()->output()) y no
+        // pierde el trabajo parcial si el proceso falla a mitad de camino.
         $result = Process::env([
             'PGPASSWORD' => $connection['password'] ?? '',
         ])->run($command);
@@ -121,10 +129,10 @@ class BackupDatabase extends Command
         if (! $result->successful()) {
             $this->error('pg_dump falló: '.$result->errorOutput());
 
+            File::delete($destination);
+
             return self::FAILURE;
         }
-
-        File::put($destination, $result->output());
 
         $this->info("Backup creado en: {$destination}");
 
