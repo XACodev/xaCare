@@ -54,7 +54,7 @@ class Hospital extends Model
 
     /**
      * Nombres de rol que este hospital puede ver/asignar: los "core" (siempre),
-     * los globales habilitados por el super admin para este hospital, y los
+     * los globales habilitados por el administrador de plataforma para este hospital, y los
      * roles custom creados exclusivamente para este hospital (team_id = hospital_id).
      *
      * @return list<string>

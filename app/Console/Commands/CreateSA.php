@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\User;
+use Illuminate\Console\Command;
 
 class CreateSA extends Command
 {
@@ -19,7 +19,7 @@ class CreateSA extends Command
      *
      * @var string
      */
-    protected $description = 'Create a super admin user';
+    protected $description = 'Create a platform admin user';
 
     /**
      * Execute the console command.
@@ -35,6 +35,7 @@ class CreateSA extends Command
 
         if (empty($email) || empty($name) || empty($username) || empty($password) || empty($role)) {
             $this->error('Missing environment variables.');
+
             return;
         }
 

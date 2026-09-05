@@ -19,7 +19,7 @@ class TenantScope implements Scope
 
         $user = Auth::user();
 
-        // Sin usuario, o super admin sin hospital: no se filtra (ve todo).
+        // Sin usuario, o administrador de plataforma sin hospital: no se filtra (ve todo).
         if (! $user || ! $user->hospital_id) {
             return;
         }

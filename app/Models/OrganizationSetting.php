@@ -36,7 +36,7 @@ class OrganizationSetting extends Model
     }
 
     /**
-     * Configuración de un hospital específico (p. ej. para un super admin
+     * Configuración de un hospital específico (p. ej. para un administrador de plataforma
      * revisando un voucher de un hospital que no es el suyo).
      */
     public static function forHospital(?int $hospitalId): self
