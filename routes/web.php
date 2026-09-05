@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
@@ -7,6 +8,9 @@ use Livewire\Volt\Volt;
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+// Público, sin autenticación. Endpoint de monitoreo externo: verifica DB y cache.
+Route::get('/health', HealthController::class)->name('health');
 
 // Public, unauthenticated invitation acceptance route. Single purpose: let
 // someone without an account create the first admin account for the
