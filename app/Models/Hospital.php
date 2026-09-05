@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Models\Role;
 
 class Hospital extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     /**
      * Roles del catálogo global que TODO hospital puede asignar siempre, sin
@@ -85,6 +87,23 @@ class Hospital extends Model
         }
 
         return $status->allowsAccess();
+    }
+
+    /**
+     * Hospitales piloto (ej. HNSC) nunca deben quedar en `trialing`: el cobro
+     * se opera manualmente y su acceso debe mantenerse `active`.
+     */
+    public function isPilot(): bool
+    {
+        return in_array($this->slug, config('billing.pilot_hospital_slugs', []), true);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['plan', 'subscription_status', 'trial_ends_at', 'is_active'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 
     public function organizationSetting(): HasOne

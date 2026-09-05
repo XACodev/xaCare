@@ -18,8 +18,14 @@ class EnsureHospitalSubscribed
 
         $hospital = $user->hospital;
 
-        abort_unless($hospital?->subscriptionAllowsAccess() ?? false, 403, 'La suscripción de este hospital no está activa.');
+        if ($hospital?->subscriptionAllowsAccess() ?? false) {
+            return $next($request);
+        }
 
-        return $next($request);
+        if ($request->expectsJson()) {
+            abort(403, 'La suscripción de este hospital no está activa.');
+        }
+
+        return redirect()->route('billing.suspended');
     }
 }
