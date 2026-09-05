@@ -50,7 +50,8 @@ $accept = function () {
     $user = null;
 
     DB::transaction(function () use ($invitation, $data, &$user) {
-        $locked = PlatformAdminInvitation::where('id', $invitation->id)
+        $locked = PlatformAdminInvitation::withoutGlobalScopes()
+            ->where('id', $invitation->id)
             ->lockForUpdate()
             ->first();
 
