@@ -89,6 +89,12 @@
                             {{ __('General Settings') }}
                         </flux:navlist.item>
                     @endcan
+                    @if($me && $me->hasRole('admin') && !$me->is_platform_admin)
+                        <flux:navlist.item icon="shield-check" :href="route('settings.roles.index')"
+                            :current="request()->routeIs('settings.roles.index')" wire:navigate>
+                            {{ __('Roles Custom') }}
+                        </flux:navlist.item>
+                    @endif
                     @if($me?->hospital?->hasFeature('insurance'))
                         <flux:navlist.item icon="shield-check" :href="route('modules.insurance')"
                             :current="request()->routeIs('modules.insurance')" wire:navigate>
