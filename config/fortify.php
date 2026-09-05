@@ -101,7 +101,9 @@ return [
     |
     */
 
-    'middleware' => ['web'],
+    // ThrottlePasswordReset aplica el limiter 'reset-password' (FortifyServiceProvider)
+    // solo a password.email/password.update, que Fortify no throttlea de fábrica.
+    'middleware' => ['web', \App\Http\Middleware\ThrottlePasswordReset::class],
 
     /*
     |--------------------------------------------------------------------------

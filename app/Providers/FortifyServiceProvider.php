@@ -68,5 +68,17 @@ class FortifyServiceProvider extends ServiceProvider
 
             return Limit::perMinute(5)->by($throttleKey);
         });
+
+        // Fortify no aplica throttle a password.email/password.update por defecto:
+        // su registro de rutas (vendor/laravel/fortify/routes/routes.php) solo lee
+        // config('fortify.limiters.*') para 'login', 'two-factor' y 'verification';
+        // las rutas de reset de password no tienen limiter configurable de fábrica.
+        // Este limiter lo consume App\Http\Middleware\ThrottlePasswordReset, agregado
+        // al grupo de middleware de Fortify en config/fortify.php.
+        RateLimiter::for('reset-password', function (Request $request) {
+            $throttleKey = Str::transliterate(Str::lower($request->input('email')).'|'.$request->ip());
+
+            return Limit::perMinute(5)->by($throttleKey);
+        });
     }
 }

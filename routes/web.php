@@ -19,12 +19,15 @@ Route::view('privacy', 'legal.privacy')->name('legal.privacy');
 // Public, unauthenticated invitation acceptance route. Single purpose: let
 // someone without an account create the first admin account for the
 // hospital named on their invitation. Isolated from every other route.
-Volt::route('invitaciones/{token}', 'hospital-invitations.accept')->name('hospital-invitations.accept');
+Volt::route('invitaciones/{token}', 'hospital-invitations.accept')
+    ->middleware('throttle:10,1')
+    ->name('hospital-invitations.accept');
 
 // Public, unauthenticated invitation acceptance route for platform admins.
 // Single purpose: let someone without an account create a new platform-admin
 // account from a one-time invitation link. Isolated from every other route.
 Volt::route('platform-invitaciones/{token}', 'platform.admin-invitations.accept')
+    ->middleware('throttle:10,1')
     ->name('platform.admin-invitations.accept');
 
 Volt::route('dashboard', 'dashboard')
