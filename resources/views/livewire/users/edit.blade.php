@@ -35,18 +35,18 @@ mount(function (string|int $user) {
 
     // TenantScope ya restringe esta consulta al hospital del admin logueado: un admin de
     // hospital que intente editar un usuario ajeno recibe 404, nunca los datos de otro
-    // tenant. Las cuentas super admin nunca se editan desde aquí (se gestionan desde
-    // Configuración), sin importar quién lo intente.
+    // tenant. Las cuentas de administrador de plataforma nunca se editan desde aquí (se
+    // gestionan desde Configuración), sin importar quién lo intente.
     $u = User::withTrashed()->findOrFail($user);
     abort_if($u->is_platform_admin, 404);
 
     // Solo los roles habilitados para el hospital de este usuario (los "core" siempre,
-    // más los que el super admin haya habilitado específicamente para ese hospital), MÁS
-    // el rol que el usuario ya tiene asignado aunque se haya deshabilitado después — si no,
-    // el <select> queda sin ninguna opción coincidiendo con su rol actual y guardar
-    // cualquier otro cambio (nombre, teléfono...) sin tocar el rol falla con un error de
-    // validación confuso, para un escenario que la propia feature permite (deshabilitar un
-    // rol que ya estaba en uso).
+    // más los que el administrador de plataforma haya habilitado específicamente para ese
+    // hospital), MÁS el rol que el usuario ya tiene asignado aunque se haya deshabilitado
+    // después — si no, el <select> queda sin ninguna opción coincidiendo con su rol actual
+    // y guardar cualquier otro cambio (nombre, teléfono...) sin tocar el rol falla con un
+    // error de validación confuso, para un escenario que la propia feature permite
+    // (deshabilitar un rol que ya estaba en uso).
     $currentRoleName = $u->getRoleNames()->first();
     $visibleRoleNames = $u->hospital?->visibleRoleNames() ?? Hospital::CORE_ROLES;
     if ($currentRoleName && ! in_array($currentRoleName, $visibleRoleNames, true)) {
