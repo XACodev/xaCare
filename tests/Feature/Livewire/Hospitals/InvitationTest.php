@@ -155,6 +155,69 @@ test('accept is rejected when the invitation was used after the page loaded', fu
     expect(User::withoutGlobalScopes()->where('email', 'secondadmin@example.com')->count())->toBe(0);
 });
 
+test('accepting the same invitation a second time with different data does not create a second user', function () {
+    $hospital = Hospital::factory()->create();
+    [$invitation, $plainToken] = HospitalInvitation::generateFor($hospital->id);
+
+    Volt::test('hospital-invitations.accept', ['token' => $plainToken])
+        ->set('name', 'First Admin')
+        ->set('username', 'firstadmin')
+        ->set('email', 'firstadmin@example.com')
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password')
+        ->call('accept')
+        ->assertHasNoErrors();
+
+    expect(User::withoutGlobalScopes()->where('email', 'firstadmin@example.com')->count())->toBe(1);
+
+    Volt::test('hospital-invitations.accept', ['token' => $plainToken])
+        ->assertSet('valid', false)
+        ->set('name', 'Second Attempt')
+        ->set('username', 'secondattempt')
+        ->set('email', 'secondattempt@example.com')
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password')
+        ->call('accept')
+        ->assertSet('valid', false)
+        ->assertSee('no es válido o ya expiró');
+
+    expect(User::withoutGlobalScopes()->count())->toBe(1);
+    expect(User::withoutGlobalScopes()->where('email', 'secondattempt@example.com')->count())->toBe(0);
+});
+
+test('accepting with a username or email already used by another user fails validation without marking the invitation used', function () {
+    $hospital = Hospital::factory()->create();
+    User::factory()->create(['username' => 'takenuser', 'email' => 'taken@example.com']);
+
+    [$invitationUsername, $plainTokenUsername] = HospitalInvitation::generateFor($hospital->id);
+
+    Volt::test('hospital-invitations.accept', ['token' => $plainTokenUsername])
+        ->set('name', 'Duplicate Username')
+        ->set('username', 'takenuser')
+        ->set('email', 'newemail@example.com')
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password')
+        ->call('accept')
+        ->assertHasErrors(['username']);
+
+    $invitationUsername->refresh();
+    expect($invitationUsername->accepted_at)->toBeNull();
+
+    [$invitationEmail, $plainTokenEmail] = HospitalInvitation::generateFor($hospital->id);
+
+    Volt::test('hospital-invitations.accept', ['token' => $plainTokenEmail])
+        ->set('name', 'Duplicate Email')
+        ->set('username', 'newusername')
+        ->set('email', 'taken@example.com')
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password')
+        ->call('accept')
+        ->assertHasErrors(['email']);
+
+    $invitationEmail->refresh();
+    expect($invitationEmail->accepted_at)->toBeNull();
+});
+
 test('accepting an invitation isolates the new user to their hospital only', function () {
     $hospitalA = Hospital::factory()->create();
     $hospitalB = Hospital::factory()->create();
