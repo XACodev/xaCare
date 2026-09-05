@@ -24,7 +24,13 @@ class RequireTwoFactorForPlatformAdmins
             && ! $request->routeIs('two-factor.show')
             && ! $request->routeIs('logout')
         ) {
-            session()->flash('status', 'Debes activar la verificación en dos pasos para acceder al panel de plataforma.');
+            // `flash()` solo sobrevive a la SIGUIENTE petición. Cuando `password.confirm`
+            // está activo (config/fortify.php), esta redirección es seguida por otra
+            // redirección de Fortify hacia la confirmación de contraseña antes de que
+            // la vista de 2FA se renderice: son dos saltos, y flash() se pierde en el
+            // segundo. `put()` persiste hasta que la página que finalmente la muestra
+            // la limpia explícitamente (ver settings/two-factor.blade.php).
+            session()->put('status', 'Debes activar la verificación en dos pasos para acceder al panel de plataforma.');
 
             return redirect()->route('two-factor.show');
         }
