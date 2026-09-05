@@ -26,6 +26,10 @@
                 :current="request()->routeIs('platform.activity.*')" wire:navigate>
                 {{ __('Actividad') }}
             </flux:navlist.item>
+            <flux:navlist.item icon="banknotes" :href="route('platform.billing.reports')"
+                :current="request()->routeIs('platform.billing.*')" wire:navigate>
+                {{ __('Reportes de facturación') }}
+            </flux:navlist.item>
             <flux:navlist.item icon="users" :href="route('platform.admins.index')"
                 :current="request()->routeIs('platform.admins.*')" wire:navigate>
                 {{ __('Administradores') }}
