@@ -39,3 +39,18 @@ test('a basic-plan admin gets forbidden on /seguros', function () {
         ->get(route('modules.insurance'))
         ->assertForbidden();
 });
+
+test('a platform admin cannot access /seguros', function () {
+    $hospital = Hospital::factory()->create();
+    app(HospitalPlanService::class)->applyPlan($hospital, 'pro');
+
+    $platformAdmin = User::factory()->create([
+        'hospital_id' => null,
+        'is_platform_admin' => true,
+    ]);
+    $platformAdmin->assignRole('admin');
+
+    $this->actingAs($platformAdmin)
+        ->get(route('modules.insurance'))
+        ->assertForbidden();
+});
