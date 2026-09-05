@@ -113,3 +113,21 @@ test('super admin cannot access the hospital custom roles page', function () {
         ->get(route('settings.roles.index'))
         ->assertForbidden();
 });
+
+test('a hospital admin can only assign existing permissions to a custom role', function () {
+    $admin = makeHospitalAdmin();
+    $validPermission = \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'procedures.view', 'guard_name' => 'web']);
+    $role = Role::create(['name' => 'bodeguero', 'guard_name' => 'web', 'team_id' => $admin->hospital_id]);
+
+    $this->actingAs($admin);
+
+    Volt::test('settings.roles.index')
+        ->call('selectRole', $role->id)
+        ->set('selected_permissions', ['procedures.view', 'nonexistent.permission'])
+        ->call('saveRole')
+        ->assertHasNoErrors();
+
+    $role->refresh();
+    expect($role->permissions->pluck('name')->toArray())->toContain('procedures.view')
+        ->and($role->permissions->pluck('name')->toArray())->not->toContain('nonexistent.permission');
+});

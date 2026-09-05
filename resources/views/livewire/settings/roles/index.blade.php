@@ -149,7 +149,10 @@ $saveRole = function () {
         $this->refreshRoles();
     }
 
-    $role->syncPermissions($this->selected_permissions);
+    $allowedPermissionNames = collect($this->permissions)->pluck('name')->toArray();
+    $permissionsToSync = array_values(array_intersect($this->selected_permissions, $allowedPermissionNames));
+
+    $role->syncPermissions($permissionsToSync);
 
     $this->selected_role_name = $newName;
     $this->success = 'Rol actualizado.';
