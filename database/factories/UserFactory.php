@@ -2,9 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Models\Hospital;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
@@ -34,8 +37,26 @@ class UserFactory extends Factory
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
-            'hospital_id' => \App\Models\Hospital::factory(),
+            'hospital_id' => Hospital::factory(),
         ];
+    }
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            if (! is_string($user->role) || $user->role === '') {
+                return;
+            }
+
+            Role::firstOrCreate([
+                'name' => $user->role,
+                'guard_name' => 'web',
+                'team_id' => in_array($user->role, Hospital::CORE_ROLES, true)
+                    ? null
+                    : $user->hospital_id,
+            ]);
+            $user->assignRole($user->role);
+        });
     }
 
     /**
@@ -43,7 +64,7 @@ class UserFactory extends Factory
      */
     public function unverified(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
     }
@@ -53,7 +74,7 @@ class UserFactory extends Factory
      */
     public function withTwoFactor(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'two_factor_secret' => encrypt('secret'),
             'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
             'two_factor_confirmed_at' => now(),

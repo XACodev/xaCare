@@ -14,8 +14,8 @@ beforeEach(function () {
 test('super admin can view user creation page for a specific hospital', function () {
     $user = User::factory()->create(['is_platform_admin' => true, 'hospital_id' => null]);
     $hospital = Hospital::factory()->create();
-    Role::create(['name' => 'admin', 'guard_name' => 'web']);
-    Role::create(['name' => 'doctor', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'doctor', 'guard_name' => 'web']);
 
     $this->actingAs($user)
         ->get(route('users.create', ['hospital_id' => $hospital->id]))
@@ -52,7 +52,7 @@ test('hospital admin can view user creation page', function () {
 test('hospital admin creates staff scoped to their own hospital without choosing one', function () {
     $hospital = Hospital::factory()->create();
     $admin = User::factory()->create(['is_platform_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
-    $role = Role::create(['name' => 'instrumentist', 'guard_name' => 'web']);
+    $role = Role::firstOrCreate(['name' => 'instrumentist', 'guard_name' => 'web']);
 
     $this->actingAs($admin);
 
@@ -76,7 +76,7 @@ test('hospital admin cannot move a created user to another hospital', function (
     $hospital = Hospital::factory()->create();
     $otherHospital = Hospital::factory()->create();
     $admin = User::factory()->create(['is_platform_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
-    $role = Role::create(['name' => 'instrumentist', 'guard_name' => 'web']);
+    $role = Role::firstOrCreate(['name' => 'instrumentist', 'guard_name' => 'web']);
 
     $this->actingAs($admin);
 

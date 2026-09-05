@@ -2,8 +2,12 @@
 
 namespace Database\Seeders;
 
+use App\Auth\PermissionTeamResolver;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
@@ -12,16 +16,18 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     public function run(): void
     {
-        // Reset cached roles and permissions
         app()['cache']->forget('spatie.permission.cache');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        // Create roles
-        $adminRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin']);
-        $instrumentistRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'instrumentist']);
-        $doctorRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'doctor']);
-        $circulatingRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'circulating']);
+        $previousTeamId = getPermissionsTeamId();
+        $wasExplicit = PermissionTeamResolver::hasExplicitTeamId();
+        setPermissionsTeamId(null);
 
-        // Create permissions
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web', 'team_id' => null]);
+        $instrumentistRole = Role::firstOrCreate(['name' => 'instrumentist', 'guard_name' => 'web', 'team_id' => null]);
+        $doctorRole = Role::firstOrCreate(['name' => 'doctor', 'guard_name' => 'web', 'team_id' => null]);
+        $circulatingRole = Role::firstOrCreate(['name' => 'circulating', 'guard_name' => 'web', 'team_id' => null]);
+
         $permissions = [
             'procedures.create',
             'procedures.view',
@@ -35,10 +41,9 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            \Spatie\Permission\Models\Permission::firstOrCreate(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
-        // Assign permissions to admin role
         $adminRole->givePermissionTo([
             'procedures.create',
             'procedures.view',
@@ -49,35 +54,40 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.manage',
         ]);
 
-        // Assign permissions to instrumentist role
         $instrumentistRole->givePermissionTo([
             'procedures.create',
             'procedures.view',
         ]);
 
-        // Assign permissions to doctor role
         $doctorRole->givePermissionTo([
             'procedures.create',
             'procedures.view',
         ]);
 
-        // Assign permissions to circulating role
         $circulatingRole->givePermissionTo([
             'procedures.create',
             'procedures.view',
         ]);
 
-        // Assign roles to users
-        $adminUser = User::where('role', 'admin')->get();
-        $adminUser->each->assignRole($adminRole);
+        if ($wasExplicit) {
+            setPermissionsTeamId($previousTeamId);
+        } else {
+            PermissionTeamResolver::clearExplicitTeamId();
+        }
 
-        $instrumentistUser = User::where('role', 'instrumentist')->get();
-        $instrumentistUser->each->assignRole($instrumentistRole);
+        $this->assignRoleToUsersWithLegacyRole('admin', $adminRole);
+        $this->assignRoleToUsersWithLegacyRole('instrumentist', $instrumentistRole);
+        $this->assignRoleToUsersWithLegacyRole('doctor', $doctorRole);
+        $this->assignRoleToUsersWithLegacyRole('circulating', $circulatingRole);
+    }
 
-        $doctorUser = User::where('role', 'doctor')->get();
-        $doctorUser->each->assignRole($doctorRole);
-
-        $circulatingUser = User::where('role', 'circulating')->get();
-        $circulatingUser->each->assignRole($circulatingRole);
+    private function assignRoleToUsersWithLegacyRole(string $legacyRole, Role $role): void
+    {
+        User::query()
+            ->where('role', $legacyRole)
+            ->get()
+            ->each(function (User $user) use ($role): void {
+                $user->assignRole($role);
+            });
     }
 }

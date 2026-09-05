@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\Permission\Models\Role;
 
 class Hospital extends Model
 {
@@ -50,16 +51,24 @@ class Hospital extends Model
     }
 
     /**
-     * Nombres de rol que este hospital puede ver/asignar: los "core" (siempre) más
-     * los que el super admin haya habilitado específicamente para este hospital.
+     * Nombres de rol que este hospital puede ver/asignar: los "core" (siempre),
+     * los globales habilitados por el super admin para este hospital, y los
+     * roles custom creados exclusivamente para este hospital (team_id = hospital_id).
      *
      * @return list<string>
      */
     public function visibleRoleNames(): array
     {
+        $customRoleNames = Role::query()
+            ->where('team_id', $this->id)
+            ->where('guard_name', 'web')
+            ->pluck('name')
+            ->toArray();
+
         return array_values(array_unique([
             ...self::CORE_ROLES,
             ...($this->enabled_roles ?? []),
+            ...$customRoleNames,
         ]));
     }
 

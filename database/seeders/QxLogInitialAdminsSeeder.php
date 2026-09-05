@@ -2,10 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
+use App\Models\Hospital;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class QxLogInitialAdminsSeeder extends Seeder
 {
@@ -14,7 +15,7 @@ class QxLogInitialAdminsSeeder extends Seeder
      */
     public function run(): void
     {
-        User::firstOrCreate(
+        $super = User::firstOrCreate(
             ['username' => 'thealejandro'],
             [
                 'name' => 'Alejandro',
@@ -28,7 +29,15 @@ class QxLogInitialAdminsSeeder extends Seeder
             ]
         );
 
-        User::firstOrCreate(
+        $this->assignSpatieRole($super);
+
+        $hospital = Hospital::query()->first();
+
+        if ($hospital === null) {
+            return;
+        }
+
+        $admin = User::firstOrCreate(
             ['username' => 'admin_hospital'],
             [
                 'name' => 'Administrador Hospital',
@@ -38,8 +47,30 @@ class QxLogInitialAdminsSeeder extends Seeder
                 'role' => 'admin',
                 'is_platform_admin' => false,
                 'use_pay_scheme' => false,
+                'hospital_id' => $hospital->id,
                 'password' => Hash::make('1981'),
             ]
         );
+
+        $this->assignSpatieRole($admin);
+    }
+
+    private function assignSpatieRole(User $user): void
+    {
+        $roleName = $user->role;
+
+        if (! is_string($roleName) || $roleName === '') {
+            return;
+        }
+
+        $teamId = in_array($roleName, Hospital::CORE_ROLES, true) ? null : $user->hospital_id;
+
+        Role::firstOrCreate([
+            'name' => $roleName,
+            'guard_name' => 'web',
+            'team_id' => $teamId,
+        ]);
+
+        $user->assignRole($roleName);
     }
 }

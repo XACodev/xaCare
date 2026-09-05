@@ -12,7 +12,7 @@ use Spatie\Permission\Models\Role;
 beforeEach(function () {
     app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
-    Role::create(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
     Permission::firstOrCreate(['name' => 'settings.manage', 'guard_name' => 'web']);
 });
 

@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\Hospital;
+use App\Models\User;
 use App\Modules\QxLog\Models\PayoutBatch;
 use App\Modules\QxLog\Models\SurgicalAssignment;
-use App\Models\User;
 use Livewire\Volt\Volt;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -11,8 +11,8 @@ use Spatie\Permission\Models\Role;
 beforeEach(function () {
     app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
-    $adminRole = Role::create(['name' => 'admin', 'guard_name' => 'web']);
-    Role::create(['name' => 'instrumentist', 'guard_name' => 'web']);
+    $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'instrumentist', 'guard_name' => 'web']);
 
     Permission::create(['name' => 'payouts.create', 'guard_name' => 'web']);
     $adminRole->givePermissionTo('payouts.create');

@@ -2,18 +2,18 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Hospital;
+use App\Models\PricingSetting;
 use App\Models\User;
+use App\Modules\QxLog\Models\PayoutBatch;
+use App\Modules\QxLog\Models\PayoutItem;
 use App\Modules\QxLog\Models\SurgicalAssignment;
 use App\Modules\QxLog\Models\SurgicalCase;
 use App\Modules\QxLog\Models\SurgicalRole;
-use App\Modules\QxLog\Models\PayoutBatch;
-use App\Modules\QxLog\Models\PayoutItem;
-use App\Models\PricingSetting;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class QxLogTestSeeder extends Seeder
 {
@@ -156,6 +156,10 @@ class QxLogTestSeeder extends Seeder
                 'hospital_id' => $hospital->id,
             ]
         );
+
+        foreach ([$super, $admin, $inst1, $inst2, $inst3, $doc1, $doc2, $doc3, $circ1, $circ2] as $user) {
+            $this->assignSpatieRole($user);
+        }
 
         // ======================
         // PRICING SETTINGS (deben existir antes)
@@ -369,5 +373,24 @@ class QxLogTestSeeder extends Seeder
         }
 
         $batch2->update(['total_amount' => $total2]);
+    }
+
+    private function assignSpatieRole(User $user): void
+    {
+        $roleName = $user->role;
+
+        if (! is_string($roleName) || $roleName === '') {
+            return;
+        }
+
+        $teamId = in_array($roleName, Hospital::CORE_ROLES, true) ? null : $user->hospital_id;
+
+        Role::firstOrCreate([
+            'name' => $roleName,
+            'guard_name' => 'web',
+            'team_id' => $teamId,
+        ]);
+
+        $user->assignRole($roleName);
     }
 }

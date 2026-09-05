@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\Hospital;
+use App\Models\User;
 use App\Modules\QxLog\Models\RoleRate;
 use App\Modules\QxLog\Models\SurgicalRole;
-use App\Models\User;
 use Livewire\Volt\Volt;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -16,7 +16,7 @@ beforeEach(function () {
 test('reloading the page with ?selected_role_id keeps showing the saved rate for that role', function () {
     $hospital = Hospital::factory()->create();
     $admin = User::factory()->create(['role' => 'admin', 'hospital_id' => $hospital->id]);
-    Role::create(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
     $admin->assignRole('admin');
     $admin->givePermissionTo('pricing.manage');
 
@@ -43,7 +43,7 @@ test('rules reject a role from another hospital before saveBaseRate runs', funct
     $hospitalB = Hospital::factory()->create();
 
     $admin = User::factory()->create(['role' => 'admin', 'hospital_id' => $hospitalA->id]);
-    Role::create(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
     $admin->assignRole('admin');
     $admin->givePermissionTo('pricing.manage');
 
@@ -66,7 +66,7 @@ test('saveBaseRate rejects a per-user override for a user from another hospital'
     $hospitalB = Hospital::factory()->create();
 
     $admin = User::factory()->create(['role' => 'admin', 'hospital_id' => $hospitalA->id]);
-    Role::create(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
     $admin->assignRole('admin');
     $admin->givePermissionTo('pricing.manage');
 
@@ -90,7 +90,7 @@ test('a user without hospital_id is rejected from pricing settings', function ()
         'role' => 'admin',
         'hospital_id' => null,
     ]));
-    Role::create(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
     $admin->assignRole('admin');
     $admin->givePermissionTo('pricing.manage');
 

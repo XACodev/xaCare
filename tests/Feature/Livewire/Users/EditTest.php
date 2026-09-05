@@ -8,9 +8,9 @@ use Spatie\Permission\Models\Role;
 beforeEach(function () {
     app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
     // Seed roles needed for tests
-    Role::create(['name' => 'admin', 'guard_name' => 'web']);
-    Role::create(['name' => 'manager', 'guard_name' => 'web']);
-    Role::create(['name' => 'doctor', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'doctor', 'guard_name' => 'web']);
 });
 
 test('super admin can view user edit page', function () {
