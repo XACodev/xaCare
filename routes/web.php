@@ -49,7 +49,7 @@ Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
     Volt::route('settings/organization', 'settings.organization')->name('settings.organization');
     Volt::route('settings/roles', 'settings.roles.index')->name('settings.roles.index');
 
-    Volt::route('seguros', 'modules.insurance')
+    Volt::route('seguros', 'insurance.index')
         ->middleware('hospital.feature:insurance')
         ->name('modules.insurance');
 });
