@@ -22,22 +22,14 @@
         @php($hasQxlog = $me?->hospital?->hasFeature('qxlog') || $me?->is_platform_admin)
 
         <flux:navlist variant="outline">
-            @if($me && ! $me->hasRole('admin') && $hasQxlog)
-                <flux:navlist.group :heading="__('Procedures')" class="grid">
-                    <flux:navlist.item icon="clipboard-document-list" :href="route('procedures.create')"
-                        :current="request()->routeIs('procedures.create')" wire:navigate>
-                        {{ __('Register Procedure') }}
+            @if($me && $me->is_platform_admin)
+                <flux:navlist.group :heading="__('Plataforma')" class="grid">
+                    <flux:navlist.item icon="squares-2x2" :href="route('platform.dashboard')"
+                        :current="request()->routeIs('platform.*')" wire:navigate>
+                        {{ __('Panel de Administrador') }}
                     </flux:navlist.item>
                 </flux:navlist.group>
-                <flux:navlist.group :heading="__('History')" class="grid">
-                    <flux:navlist.item icon="queue-list" :href="route('instrumentist.payouts')"
-                        :current="request()->routeIs('instrumentist.payouts')" wire:navigate>
-                        {{ __('My Procedures') }}
-                    </flux:navlist.item>
-                </flux:navlist.group>
-            @endif
-
-            @if($me && $me->hasRole('admin'))
+            @elseif($me && $me->hasRole('admin'))
                 <flux:navlist.group :heading="__('Ingresos')" class="grid">
                     <flux:navlist.item icon="identification" :href="route('patients.index')"
                         :current="request()->routeIs('patients.*')" wire:navigate>
@@ -67,12 +59,10 @@
                     </flux:navlist.group>
                 @endif
                 <flux:navlist.group :heading="__('Configurations')" class="grid">
-                    @if(!$me->is_platform_admin)
-                        <flux:navlist.item icon="user" :href="route('users.index')"
-                            :current="request()->routeIs('users.index')" wire:navigate>
-                            {{ __('Mi Staff') }}
-                        </flux:navlist.item>
-                    @endif
+                    <flux:navlist.item icon="user" :href="route('users.index')"
+                        :current="request()->routeIs('users.index')" wire:navigate>
+                        {{ __('Mi Staff') }}
+                    </flux:navlist.item>
                     @if($hasQxlog)
                         <flux:navlist.item icon="users" :href="route('pricing.instrumentists')"
                             :current="request()->routeIs('pricing.instrumentists')" wire:navigate>
@@ -89,18 +79,29 @@
                             {{ __('General Settings') }}
                         </flux:navlist.item>
                     @endcan
-                    @if($me && $me->hasRole('admin') && !$me->is_platform_admin)
-                        <flux:navlist.item icon="shield-check" :href="route('settings.roles.index')"
-                            :current="request()->routeIs('settings.roles.index')" wire:navigate>
-                            {{ __('Roles Custom') }}
-                        </flux:navlist.item>
-                    @endif
+                    <flux:navlist.item icon="shield-check" :href="route('settings.roles.index')"
+                        :current="request()->routeIs('settings.roles.index')" wire:navigate>
+                        {{ __('Roles Custom') }}
+                    </flux:navlist.item>
                     @if($me?->hospital?->hasFeature('insurance'))
                         <flux:navlist.item icon="shield-check" :href="route('modules.insurance')"
                             :current="request()->routeIs('modules.insurance')" wire:navigate>
                             {{ __('Seguros') }}
                         </flux:navlist.item>
                     @endif
+                </flux:navlist.group>
+            @elseif($me && $me->hasRole('instrumentist') && $hasQxlog)
+                <flux:navlist.group :heading="__('Procedures')" class="grid">
+                    <flux:navlist.item icon="clipboard-document-list" :href="route('procedures.create')"
+                        :current="request()->routeIs('procedures.create')" wire:navigate>
+                        {{ __('Register Procedure') }}
+                    </flux:navlist.item>
+                </flux:navlist.group>
+                <flux:navlist.group :heading="__('History')" class="grid">
+                    <flux:navlist.item icon="queue-list" :href="route('instrumentist.payouts')"
+                        :current="request()->routeIs('instrumentist.payouts')" wire:navigate>
+                        {{ __('My Procedures') }}
+                    </flux:navlist.item>
                 </flux:navlist.group>
             @endif
         </flux:navlist>
