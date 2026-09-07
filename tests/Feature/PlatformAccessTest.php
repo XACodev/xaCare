@@ -40,6 +40,7 @@ test('la auditoría cubre todas las rutas platform.* esperadas', function () {
     expect($names)->toBe([
         'platform.activity.index',
         'platform.admins.index',
+        'platform.billing.reports',
         'platform.dashboard',
         'platform.hospitals.create',
         'platform.hospitals.edit',
