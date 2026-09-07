@@ -30,6 +30,10 @@
                 :current="request()->routeIs('platform.billing.*')" wire:navigate>
                 {{ __('Reportes de facturación') }}
             </flux:navlist.item>
+            <flux:navlist.item icon="chart-bar-square" :href="route('platform.reports.hospitals')"
+                :current="request()->routeIs('platform.reports.*')" wire:navigate>
+                {{ __('Reportes operativos') }}
+            </flux:navlist.item>
             <flux:navlist.item icon="users" :href="route('platform.admins.index')"
                 :current="request()->routeIs('platform.admins.*')" wire:navigate>
                 {{ __('Administradores') }}
