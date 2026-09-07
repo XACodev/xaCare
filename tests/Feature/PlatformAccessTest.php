@@ -46,6 +46,9 @@ test('la auditoría cubre todas las rutas platform.* esperadas', function () {
         'platform.hospitals.edit',
         'platform.hospitals.index',
         'platform.permissions.index',
+        'platform.reports.hospitals',
+        'platform.reports.procedures',
+        'platform.reports.revenue',
         'platform.roles.index',
     ]);
 });
