@@ -58,6 +58,12 @@
                         </flux:navlist.item>
                     </flux:navlist.group>
                 @endif
+                <flux:navlist.group :heading="__('Reports')" class="grid">
+                    <flux:navlist.item icon="chart-bar" :href="route('reports.procedures')"
+                        :current="request()->routeIs('reports.*')" wire:navigate>
+                        {{ __('Reportes') }}
+                    </flux:navlist.item>
+                </flux:navlist.group>
                 <flux:navlist.group :heading="__('Configurations')" class="grid">
                     <flux:navlist.item icon="user" :href="route('users.index')"
                         :current="request()->routeIs('users.index')" wire:navigate>

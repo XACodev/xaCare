@@ -6,5 +6,6 @@ return [
     App\Providers\VoltServiceProvider::class,
     App\Modules\QxLog\Providers\QxLogServiceProvider::class,
     App\Modules\Insurance\Providers\InsuranceServiceProvider::class,
+    App\Modules\Reports\Providers\ReportsServiceProvider::class,
     Spatie\Permission\PermissionServiceProvider::class,
 ];
