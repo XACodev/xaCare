@@ -39,7 +39,7 @@
         {{ __('5. Ejercicio de derechos') }}
     </h2>
     <p>
-        {{ __('Para consultas o para ejercer derechos sobre tus datos personales, contáctanos a través de :correo.', ['correo' => 'privacidad@xacare.com']) }}
+        {{ __('Para consultas o para ejercer derechos sobre tus datos personales, contáctanos a través de :correo.', ['correo' => config('app.privacy_contact_email')]) }}
     </p>
 
     <p class="text-sm text-zinc-500 dark:text-zinc-400">

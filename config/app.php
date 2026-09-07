@@ -30,6 +30,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Privacy Contact Email
+    |--------------------------------------------------------------------------
+    |
+    | Correo mostrado en /privacy para ejercer derechos sobre datos personales.
+    | Debe configurarse con un correo real antes de producción.
+    |
+    */
+
+    'privacy_contact_email' => env('PRIVACY_CONTACT_EMAIL', 'privacidad@xacare.com'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |
