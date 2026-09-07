@@ -14,6 +14,7 @@ return [
     'plans' => [
         'basic' => [
             'name' => 'Básico',
+            'price' => (float) env('BILLING_PRICE_BASIC', 990),
             'stripe_price_id' => env('STRIPE_PRICE_BASIC'),
             'features' => [
                 'qxlog',
@@ -23,6 +24,7 @@ return [
         ],
         'pro' => [
             'name' => 'Pro',
+            'price' => (float) env('BILLING_PRICE_PRO', 1990),
             'stripe_price_id' => env('STRIPE_PRICE_PRO'),
             'features' => [
                 'qxlog',
@@ -32,6 +34,12 @@ return [
             ],
         ],
     ],
+
+    /*
+    | Hospitales piloto: nunca deben quedar en `trialing` — su acceso debe
+    | mantenerse `active` mientras se opera el cobro manualmente.
+    */
+    'pilot_hospital_slugs' => array_filter(explode(',', (string) env('BILLING_PILOT_HOSPITAL_SLUGS', 'hnsc'))),
 
     /*
     | Features del destino HIS. Hoy no tienen rutas; el mismo hasFeature() las

@@ -78,8 +78,8 @@ class User extends Authenticatable
     }
 
     /**
-     * El super admin sí puede crear/editar usuarios y administradores de cualquier hospital
-     * vía /users (gestión ya protegida por su propio middleware `superadmin`).
+     * El administrador de plataforma sí puede crear/editar usuarios y administradores de
+     * cualquier hospital vía /users (gestión ya protegida por su propio middleware `superadmin`).
      */
     public static function allowsPlatformAdminWrites(): bool
     {

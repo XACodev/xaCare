@@ -29,9 +29,9 @@ mount(function () {
     abort_unless($u && ($u->is_platform_admin || $u->hasRole('admin')), 403);
 
     if ($u->is_platform_admin) {
-        // El super admin siempre llega aquí desde la ficha de un hospital concreto
-        // (Hospitales > editar > Staff > Nuevo usuario) — nunca elige el hospital desde
-        // un selector suelto, para no mezclar el staff de todos los hospitales.
+        // El administrador de plataforma siempre llega aquí desde la ficha de un hospital
+        // concreto (Hospitales > editar > Staff > Nuevo usuario) — nunca elige el hospital
+        // desde un selector suelto, para no mezclar el staff de todos los hospitales.
         $hospital = Hospital::query()->findOrFail(request()->integer('hospital_id'));
     } else {
         // Admin de hospital: siempre crea staff de su propio tenant, nunca elige otro.
@@ -43,8 +43,8 @@ mount(function () {
     $this->hospitalName = $hospital->name;
 
     // Solo los roles habilitados para ESTE hospital (los "core" siempre, más los que el
-    // super admin haya habilitado específicamente) — un rol nuevo del catálogo global no
-    // aparece hasta que se habilita hospital por hospital.
+    // administrador de plataforma haya habilitado específicamente) — un rol nuevo del
+    // catálogo global no aparece hasta que se habilita hospital por hospital.
     $this->availableRoles = Role::whereIn('name', $hospital->visibleRoleNames())
         ->orderBy('name')
         ->pluck('name', 'id')

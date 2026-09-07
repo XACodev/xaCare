@@ -53,8 +53,8 @@ trait BelongsToTenant
     }
 
     /**
-     * Los modelos que el super admin sí necesita poder escribir (ej. User, para gestión de
-     * administradores de hospital) deben sobreescribir esto a `true`.
+     * Los modelos que el administrador de plataforma sí necesita poder escribir (ej. User,
+     * para gestión de administradores de hospital) deben sobreescribir esto a `true`.
      */
     public static function allowsPlatformAdminWrites(): bool
     {

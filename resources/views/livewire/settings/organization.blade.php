@@ -31,9 +31,9 @@ mount(function () {
     $this->voucher_legend = $s->voucher_legend;
     $this->logo_url = $s->logoUrl();
 
-    // Solo lectura: el plan/estado de suscripción lo asigna el super admin
-    // (es el ciclo de vida del cliente que paga), pero el admin de hospital debe
-    // poder ver su propio estado sin tener que preguntarle a nadie.
+    // Solo lectura: el plan/estado de suscripción lo asigna el administrador de plataforma
+    // (es el ciclo de vida del cliente que paga), pero el admin de hospital debe poder ver
+    // su propio estado sin tener que preguntarle a nadie.
     $this->hospital = Auth::user()->hospital;
 });
 

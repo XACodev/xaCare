@@ -34,6 +34,10 @@ Volt::route('dashboard', 'dashboard')
     ->middleware(['auth', 'verified', 'hospital.subscribed'])
     ->name('dashboard');
 
+Volt::route('suscripcion-suspendida', 'billing.suspended')
+    ->middleware(['auth'])
+    ->name('billing.suspended');
+
 Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', 'settings/profile');
 
@@ -60,7 +64,7 @@ Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
     Volt::route('settings/organization', 'settings.organization')->name('settings.organization');
     Volt::route('settings/roles', 'settings.roles.index')->name('settings.roles.index');
 
-    Volt::route('seguros', 'modules.insurance')
+    Volt::route('seguros', 'insurance.index')
         ->middleware('hospital.feature:insurance')
         ->name('modules.insurance');
 });
@@ -83,6 +87,8 @@ Route::prefix('platform')->name('platform.')->middleware(['auth', 'platform-admi
     Volt::route('hospitals', 'platform.hospitals.index')->name('hospitals.index');
     Volt::route('hospitals/create', 'platform.hospitals.create')->name('hospitals.create');
     Volt::route('hospitals/{hospital}/edit', 'platform.hospitals.edit')->name('hospitals.edit');
+
+    Volt::route('billing/reports', 'platform.billing.reports')->name('billing.reports');
 
     Volt::route('roles', 'platform.roles.index')->name('roles.index');
     Volt::route('permissions', 'platform.permissions.index')->name('permissions.index');

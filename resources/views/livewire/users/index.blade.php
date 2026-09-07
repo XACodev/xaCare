@@ -15,9 +15,9 @@ state([
 ]);
 
 mount(function () {
-    // Solo admin de hospital: el super admin gestiona el staff desde la ficha de cada
-    // hospital (Hospitales > editar > Staff), no desde una lista global — evita mezclar
-    // el personal de todos los hospitales en una sola tabla.
+    // Solo admin de hospital: el administrador de plataforma gestiona el staff desde la
+    // ficha de cada hospital (Hospitales > editar > Staff), no desde una lista global —
+    // evita mezclar el personal de todos los hospitales en una sola tabla.
     $u = Auth::user();
     abort_unless($u && ! $u->is_platform_admin && $u->hasRole('admin'), 403);
     $this->rolesAvailable = Role::whereIn('name', $u->hospital?->visibleRoleNames() ?? Hospital::CORE_ROLES)
@@ -27,8 +27,8 @@ mount(function () {
 });
 
 $users = computed(function () {
-    // TenantScope filtra automaticamente a "solo mi hospital". Nunca incluye cuentas
-    // super admin (hospital_id null no coincide con el filtro).
+    // TenantScope filtra automaticamente a "solo mi hospital". Nunca incluye cuentas de
+    // administrador de plataforma (hospital_id null no coincide con el filtro).
     $query = User::query()->where('is_platform_admin', false)->orderBy('name');
 
     if ($this->show_deleted) {

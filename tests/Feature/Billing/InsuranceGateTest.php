@@ -21,7 +21,7 @@ test('hospital staff cannot open the dashboard when the subscription is canceled
 
     $this->actingAs($user)
         ->get(route('dashboard'))
-        ->assertForbidden();
+        ->assertRedirect(route('billing.suspended'));
 });
 
 test('hospital staff can open the dashboard when the subscription is active', function () {
@@ -66,5 +66,5 @@ test('a pro-plan admin can open the insurance module stub', function () {
     $this->actingAs($admin)
         ->get(route('modules.insurance'))
         ->assertOk()
-        ->assertSee('próximamente', false);
+        ->assertSee('Aseguradoras', false);
 });

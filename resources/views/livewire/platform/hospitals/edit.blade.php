@@ -79,9 +79,21 @@ $save = function () {
 
     $data = $this->validate();
 
+    if ($this->hospital->isPilot() && $data['subscription_status'] === SubscriptionStatus::Trialing->value) {
+        $this->addError('subscription_status', __('Los hospitales piloto no pueden quedar en trialing; deben mantenerse active.'));
+
+        return;
+    }
+
+    $isActive = $data['is_active'];
+
+    if ($data['subscription_status'] === SubscriptionStatus::Canceled->value) {
+        $isActive = false;
+    }
+
     $this->hospital->update([
         'name' => $data['name'],
-        'is_active' => $data['is_active'],
+        'is_active' => $isActive,
     ]);
 
     $plans = app(HospitalPlanService::class);
@@ -93,6 +105,7 @@ $save = function () {
     );
 
     $this->hospital->refresh();
+    $this->is_active = $this->hospital->is_active;
     $this->success_message = __('Hospital updated.');
 };
 
@@ -183,6 +196,27 @@ $restoreStaff = function (int $id) {
     @endif
 
     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
+        <div>
+            <flux:heading size="lg">{{ __('Suscripción') }}</flux:heading>
+            <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                <flux:badge size="sm" color="indigo">{{ config("billing.plans.{$hospital->plan}.name", $hospital->plan) }}</flux:badge>
+                <flux:badge size="sm" color="{{ $hospital->subscription_status->allowsAccess() ? 'green' : 'red' }}">
+                    {{ $hospital->subscription_status->value }}
+                </flux:badge>
+                <flux:badge size="sm" color="{{ $hospital->is_active ? 'green' : 'zinc' }}">
+                    {{ $hospital->is_active ? __('Active') : __('Inactive') }}
+                </flux:badge>
+                @if($hospital->trial_ends_at)
+                    <span class="text-zinc-500 dark:text-zinc-400">
+                        {{ __('Trial vence') }}: {{ $hospital->trial_ends_at->format('Y-m-d H:i') }}
+                    </span>
+                @endif
+                @if($hospital->isPilot())
+                    <flux:badge size="sm" color="amber">{{ __('Piloto') }}</flux:badge>
+                @endif
+            </div>
+        </div>
+
         <flux:input wire:model.live="name" label="{{ __('Name') }}" />
 
         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Plan') }}</label>
