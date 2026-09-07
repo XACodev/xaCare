@@ -18,6 +18,9 @@ new class extends Component {
     public bool $requiresConfirmation;
 
     #[Locked]
+    public ?string $statusMessage = null;
+
+    #[Locked]
     public string $qrCodeSvg = '';
 
     #[Locked]
@@ -43,6 +46,12 @@ new class extends Component {
 
         $this->twoFactorEnabled = auth()->user()->hasEnabledTwoFactorAuthentication();
         $this->requiresConfirmation = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
+
+        // Puesto en sesión (no flash) por RequireTwoFactorForPlatformAdmins, ya que
+        // puede sobrevivir una redirección intermedia a password.confirm. Una vez
+        // mostrado aquí, se limpia para no aparecer en páginas no relacionadas.
+        $this->statusMessage = session('status');
+        session()->forget('status');
     }
 
     /**
@@ -183,6 +192,10 @@ new class extends Component {
     <flux:heading class="sr-only">Two-Factor Authentication Settings</flux:heading>
 
     <x-settings.layout :heading="__('Two Factor Authentication')" :subheading="__('Manage your two-factor authentication settings')">
+        @if ($statusMessage)
+            <flux:callout variant="danger" icon="exclamation-triangle" heading="{{ $statusMessage }}" />
+        @endif
+
         <div class="flex flex-col w-full mx-auto space-y-6 text-sm" wire:cloak>
             @if ($twoFactorEnabled)
                 <div class="space-y-4">

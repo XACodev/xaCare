@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
@@ -8,15 +9,25 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Público, sin autenticación. Endpoint de monitoreo externo: verifica DB y cache.
+Route::get('/health', HealthController::class)->name('health');
+
+// Páginas legales públicas, sin autenticación.
+Route::view('terms', 'legal.terms')->name('legal.terms');
+Route::view('privacy', 'legal.privacy')->name('legal.privacy');
+
 // Public, unauthenticated invitation acceptance route. Single purpose: let
 // someone without an account create the first admin account for the
 // hospital named on their invitation. Isolated from every other route.
-Volt::route('invitaciones/{token}', 'hospital-invitations.accept')->name('hospital-invitations.accept');
+Volt::route('invitaciones/{token}', 'hospital-invitations.accept')
+    ->middleware('throttle:10,1')
+    ->name('hospital-invitations.accept');
 
 // Public, unauthenticated invitation acceptance route for platform admins.
 // Single purpose: let someone without an account create a new platform-admin
 // account from a one-time invitation link. Isolated from every other route.
 Volt::route('platform-invitaciones/{token}', 'platform.admin-invitations.accept')
+    ->middleware('throttle:10,1')
     ->name('platform.admin-invitations.accept');
 
 Volt::route('dashboard', 'dashboard')
@@ -70,7 +81,7 @@ Route::middleware(['auth', 'hospital.subscribed'])->group(function () {
     Volt::route('users/{user}/edit', 'users.edit')->name('users.edit');
 });
 
-Route::prefix('platform')->name('platform.')->middleware(['auth', 'platform-admin'])->group(function () {
+Route::prefix('platform')->name('platform.')->middleware(['auth', 'platform-admin', 'platform-2fa'])->group(function () {
     Volt::route('/', 'platform.dashboard')->name('dashboard');
 
     Volt::route('hospitals', 'platform.hospitals.index')->name('hospitals.index');

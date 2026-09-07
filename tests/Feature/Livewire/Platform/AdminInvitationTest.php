@@ -92,6 +92,69 @@ test('accept is rejected when the platform admin invitation was used after the p
     expect(User::where('email', 'secondplatformadmin@example.com')->count())->toBe(0);
 });
 
+test('accepting the same platform admin invitation a second time with different data does not create a second user', function () {
+    $inviter = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
+    [$invitation, $plainToken] = PlatformAdminInvitation::generateFor($inviter->id, 'Test invite');
+
+    Volt::test('platform.admin-invitations.accept', ['token' => $plainToken])
+        ->set('name', 'First Platform Admin')
+        ->set('username', 'firstplatformadmin')
+        ->set('email', 'firstplatformadmin@example.com')
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password')
+        ->call('accept')
+        ->assertHasNoErrors();
+
+    expect(User::where('email', 'firstplatformadmin@example.com')->count())->toBe(1);
+
+    Volt::test('platform.admin-invitations.accept', ['token' => $plainToken])
+        ->assertSet('valid', false)
+        ->set('name', 'Second Attempt')
+        ->set('username', 'secondattemptpa')
+        ->set('email', 'secondattemptpa@example.com')
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password')
+        ->call('accept')
+        ->assertSet('valid', false)
+        ->assertSee('no es válido o ya expiró');
+
+    expect(User::count())->toBe(2); // inviter + first platform admin
+    expect(User::where('email', 'secondattemptpa@example.com')->count())->toBe(0);
+});
+
+test('accepting a platform admin invitation with a username or email already used by another user fails validation without marking the invitation used', function () {
+    $inviter = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
+    User::factory()->create(['username' => 'takenpauser', 'email' => 'takenpa@example.com']);
+
+    [$invitationUsername, $plainTokenUsername] = PlatformAdminInvitation::generateFor($inviter->id, 'Test invite');
+
+    Volt::test('platform.admin-invitations.accept', ['token' => $plainTokenUsername])
+        ->set('name', 'Duplicate Username')
+        ->set('username', 'takenpauser')
+        ->set('email', 'newemailpa@example.com')
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password')
+        ->call('accept')
+        ->assertHasErrors(['username']);
+
+    $invitationUsername->refresh();
+    expect($invitationUsername->accepted_at)->toBeNull();
+
+    [$invitationEmail, $plainTokenEmail] = PlatformAdminInvitation::generateFor($inviter->id, 'Test invite');
+
+    Volt::test('platform.admin-invitations.accept', ['token' => $plainTokenEmail])
+        ->set('name', 'Duplicate Email')
+        ->set('username', 'newusernamepa')
+        ->set('email', 'takenpa@example.com')
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password')
+        ->call('accept')
+        ->assertHasErrors(['email']);
+
+    $invitationEmail->refresh();
+    expect($invitationEmail->accepted_at)->toBeNull();
+});
+
 test('a platform admin invitation token that never existed is rejected with the same generic message', function () {
     Volt::test('platform.admin-invitations.accept', ['token' => 'never-existed'])
         ->assertSet('valid', false)

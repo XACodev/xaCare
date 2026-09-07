@@ -6,7 +6,7 @@ use App\Models\User;
 test('activity index lists paginated activity log entries', function () {
     $hospital = Hospital::factory()->create();
     $causer = User::factory()->create(['hospital_id' => $hospital->id]);
-    $admin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
+    $admin = User::factory()->withTwoFactor()->create(['hospital_id' => null, 'is_platform_admin' => true]);
 
     activity()->causedBy($causer)->performedOn($hospital)->log('creó el hospital');
 

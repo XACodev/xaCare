@@ -15,7 +15,7 @@ test('dashboard lists hospitals whose trial ends within 7 days', function () {
         'trial_ends_at' => now()->addDays(20),
     ]);
 
-    $admin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
+    $admin = User::factory()->withTwoFactor()->create(['hospital_id' => null, 'is_platform_admin' => true]);
 
     $this->actingAs($admin)
         ->get(route('platform.dashboard'))
