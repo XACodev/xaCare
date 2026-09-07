@@ -59,6 +59,7 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
     Volt::route('patients', 'patients.index')->name('patients.index');
     Volt::route('patients/create', 'patients.create')->name('patients.create');
+    Volt::route('patients/{patient}', 'patients.show')->name('patients.show');
     Volt::route('admissions/create', 'admissions.create')->name('admissions.create');
 
     Volt::route('settings/organization', 'settings.organization')->name('settings.organization');
@@ -78,6 +79,7 @@ Route::middleware(['auth', 'hospital.subscribed'])->group(function () {
     // sección "Staff"), y crea/edita usando estas mismas dos rutas pasando `?hospital_id=`.
     Volt::route('users', 'users.index')->name('users.index');
     Volt::route('users/create', 'users.create')->name('users.create');
+    Volt::route('users/{user}', 'users.show')->name('users.show');
     Volt::route('users/{user}/edit', 'users.edit')->name('users.edit');
 });
 

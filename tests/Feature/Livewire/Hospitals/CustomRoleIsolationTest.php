@@ -66,7 +66,7 @@ test('a hospital admin editing staff cannot switch a user into another hospital 
 
     $this->actingAs($adminA);
 
-    Volt::test('users.edit', ['user' => $staff->id])
+    Volt::test('users.edit', ['user' => $staff->slug])
         ->assertDontSee('contador')
         ->set('role', 'contador')
         ->call('save')

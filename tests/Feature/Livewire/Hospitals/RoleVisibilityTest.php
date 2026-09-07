@@ -117,7 +117,7 @@ test('editing a user whose role was later disabled does not break unrelated save
 
     $this->actingAs($admin);
 
-    Volt::test('users.edit', ['user' => $staff->id])
+    Volt::test('users.edit', ['user' => $staff->slug])
         ->assertSee('anesthesiologist') // sigue en el selector, aunque ya no este habilitado
         ->set('name', 'New Name')
         ->call('save')

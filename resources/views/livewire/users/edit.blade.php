@@ -37,7 +37,9 @@ mount(function (string|int $user) {
     // hospital que intente editar un usuario ajeno recibe 404, nunca los datos de otro
     // tenant. Las cuentas de administrador de plataforma nunca se editan desde aquí (se
     // gestionan desde Configuración), sin importar quién lo intente.
-    $u = User::withTrashed()->findOrFail($user);
+    // Se busca por `slug` (identificador aleatorio en la URL), no por `id`: evita exponer
+    // o permitir iterar ids secuenciales de usuarios en la URL de edición.
+    $u = User::withTrashed()->where('slug', $user)->firstOrFail();
     abort_if($u->is_platform_admin, 404);
 
     // Solo los roles habilitados para el hospital de este usuario (los "core" siempre,

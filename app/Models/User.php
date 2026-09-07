@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Auth\PermissionTeamResolver;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasSlug;
 use App\Modules\QxLog\Models\SurgicalAssignment;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -20,7 +21,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use BelongsToTenant, HasFactory, HasRoles, Notifiable, SoftDeletes, TwoFactorAuthenticatable {
+    use BelongsToTenant, HasFactory, HasRoles, HasSlug, Notifiable, SoftDeletes, TwoFactorAuthenticatable {
         HasRoles::assignRole as protected assignSpatieRole;
         HasRoles::syncRoles as protected syncSpatieRoles;
         HasRoles::removeRole as protected removeSpatieRole;

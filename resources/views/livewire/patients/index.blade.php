@@ -32,14 +32,75 @@ $patients = computed(function () {
 
     <flux:input wire:model.live.debounce.300ms="q" placeholder="{{ __('Buscar por nombre o apellido...') }}" icon="magnifying-glass" />
 
-    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 divide-y dark:divide-zinc-700">
+    <!-- Mobile View (Cards) -->
+    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 divide-y dark:divide-zinc-700 sm:hidden">
         @forelse($this->patients as $patient)
             <div class="px-4 py-3 flex items-center justify-between">
                 <span class="font-medium">{{ $patient->nombreCompleto() }}</span>
-                <span class="text-sm text-zinc-500">{{ $patient->dpi }}</span>
+                <flux:dropdown>
+                    <flux:button size="sm" variant="ghost" icon="ellipsis-vertical" />
+                    <flux:menu>
+                        <flux:menu.item href="{{ route('patients.show', $patient) }}" icon="eye">
+                            {{ __('Ver') }}
+                        </flux:menu.item>
+                    </flux:menu>
+                </flux:dropdown>
             </div>
         @empty
             <div class="px-4 py-6 text-center text-sm text-zinc-500">{{ __('Sin pacientes.') }}</div>
         @endforelse
+    </div>
+
+    <!-- Desktop View (Table) -->
+    <div class="hidden sm:block overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
+        <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
+            <thead class="bg-zinc-50 dark:bg-zinc-800/50">
+                <tr>
+                    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-zinc-500 tracking-wider">
+                        <flux:label> {{ __('Nombre') }} </flux:label>
+                    </th>
+                    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-zinc-500 tracking-wider">
+                        <flux:label> {{ __('DPI') }} </flux:label>
+                    </th>
+                    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-zinc-500 tracking-wider">
+                        <flux:label> {{ __('Teléfono') }} </flux:label>
+                    </th>
+                    <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-zinc-500 tracking-wider">
+                        <flux:label> {{ __('Acciones') }} </flux:label>
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-700">
+                @forelse($this->patients as $patient)
+                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-900 dark:text-zinc-100">
+                            {{ $patient->nombreCompleto() }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                            {{ $patient->dpi ?: '—' }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                            {{ $patient->telefono ?: '—' }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-center">
+                            <flux:dropdown>
+                                <flux:button size="sm" variant="ghost" icon="ellipsis-vertical" />
+                                <flux:menu>
+                                    <flux:menu.item href="{{ route('patients.show', $patient) }}" icon="eye">
+                                        {{ __('Ver') }}
+                                    </flux:menu.item>
+                                </flux:menu>
+                            </flux:dropdown>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400 italic">
+                            {{ __('Sin pacientes.') }}
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 </div>

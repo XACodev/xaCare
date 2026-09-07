@@ -48,7 +48,7 @@ $users = computed(function () {
         $query->role($this->role);
     }
 
-    return $query->limit(150)->get(['id', 'name', 'username', 'email', 'role', 'deleted_at']);
+    return $query->limit(150)->get(['id', 'slug', 'name', 'username', 'email', 'role', 'deleted_at']);
 });
 
 $groupedUsers = computed(function () {
@@ -211,8 +211,11 @@ $roleColor = function (?string $role) {
                                     <flux:dropdown>
                                         <flux:button size="sm" variant="primary" icon="ellipsis-vertical" />
                                         <flux:menu>
+                                            <flux:menu.item href="{{ route('users.show', $u) }}" icon="eye">
+                                                {{ __('View') }}
+                                            </flux:menu.item>
                                             @if (!$u->deleted_at)
-                                                <flux:menu.item href="{{ route('users.edit', $u->id) }}" icon="pencil">
+                                                <flux:menu.item href="{{ route('users.edit', $u) }}" icon="pencil">
                                                     {{ __('Edit') }}
                                                 </flux:menu.item>
                                                 <flux:menu.separator />
@@ -286,18 +289,32 @@ $roleColor = function (?string $role) {
                                             {{ $u->deleted_at ? __('Deleted') : __('Active') }}
                                         </flux:badge>
                                     </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-center text-sm space-x-2">
-                                        @if(!$u->deleted_at)
-                                            <flux:button href="{{ route('users.edit', $u->id) }}" size="sm" variant="primary"
-                                                icon="pencil" color="indigo" />
-                                            <flux:button wire:click="deleteUser({{ $u->id }})"
-                                                wire:confirm="{{ __('Delete this user? (can be restored)') }}" size="sm"
-                                                variant="danger" icon="trash" class="cursor-pointer" />
-                                        @else
-                                            <flux:button wire:click="restoreUser({{ $u->id }})" size="sm" variant="primary"
-                                                icon="arrow-uturn-left" tooltip="{{ __('Restore') }}" color="green"
-                                                class="cursor-pointer" />
-                                        @endif
+                                    <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
+                                        <flux:dropdown>
+                                            <flux:button size="sm" variant="ghost" icon="ellipsis-vertical" />
+                                            <flux:menu>
+                                                <flux:menu.item href="{{ route('users.show', $u) }}" icon="eye">
+                                                    {{ __('View') }}
+                                                </flux:menu.item>
+                                                @if (!$u->deleted_at)
+                                                    <flux:menu.item href="{{ route('users.edit', $u) }}" icon="pencil">
+                                                        {{ __('Edit') }}
+                                                    </flux:menu.item>
+                                                    <flux:menu.separator />
+                                                    <flux:menu.item wire:click="deleteUser({{ $u->id }})"
+                                                        wire:confirm="{{ __('Delete this user? (can be restored)') }}" variant="danger"
+                                                        icon="trash">
+                                                        {{ __('Delete') }}
+                                                    </flux:menu.item>
+                                                @endif
+                                                @if ($u->deleted_at)
+                                                    <flux:menu.item wire:click="restoreUser({{ $u->id }})"
+                                                        wire:confirm="{{ __('Restore this user?') }}" icon="arrow-uturn-left">
+                                                        {{ __('Restore') }}
+                                                    </flux:menu.item>
+                                                @endif
+                                            </flux:menu>
+                                        </flux:dropdown>
                                     </td>
                                 </tr>
                             @empty
