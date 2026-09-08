@@ -27,6 +27,7 @@ class User extends Authenticatable
         'email',
         'password',
         'username',
+        'phone',
         'role',
         'is_super_admin',
         'use_pay_scheme',
