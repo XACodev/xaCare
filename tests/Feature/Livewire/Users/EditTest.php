@@ -42,7 +42,7 @@ test('can update user details and role', function () {
 
     $this->actingAs($admin);
 
-    Volt::test('users.edit', ['user' => $userToEdit->id])
+    Volt::test('users.edit', ['user' => $userToEdit->slug])
         ->set('name', 'New Name')
         ->set('username', 'newusername')
         ->set('email', 'new@example.com')
@@ -66,7 +66,7 @@ test('validation prevents duplicate email on update', function () {
 
     $this->actingAs($admin);
 
-    Volt::test('users.edit', ['user' => $userToEdit->id])
+    Volt::test('users.edit', ['user' => $userToEdit->slug])
         ->set('email', 'taken@example.com')
         ->call('save')
         ->assertHasErrors(['email']);
@@ -79,13 +79,13 @@ test('can soft delete and restore user', function () {
     $this->actingAs($admin);
 
     // Delete
-    Volt::test('users.edit', ['user' => $userToEdit->id])
+    Volt::test('users.edit', ['user' => $userToEdit->slug])
         ->call('toggleDelete');
 
     expect($userToEdit->fresh()->deleted_at)->not->toBeNull();
 
     // Restore
-    Volt::test('users.edit', ['user' => $userToEdit->id])
+    Volt::test('users.edit', ['user' => $userToEdit->slug])
         ->call('toggleDelete');
 
     expect($userToEdit->fresh()->deleted_at)->toBeNull();
@@ -96,7 +96,7 @@ test('cannot delete self', function () {
 
     $this->actingAs($admin);
 
-    Volt::test('users.edit', ['user' => $admin->id])
+    Volt::test('users.edit', ['user' => $admin->slug])
         ->call('toggleDelete')
         ->assertForbidden();
 });

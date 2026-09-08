@@ -30,7 +30,9 @@ mount(function (string|int $user) {
     $me = Auth::user();
     abort_unless($me && $me->is_super_admin, 403);
 
-    $u = User::withTrashed()->findOrFail($user);
+    // Se busca por `slug` (identificador aleatorio en la URL), no por `id`: evita exponer
+    // o permitir iterar ids secuenciales de usuarios en la URL de edición.
+    $u = User::withTrashed()->where('slug', $user)->firstOrFail();
 
     $this->availableRoles = Role::pluck('name', 'id')->toArray();
 
