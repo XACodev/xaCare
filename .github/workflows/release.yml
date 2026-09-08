@@ -11,6 +11,12 @@ permissions:
 
 jobs:
   release:
+    # El merge del PR de bump de composer.json (mas abajo) tambien es un
+    # push a main, y volveria a disparar este workflow generando un tag
+    # nuevo sin cambios reales. Se salta el job entero cuando el commit
+    # que dispara el push es justamente ese bump, para no crear un loop
+    # infinito de tags/releases/PRs.
+    if: "!contains(github.event.head_commit.message, 'chore(release):')"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
