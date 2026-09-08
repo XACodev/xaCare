@@ -7,6 +7,8 @@ use App\Auth\PermissionTeamResolver;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasSlug;
 use App\Modules\QxLog\Models\SurgicalAssignment;
+use App\Support\NameFormatter;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -94,6 +96,11 @@ class User extends Authenticatable
                 abort(422, 'Los usuarios de hospital deben tener un hospital asignado.');
             }
         });
+    }
+
+    protected function name(): Attribute
+    {
+        return Attribute::make(set: fn (?string $v) => NameFormatter::titleCase($v));
     }
 
     /**

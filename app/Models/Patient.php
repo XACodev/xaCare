@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasSlug;
+use App\Support\NameFormatter;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -27,12 +28,22 @@ class Patient extends Model
 
     protected function primerApellido(): Attribute
     {
-        return Attribute::make(set: fn (?string $v) => $v ? ucwords(strtolower($v)) : null);
+        return Attribute::make(set: fn (?string $v) => NameFormatter::titleCase($v));
+    }
+
+    protected function segundoApellido(): Attribute
+    {
+        return Attribute::make(set: fn (?string $v) => NameFormatter::titleCase($v));
     }
 
     protected function primerNombre(): Attribute
     {
-        return Attribute::make(set: fn (?string $v) => $v ? ucwords(strtolower($v)) : null);
+        return Attribute::make(set: fn (?string $v) => NameFormatter::titleCase($v));
+    }
+
+    protected function segundoNombre(): Attribute
+    {
+        return Attribute::make(set: fn (?string $v) => NameFormatter::titleCase($v));
     }
 
     public function nombreCompleto(): string
