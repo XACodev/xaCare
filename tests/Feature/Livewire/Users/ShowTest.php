@@ -36,6 +36,18 @@ test('the profile url is not the numeric id', function () {
         ->assertNotFound();
 });
 
+test('super admin can view the profile of a soft-deleted user', function () {
+    $admin = User::factory()->create(['is_super_admin' => true]);
+    $userToView = User::factory()->create(['role' => 'doctor']);
+    $userToView->assignRole('doctor');
+    $userToView->delete();
+
+    $this->actingAs($admin)
+        ->get(route('users.show', $userToView))
+        ->assertOk()
+        ->assertSee($userToView->name);
+});
+
 test('non super admin cannot view a user profile', function () {
     $user = User::factory()->create(['is_super_admin' => false, 'role' => 'instrumentist']);
     $user->assignRole('doctor');

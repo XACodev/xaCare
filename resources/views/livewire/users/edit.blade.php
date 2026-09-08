@@ -14,6 +14,7 @@ state([
     'name' => '',
     'username' => '',
     'email' => '',
+    'phone' => '',
     'role' => '',
     'is_super_admin' => false,
     'use_pay_scheme' => false,
@@ -40,6 +41,7 @@ mount(function (string|int $user) {
     $this->name = $u->name;
     $this->username = $u->username;
     $this->email = $u->email;
+    $this->phone = $u->phone;
     $this->role = $u->getRoleNames()->first() ?? '';
     $this->is_super_admin = $u->is_super_admin;
     $this->use_pay_scheme = $u->use_pay_scheme;
@@ -49,6 +51,7 @@ rules(fn() => [
     'name' => ['required', 'string', 'max:255'],
     'username' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users', 'username')->ignore($this->user->id)],
     'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->user->id)],
+    'phone' => ['nullable', 'string', 'max:20'],
     'role' => ['required', 'string', 'max:50'],
     'password' => ['nullable', 'string', 'min:6', 'confirmed'],
     'is_super_admin' => ['boolean'],
@@ -77,6 +80,7 @@ $save = function () {
         'name' => $data['name'],
         'username' => $data['username'],
         'email' => $data['email'],
+        'phone' => $data['phone'],
         'role' => $data['role'],
         'is_super_admin' => $data['is_super_admin'],
         'use_pay_scheme' => $data['use_pay_scheme'],
@@ -158,6 +162,8 @@ $toggleDelete = function () {
         <flux:input wire:model="username" label="{{ __('Username') }}" />
 
         <flux:input wire:model="email" type="email" label="{{ __('Email') }}" />
+
+        <flux:input wire:model="phone" label="{{ __('Phone') }}" />
 
         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Role') }}</label>
         <select wire:model="role"

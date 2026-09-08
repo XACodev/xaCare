@@ -7,10 +7,13 @@ use function Livewire\Volt\{state, mount};
 
 state(['user' => null]);
 
-mount(function (User $user) {
+mount(function (string $user) {
     abort_unless(Auth::check() && Auth::user()->is_super_admin, 403);
 
-    $this->user = $user;
+    // Se busca por `slug` con withTrashed(): el binding implicito por defecto excluye
+    // usuarios con soft delete y devolvia 404 al intentar ver el perfil de un usuario
+    // eliminado, aunque siga existiendo y sea consultable desde la edicion.
+    $this->user = User::withTrashed()->where('slug', $user)->firstOrFail();
 });
 
 ?>

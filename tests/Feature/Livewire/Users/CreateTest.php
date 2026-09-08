@@ -49,6 +49,7 @@ test('can create user with role', function () {
 
     $createdUser = User::where('email', 'test@example.com')->first();
     expect($createdUser)->not->toBeNull();
+    expect($createdUser->phone)->toBe('12345678');
     // The component sets the `role` column to the role NAME
     expect($createdUser->role)->toBe('manager');
     // And assigns the Spatie role

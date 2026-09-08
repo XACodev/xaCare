@@ -59,6 +59,24 @@ test('can update user details and role', function () {
     expect($userToEdit->hasRole('doctor'))->toBeFalse();
 });
 
+test('can update phone number', function () {
+    $admin = User::factory()->create(['is_super_admin' => true]);
+    // Username explícito: fake()->userName() a veces genera algo con punto (ej.
+    // "jane.doe23"), que no pasa la regla alpha_dash del formulario y vuelve este test
+    // intermitente sin relación con lo que se está probando.
+    $userToEdit = User::factory()->create(['role' => 'doctor', 'username' => 'phonetestuser', 'phone' => null]);
+    $userToEdit->assignRole('doctor');
+
+    $this->actingAs($admin);
+
+    Volt::test('users.edit', ['user' => $userToEdit->slug])
+        ->set('phone', '55551234')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($userToEdit->fresh()->phone)->toBe('55551234');
+});
+
 test('validation prevents duplicate email on update', function () {
     $admin = User::factory()->create(['is_super_admin' => true]);
     $userToEdit = User::factory()->create();
