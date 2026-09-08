@@ -7,15 +7,18 @@ use function Livewire\Volt\{state, mount};
 
 state(['user' => null]);
 
-mount(function (User $user) {
+mount(function (string $user) {
     $me = Auth::user();
     abort_unless($me && ($me->is_platform_admin || $me->hasRole('admin')), 403);
 
+    // Se busca por `slug` con withTrashed(): el binding implicito por defecto excluye
+    // usuarios con soft delete y devolvia 404 al ver el perfil de un usuario eliminado.
     // TenantScope ya restringe esta consulta al hospital del admin logueado: un admin de
     // hospital que intente ver un usuario ajeno recibe 404, nunca los datos de otro tenant.
-    abort_if($user->is_platform_admin, 404);
+    $u = User::withTrashed()->where('slug', $user)->firstOrFail();
+    abort_if($u->is_platform_admin, 404);
 
-    $this->user = $user;
+    $this->user = $u;
 });
 
 ?>

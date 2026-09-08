@@ -7,11 +7,13 @@ use function Livewire\Volt\{state, mount};
 
 state(['patient' => null]);
 
-mount(function (Patient $patient) {
+mount(function (string $patient) {
     abort_unless(Auth::check(), 401);
     abort_unless((bool) (Auth::user()->hasRole('admin') || Auth::user()->is_platform_admin), 403);
 
-    $this->patient = $patient;
+    // Se busca por `slug` con withTrashed(): el binding implicito por defecto excluye
+    // pacientes con soft delete y devolvia 404 al ver el detalle de uno ya eliminado.
+    $this->patient = Patient::withTrashed()->where('slug', $patient)->firstOrFail();
 });
 
 $estadoCivilLabel = function (?string $codigo) {

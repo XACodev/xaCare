@@ -42,6 +42,21 @@ test('the profile url is not the numeric id', function () {
         ->assertNotFound();
 });
 
+test('hospital admin can view the profile of a soft-deleted staff member', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $admin->assignRole('admin');
+
+    $staff = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'doctor']);
+    $staff->assignRole('doctor');
+    $staff->delete();
+
+    $this->actingAs($admin)
+        ->get(route('users.show', $staff))
+        ->assertOk()
+        ->assertSee($staff->name);
+});
+
 test('hospital admin cannot view a staff profile from another hospital', function () {
     $hospital = Hospital::factory()->create();
     $otherHospital = Hospital::factory()->create();

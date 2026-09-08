@@ -23,7 +23,7 @@ test('hospital admin can view full patient details', function () {
         'telefono' => '55551234',
     ]);
 
-    Volt::test('patients.show', ['patient' => $patient])
+    Volt::test('patients.show', ['patient' => $patient->slug])
         ->assertSee($patient->dpi)
         ->assertSee($patient->telefono);
 });
@@ -38,8 +38,22 @@ test('platform admin can view patient details read-only', function () {
     $platformAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $this->actingAs($platformAdmin);
 
-    Volt::test('patients.show', ['patient' => $patient])
+    Volt::test('patients.show', ['patient' => $patient->slug])
         ->assertSee($patient->dpi);
+});
+
+test('hospital admin can view the details of a soft-deleted patient', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+
+    $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
+    $patient->delete();
+
+    $this->actingAs($user)
+        ->get(route('patients.show', $patient))
+        ->assertOk()
+        ->assertSee($patient->nombreCompleto());
 });
 
 test('user without admin role cannot view patient details', function () {
@@ -49,6 +63,6 @@ test('user without admin role cannot view patient details', function () {
 
     $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
 
-    Volt::test('patients.show', ['patient' => $patient])
+    Volt::test('patients.show', ['patient' => $patient->slug])
         ->assertForbidden();
 });
