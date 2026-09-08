@@ -54,6 +54,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 Route::middleware(['auth', 'superadmin'])->group(function () {
     Volt::route('users', 'users.index')->name('users.index');
     Volt::route('users/create', 'users.create')->name('users.create');
+    Volt::route('users/{user}', 'users.show')->name('users.show');
     Volt::route('users/{user}/edit', 'users.edit')->name('users.edit');
     Volt::route('roles', 'access.roles')->name('roles.index');
     Volt::route('permissions', 'access.permissions')->name('permissions.index');
