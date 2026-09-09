@@ -48,7 +48,7 @@ $users = computed(function () {
         $query->role($this->role);
     }
 
-    return $query->limit(150)->get(['id', 'slug', 'name', 'username', 'email', 'role', 'deleted_at']);
+    return $query->limit(150)->get(['id', 'slug', 'name', 'username', 'email', 'role', 'hospital_id', 'deleted_at']);
 });
 
 $groupedUsers = computed(function () {

@@ -25,6 +25,23 @@ test('staff index shows view/edit links and a delete action for each active user
         ->assertSee('deleteUser('.$staff->id.')', false);
 });
 
+test('staff index groups users by their actual role instead of "unknown"', function () {
+    $hospital = Hospital::factory()->create();
+    Role::firstOrCreate(['name' => 'instrumentist', 'guard_name' => 'web']);
+
+    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $admin->assignRole('admin');
+
+    $instrumentist = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'instrumentist']);
+    $instrumentist->assignRole('instrumentist');
+
+    $this->actingAs($admin)
+        ->get(route('users.index'))
+        ->assertOk()
+        ->assertDontSee('Unknown')
+        ->assertSeeInOrder(['Instrumentist', $instrumentist->name], false);
+});
+
 test('staff index links do not expose the numeric user id in the url', function () {
     $hospital = Hospital::factory()->create();
     $admin = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
