@@ -2,10 +2,12 @@
 
 use App\Models\Activity;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\WithPagination;
 use Livewire\Volt\Component;
 
-new class extends Component {
+new #[Layout('components.layouts.platform')] #[Title('Actividad')] class extends Component {
     use WithPagination;
 
     public function mount(): void
@@ -20,10 +22,6 @@ new class extends Component {
         ];
     }
 
-    public function layout(): mixed
-    {
-        return view('components.layouts.platform', ['title' => __('Actividad')]);
-    }
 }; ?>
 
 <div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">

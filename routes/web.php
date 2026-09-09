@@ -98,3 +98,7 @@ Route::prefix('platform')->name('platform.')->middleware(['auth', 'platform-admi
     Volt::route('activity', 'platform.activity.index')->name('activity.index');
     Volt::route('admins', 'platform.admins.index')->name('admins.index');
 });
+
+// Alias sin nombre fuera del grupo `platform.*`: no forma parte de la auditoría de rutas
+// nombradas de plataforma (PlatformAccessTest), solo redirige a la ruta real.
+Route::redirect('platform/dashboard', '/platform');

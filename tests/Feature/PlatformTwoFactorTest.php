@@ -14,9 +14,21 @@ test('a platform admin without confirmed two factor is redirected to the two-fac
 test('a platform admin with confirmed two factor can reach the platform dashboard', function () {
     $admin = User::factory()->withTwoFactor()->create(['hospital_id' => null, 'is_platform_admin' => true]);
 
-    $this->actingAs($admin)
+    $response = $this->actingAs($admin)
         ->get(route('platform.dashboard'))
-        ->assertOk();
+        ->assertOk()
+        // Regresión: el layout de plataforma debe envolver el contenido en <flux:main>
+        // (data-flux-main), igual que el layout `app`. Sin esto, el contenido no
+        // recibe el `grid-area: main` que define el sidebar y el navbar se ve roto.
+        ->assertSee('data-flux-main', false)
+        // Regresión: el sidebar de plataforma completo debe renderizarse, no el de
+        // hospital reducido a un solo link. El `layout(): mixed` de la clase anónima de
+        // Volt no es un mecanismo real de Livewire/Volt (solo funciona en componentes
+        // funcionales vía `layout()` importado de Livewire\Volt) -- sin el atributo
+        // `#[Layout(...)]` real, el componente caía silenciosamente al layout `app`.
+        ->assertSee('Reportes operativos');
+
+    $response->assertDontSee('Panel de Administrador');
 });
 
 test('the two-factor required message survives the redirect chain through password confirmation', function () {

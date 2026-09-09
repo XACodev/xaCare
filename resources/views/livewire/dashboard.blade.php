@@ -1,11 +1,13 @@
 <?php
 
 use Livewire\Volt\Component;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use App\Modules\QxLog\Models\SurgicalCase;
 use App\Modules\QxLog\Models\PayoutBatch;
 use Illuminate\Support\Facades\Auth;
 
-new class extends Component {
+new #[Layout('components.layouts.app')] #[Title('Dashboard')] class extends Component {
     public bool $showEarnings = false;
 
     public function toggleEarnings(): void
@@ -16,7 +18,10 @@ new class extends Component {
     public function mount(): void
     {
         if (Auth::user()?->is_platform_admin) {
-            $this->redirect(route('platform.dashboard'), navigate: true);
+            // Sin `navigate: true` a propósito: `app` y `platform` son layouts con
+            // `<body>` completamente distintos (otro sidebar), y el morphing SPA de
+            // wire:navigate no puede reconciliarlos -- deja la página en blanco.
+            $this->redirect(route('platform.dashboard'));
         }
     }
 
@@ -56,10 +61,6 @@ new class extends Component {
         ];
     }
 
-    public function layout(): mixed
-    {
-        return view('components.layouts.app', ['title' => __('Dashboard')]);
-    }
 }; ?>
 
     <div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">

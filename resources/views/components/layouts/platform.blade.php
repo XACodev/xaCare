@@ -7,7 +7,9 @@
 
 <body class="min-h-screen bg-slate-50 dark:bg-zinc-950">
     <x-layouts.platform.sidebar :title="$title ?? null">
-        {{ $slot }}
+        <flux:main>
+            {{ $slot }}
+        </flux:main>
     </x-layouts.platform.sidebar>
 
     @fluxScripts

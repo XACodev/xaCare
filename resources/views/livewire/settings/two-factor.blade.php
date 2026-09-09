@@ -115,6 +115,17 @@ new class extends Component {
         $this->closeModal();
 
         $this->twoFactorEnabled = true;
+
+        // Un admin de plataforma solo llega aquí forzado por
+        // RequireTwoFactorForPlatformAdmins. Sin esta redirección se queda varado en el
+        // layout `app` (navbar reducido a un único link), ya que confirmar 2FA no navega
+        // por sí solo. Lo devolvemos al panel real, ahora con el layout `platform` completo.
+        // Sin `navigate: true` a propósito: `app` y `platform` son layouts con `<body>`
+        // completamente distintos (otro sidebar), y el morphing SPA de wire:navigate no
+        // puede reconciliarlos -- deja la página en blanco. Se necesita una recarga completa.
+        if (auth()->user()->is_platform_admin) {
+            $this->redirect(route('platform.dashboard'));
+        }
     }
 
     /**

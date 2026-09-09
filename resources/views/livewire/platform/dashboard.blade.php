@@ -6,9 +6,11 @@ use App\Models\Hospital;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
 
-new class extends Component {
+new #[Layout('components.layouts.platform')] #[Title('Dashboard')] class extends Component {
     public array $hospitalStats = [];
     public $trialsEndingSoon;
     public int $totalPlatformUsers = 0;
@@ -41,10 +43,6 @@ new class extends Component {
         $this->recentActivity = Activity::with(['causer', 'subject'])->latest()->limit(10)->get();
     }
 
-    public function layout(): mixed
-    {
-        return view('components.layouts.platform', ['title' => __('Dashboard')]);
-    }
 }; ?>
 
 <div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">
