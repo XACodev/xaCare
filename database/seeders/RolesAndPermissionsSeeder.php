@@ -38,6 +38,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.manage',
             'users.manage',
             'roles.manage',
+            'surgeries.view',
+            'surgeries.schedule',
+            'surgeries.cancel',
+            'surgeries.delete',
         ];
 
         foreach ($permissions as $permission) {
