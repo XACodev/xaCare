@@ -27,6 +27,7 @@ class SurgicalCaseFactory extends Factory
             'calculated_amount' => $this->faker->randomFloat(2, 100, 1000),
             'pricing_snapshot' => [],
             'status' => 'pending',
+            'is_draft' => false,
         ];
     }
 }

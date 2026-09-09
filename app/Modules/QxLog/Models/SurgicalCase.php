@@ -49,6 +49,10 @@ class SurgicalCase extends Model implements HasHospital
         'calculated_amount',
         'pricing_snapshot',
         'status',
+
+        'operating_room_id',
+        'surgery_status_id',
+        'is_draft',
     ];
 
     protected $casts = [
@@ -58,6 +62,7 @@ class SurgicalCase extends Model implements HasHospital
         'is_videosurgery' => 'boolean',
         'pricing_snapshot' => 'array',      // JSON ↔ array
         'calculated_amount' => 'decimal:2', // siempre 2 decimales
+        'is_draft' => 'boolean',
     ];
 
     public function patient()
@@ -73,5 +78,15 @@ class SurgicalCase extends Model implements HasHospital
     public function assignments()
     {
         return $this->hasMany(SurgicalAssignment::class);
+    }
+
+    public function operatingRoom()
+    {
+        return $this->belongsTo(OperatingRoom::class);
+    }
+
+    public function surgeryStatus()
+    {
+        return $this->belongsTo(SurgeryStatus::class);
     }
 }
