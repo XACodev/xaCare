@@ -3,6 +3,7 @@
 use App\Models\Admission;
 use App\Models\Patient;
 use App\Modules\QxLog\Models\RateModifier;
+use App\Modules\QxLog\Models\SurgeryStatus;
 use App\Modules\QxLog\Models\SurgicalAssignment;
 use App\Modules\QxLog\Models\SurgicalCase;
 use App\Modules\QxLog\Models\SurgicalRole;
@@ -33,6 +34,10 @@ state([
 
     // Asignaciones: array de filas [role_id, user_id, user_query, is_courtesy, note, manual_toggles(array de ids)]
     'assignments' => [],
+
+    // Cirugia ya programada (tablero) que este registro completa, si el instrumentista la usa.
+    'linked_surgical_case_id' => null,
+    'match_dismissed' => false,
 
     // UX
     'success_message' => null,
@@ -226,9 +231,10 @@ $save = function () {
     }
 
     $hospitalId = Auth::user()->hospital_id;
+    $linkedCaseId = $this->linked_surgical_case_id;
 
-    DB::transaction(function () use ($data, $patientId, $patientName, $durationMinutes, $hospitalId) {
-        $case = SurgicalCase::create([
+    DB::transaction(function () use ($data, $patientId, $patientName, $durationMinutes, $hospitalId, $linkedCaseId) {
+        $caseFields = [
             'hospital_id' => $hospitalId,
             'procedure_date' => $data['procedure_date'],
             'start_time' => $data['start_time'],
@@ -240,7 +246,26 @@ $save = function () {
             'is_videosurgery' => (bool) $data['is_videosurgery'],
             'status' => 'pending',
             'calculated_amount' => 0,
-        ]);
+        ];
+
+        $linked = $linkedCaseId
+            ? SurgicalCase::query()->where('id', $linkedCaseId)->where('is_draft', false)->lockForUpdate()->first()
+            : null;
+
+        if ($linked) {
+            // La cirugia programada se "completa": se le agregan los horarios reales y
+            // pasa a is_completed en vez de crear un SurgicalCase duplicado.
+            $completedStatus = SurgeryStatus::query()->where('is_completed', true)->first();
+            $caseFields['is_draft'] = false;
+            if ($completedStatus) {
+                $caseFields['surgery_status_id'] = $completedStatus->id;
+            }
+            $linked->update($caseFields);
+            $case = $linked;
+            SurgicalAssignment::where('surgical_case_id', $case->id)->delete();
+        } else {
+            $case = SurgicalCase::create($caseFields);
+        }
 
         foreach ($data['assignments'] as $row) {
             $role = SurgicalRole::findOrFail($row['role_id']);
@@ -279,6 +304,8 @@ $save = function () {
     $this->start_time = now()->subHour()->format('H:i');
     $this->end_time = now()->format('H:i');
     $this->is_videosurgery = false;
+    $this->linked_surgical_case_id = null;
+    $this->match_dismissed = false;
     $instrumentistRole = $this->roles->firstWhere('slug', 'instrumentista');
     $this->assignments = [[
         'role_id' => $instrumentistRole?->id, 'user_id' => Auth::id(), 'user_query' => Auth::user()->name,
@@ -346,6 +373,51 @@ $selectPatient = function (int $id) {
     $this->patient_id = $p->id;
     $this->patient_query = $p->nombreCompleto();
     $this->patient_name = $p->nombreCompleto(); // snapshot legacy
+    $this->linked_surgical_case_id = null;
+    $this->match_dismissed = false;
+};
+
+$matching_surgery = computed(function () {
+    if (!$this->patient_id || $this->linked_surgical_case_id || $this->match_dismissed) {
+        return null;
+    }
+
+    return SurgicalCase::query()
+        ->where('patient_id', $this->patient_id)
+        ->where('is_draft', false)
+        ->where(function ($q) {
+            $q->whereNull('surgery_status_id')
+                ->orWhereHas('surgeryStatus', fn ($s) => $s->where('is_completed', false)->where('is_cancelled', false));
+        })
+        ->orderByDesc('procedure_date')
+        ->first();
+});
+
+$useScheduledSurgery = function () {
+    $case = $this->matching_surgery;
+    if (!$case) {
+        return;
+    }
+
+    $this->linked_surgical_case_id = $case->id;
+    $this->procedure_type = $case->procedure_type ?? $this->procedure_type;
+    $this->is_videosurgery = (bool) $case->is_videosurgery;
+
+    $tentative = $case->assignments()->with('user')->get();
+    if ($tentative->isNotEmpty()) {
+        $this->assignments = $tentative->map(fn (SurgicalAssignment $a) => [
+            'role_id' => $a->surgical_role_id,
+            'user_id' => $a->user_id,
+            'user_query' => $a->user?->name ?? '',
+            'is_courtesy' => false,
+            'note' => '',
+            'manual_toggles' => [],
+        ])->all();
+    }
+};
+
+$dismissMatchedSurgery = function () {
+    $this->match_dismissed = true;
 };
 
 ?>
@@ -437,6 +509,24 @@ $selectPatient = function (int $id) {
                         {{ $message }}
                     </p>
                 @enderror
+
+                @if($this->matching_surgery)
+                    <div class="rounded-lg border border-indigo-200 bg-indigo-50 dark:bg-indigo-900/30 dark:border-indigo-800 px-4 py-3 flex items-center justify-between gap-3">
+                        <div class="text-sm text-indigo-800 dark:text-indigo-200">
+                            {{ __('A scheduled surgery was found for this patient') }}
+                            ({{ $this->matching_surgery->procedure_type }},
+                            {{ $this->matching_surgery->procedure_date?->format('d/m/Y') }}).
+                        </div>
+                        <div class="flex gap-2 shrink-0">
+                            <flux:button type="button" size="sm" variant="primary" wire:click="useScheduledSurgery">
+                                {{ __('Use it') }}
+                            </flux:button>
+                            <flux:button type="button" size="sm" variant="subtle" wire:click="dismissMatchedSurgery">
+                                {{ __('Dismiss') }}
+                            </flux:button>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <div>

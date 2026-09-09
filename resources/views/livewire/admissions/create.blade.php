@@ -22,6 +22,7 @@ state([
     'impresion_clinica' => '',
     'medico_responsable' => '',
     'success_message' => null,
+    'last_admission_patient_id' => null,
 ]);
 
 rules(fn () => [
@@ -89,10 +90,13 @@ $save = function () {
         'medico_responsable' => $data['medico_responsable'] ?: null,
     ]);
 
+    $lastPatientId = (bool) $data['va_a_quirofano'] ? $data['patient_id'] : null;
+
     $this->reset();
     $this->fecha_ingreso = now()->toDateString();
     $this->hora_ingreso = now()->format('H:i');
     $this->success_message = __('Ingreso registrado.');
+    $this->last_admission_patient_id = $lastPatientId;
 };
 
 ?>
@@ -102,6 +106,14 @@ $save = function () {
 
     @if($success_message)
         <flux:callout variant="success" icon="check-circle" heading="{{ $success_message }}" />
+
+        @if($last_admission_patient_id)
+            @can('surgeries.schedule')
+                <flux:button href="{{ route('surgeries.schedule.create', ['patient_id' => $last_admission_patient_id]) }}" variant="primary">
+                    {{ __('Schedule Surgery') }}
+                </flux:button>
+            @endcan
+        @endif
     @endif
 
     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">

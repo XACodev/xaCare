@@ -83,6 +83,17 @@ mount(function (?SurgicalCase $surgery = null) {
 
     $this->procedure_date = now()->toDateString();
 
+    $prefillPatientId = request()->integer('patient_id') ?: null;
+    if ($prefillPatientId) {
+        $prefillPatient = Patient::query()->where('id', $prefillPatientId)
+            ->where('hospital_id', $user->hospital_id)->first();
+        if ($prefillPatient) {
+            $this->patient_id = $prefillPatient->id;
+            $this->patient_query = $prefillPatient->nombreCompleto();
+            $this->patient_name = $prefillPatient->nombreCompleto();
+        }
+    }
+
     $defaultRoom = OperatingRoom::query()->where('active', true)
         ->orderByDesc('is_default')->orderBy('sort_order')->first();
     $this->operating_room_id = $defaultRoom?->id;
