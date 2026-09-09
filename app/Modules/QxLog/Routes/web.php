@@ -11,6 +11,7 @@ Route::middleware(['auth', 'hospital.subscribed', 'hospital.feature:qxlog'])->gr
 
     Volt::route('surgeries/create', 'qxlog.surgeries.schedule')->name('surgeries.schedule.create');
     Volt::route('surgeries/{surgery}/edit', 'qxlog.surgeries.schedule')->name('surgeries.schedule.edit');
+    Volt::route('surgeries', 'qxlog.surgeries.board')->name('surgeries.board');
 });
 
 Route::middleware(['auth', 'admin', 'hospital.subscribed', 'hospital.feature:qxlog'])->group(function () {
