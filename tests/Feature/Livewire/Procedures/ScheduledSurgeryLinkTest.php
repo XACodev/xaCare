@@ -79,6 +79,7 @@ test('usar la cirugia sugerida precarga tipo de procedimiento y staff tentativo'
 test('guardar tras usar la sugerencia completa la cirugia programada sin duplicar', function () {
     [$hospital, $role, $user] = makeInstrumentistWithHospital();
     $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
+    SurgeryStatus::withoutGlobalScopes()->where('hospital_id', $hospital->id)->where('is_completed', true)->delete();
     $completedStatus = SurgeryStatus::factory()->create(['hospital_id' => $hospital->id, 'is_completed' => true]);
     $scheduled = SurgicalCase::factory()->create([
         'hospital_id' => $hospital->id,

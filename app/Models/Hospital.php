@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\SubscriptionStatus;
+use App\Modules\QxLog\Models\OperatingRoom;
+use App\Modules\QxLog\Models\SurgeryStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -129,6 +131,9 @@ class Hospital extends Model
                 'org_name' => $hospital->name,
                 'voucher_legend' => 'Por honorarios correspondientes a servicios de instrumentación prestados en procedimientos quirúrgicos.',
             ]);
+
+            OperatingRoom::seedDefaultFor($hospital);
+            SurgeryStatus::seedDefaultsFor($hospital);
         });
     }
 }

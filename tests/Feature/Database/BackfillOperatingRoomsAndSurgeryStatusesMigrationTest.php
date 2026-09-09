@@ -39,6 +39,8 @@ test('crea un quirófano principal y el catálogo de estados por defecto para ca
 
 test('no duplica quirófano ni estados si el hospital ya tiene alguno', function () {
     $hospital = Hospital::factory()->create();
+    OperatingRoom::withoutGlobalScopes()->where('hospital_id', $hospital->id)->delete();
+    SurgeryStatus::withoutGlobalScopes()->where('hospital_id', $hospital->id)->delete();
     OperatingRoom::factory()->for($hospital, 'hospital')->create(['name' => 'Quirófano A']);
     SurgeryStatus::factory()->for($hospital, 'hospital')->create(['name' => 'Personalizado']);
 

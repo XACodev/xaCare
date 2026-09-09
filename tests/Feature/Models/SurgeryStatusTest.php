@@ -7,6 +7,7 @@ use App\Modules\QxLog\Models\SurgeryStatus;
 test('surgery status belongs to its hospital and is scoped by tenant', function () {
     $hospitalA = Hospital::factory()->create();
     $hospitalB = Hospital::factory()->create();
+    SurgeryStatus::withoutGlobalScopes()->whereIn('hospital_id', [$hospitalA->id, $hospitalB->id])->delete();
 
     $statusA = SurgeryStatus::factory()->for($hospitalA, 'hospital')->create(['name' => 'Programada']);
     SurgeryStatus::factory()->for($hospitalB, 'hospital')->create(['name' => 'Programada']);
@@ -20,6 +21,7 @@ test('surgery status belongs to its hospital and is scoped by tenant', function 
 
 test('slug is derived from name when not provided', function () {
     $hospital = Hospital::factory()->create();
+    SurgeryStatus::withoutGlobalScopes()->where('hospital_id', $hospital->id)->delete();
     $this->actingAs(User::factory()->create(['hospital_id' => $hospital->id]));
 
     $status = SurgeryStatus::create(['hospital_id' => $hospital->id, 'name' => 'En Curso']);
@@ -29,6 +31,7 @@ test('slug is derived from name when not provided', function () {
 
 test('boolean flags cast correctly', function () {
     $hospital = Hospital::factory()->create();
+    SurgeryStatus::withoutGlobalScopes()->where('hospital_id', $hospital->id)->delete();
     $this->actingAs(User::factory()->create(['hospital_id' => $hospital->id]));
 
     $status = SurgeryStatus::create([

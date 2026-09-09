@@ -7,6 +7,7 @@ use App\Modules\QxLog\Models\OperatingRoom;
 test('operating room belongs to its hospital and is scoped by tenant', function () {
     $hospitalA = Hospital::factory()->create();
     $hospitalB = Hospital::factory()->create();
+    OperatingRoom::withoutGlobalScopes()->whereIn('hospital_id', [$hospitalA->id, $hospitalB->id])->delete();
 
     $roomA = OperatingRoom::factory()->for($hospitalA, 'hospital')->create(['name' => 'Quirófano 1']);
     OperatingRoom::factory()->for($hospitalB, 'hospital')->create(['name' => 'Quirófano 1']);

@@ -64,6 +64,7 @@ test('kanban agrupa por estado en orden', function () {
     $user = boardActingUser($hospital);
     test()->actingAs($user);
 
+    SurgeryStatus::withoutGlobalScopes()->where('hospital_id', $hospital->id)->delete();
     $statusA = SurgeryStatus::factory()->create(['hospital_id' => $hospital->id, 'sort_order' => 0]);
     $statusB = SurgeryStatus::factory()->create(['hospital_id' => $hospital->id, 'sort_order' => 1]);
 

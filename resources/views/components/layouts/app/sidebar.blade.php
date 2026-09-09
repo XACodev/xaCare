@@ -40,6 +40,14 @@
                         {{ __('Nuevo Ingreso') }}
                     </flux:navlist.item>
                 </flux:navlist.group>
+                @if($hasQxlog && $me->can('surgeries.view'))
+                    <flux:navlist.group :heading="__('Surgeries')" class="grid">
+                        <flux:navlist.item icon="calendar-days" :href="route('surgeries.board')"
+                            :current="request()->routeIs('surgeries.board')" wire:navigate>
+                            {{ __('Surgery Schedule') }}
+                        </flux:navlist.item>
+                    </flux:navlist.group>
+                @endif
                 @if($hasQxlog)
                     <flux:navlist.group :heading="__('Payouts')" class="grid">
                         <flux:navlist.item icon="home" :href="route('payouts.create')"
@@ -103,6 +111,14 @@
                         {{ __('Register Procedure') }}
                     </flux:navlist.item>
                 </flux:navlist.group>
+                @can('surgeries.view')
+                    <flux:navlist.group :heading="__('Surgeries')" class="grid">
+                        <flux:navlist.item icon="calendar-days" :href="route('surgeries.board')"
+                            :current="request()->routeIs('surgeries.board')" wire:navigate>
+                            {{ __('Surgery Schedule') }}
+                        </flux:navlist.item>
+                    </flux:navlist.group>
+                @endcan
                 <flux:navlist.group :heading="__('History')" class="grid">
                     <flux:navlist.item icon="queue-list" :href="route('instrumentist.payouts')"
                         :current="request()->routeIs('instrumentist.payouts')" wire:navigate>

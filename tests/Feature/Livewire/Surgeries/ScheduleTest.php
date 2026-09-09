@@ -57,7 +57,7 @@ test('programa una cirugia completa y la deja publicada', function () {
     test()->actingAs($user);
 
     $room = OperatingRoom::factory()->create(['hospital_id' => $hospital->id]);
-    $status = SurgeryStatus::factory()->create(['hospital_id' => $hospital->id, 'is_default' => true]);
+    $status = SurgeryStatus::query()->where('hospital_id', $hospital->id)->where('is_default', true)->firstOrFail();
 
     Volt::test('qxlog.surgeries.schedule')
         ->set('procedure_date', '2026-11-01')
@@ -106,11 +106,43 @@ test('rechaza programar con choque de quirofano', function () {
         ->assertHasErrors(['operating_room_id']);
 });
 
+test('un hospital recien creado ya tiene quirofano por defecto y rechaza el choque sin configuracion manual', function () {
+    // Regresion: Hospital::booted() debe sembrar un OperatingRoom/SurgeryStatus por defecto
+    // al crear el hospital (ver Hospital::seedDefaultFor). Sin eso, mount() no encuentra
+    // ningun quirofano, operating_room_id se guarda null y OperatingRoomAvailabilityService
+    // nunca llega a evaluarse — el choque de horario queda deshabilitado en silencio.
+    $hospital = Hospital::factory()->create();
+    $user = scheduleActingUser($hospital);
+    test()->actingAs($user);
+
+    Volt::test('qxlog.surgeries.schedule')
+        ->set('procedure_date', '2026-11-01')
+        ->set('start_time', '08:00')
+        ->set('end_time', '10:00')
+        ->set('procedure_type', 'Apendicectomia')
+        ->set('patient_query', 'Paciente Emergencia')
+        ->call('schedule')
+        ->assertHasNoErrors();
+
+    $first = SurgicalCase::latest('id')->first();
+    expect($first->operating_room_id)->not->toBeNull();
+
+    Volt::test('qxlog.surgeries.schedule')
+        ->set('procedure_date', '2026-11-01')
+        ->set('start_time', '09:00')
+        ->set('end_time', '11:00')
+        ->set('procedure_type', 'Colecistectomia')
+        ->set('patient_query', 'Paciente Emergencia Dos')
+        ->call('schedule')
+        ->assertHasErrors(['operating_room_id']);
+});
+
 test('oculta el selector de quirofano cuando el hospital tiene uno solo activo', function () {
     $hospital = Hospital::factory()->create();
     $user = scheduleActingUser($hospital);
     test()->actingAs($user);
 
+    OperatingRoom::withoutGlobalScopes()->where('hospital_id', $hospital->id)->delete();
     OperatingRoom::factory()->create(['hospital_id' => $hospital->id, 'active' => true]);
 
     $component = Volt::test('qxlog.surgeries.schedule');
@@ -184,6 +216,7 @@ test('cancela una cirugia programada con permiso surgeries.cancel', function () 
     $user = scheduleActingUser($hospital, ['surgeries.schedule', 'surgeries.cancel']);
     test()->actingAs($user);
 
+    SurgeryStatus::withoutGlobalScopes()->where('hospital_id', $hospital->id)->where('is_cancelled', true)->delete();
     $cancelledStatus = SurgeryStatus::factory()->create(['hospital_id' => $hospital->id, 'is_cancelled' => true]);
     $case = SurgicalCase::factory()->create([
         'hospital_id' => $hospital->id,
