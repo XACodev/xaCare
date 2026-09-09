@@ -1,7 +1,9 @@
 <?php
+
 // database/migrations/2026_09_02_110000_migrate_legacy_procedures_to_surgical_assignments.php
 use App\Models\Hospital;
 use App\Models\PricingSetting;
+use App\Modules\QxLog\Models\PayoutItem;
 use App\Modules\QxLog\Models\RateModifier;
 use App\Modules\QxLog\Models\RoleRate;
 use App\Modules\QxLog\Models\SurgicalAssignment;
@@ -57,6 +59,10 @@ return new class extends Migration
                 $this->migrateAssignments($hospital, $roles);
             });
         }
+
+        // Una vez creadas las asignaciones, re-enlazar los payout_items legacy para que
+        // apunten a la SurgicalAssignment del instrumentista en lugar del surgical_case_id.
+        $this->relinkPayoutItems();
     }
 
     /**
@@ -194,5 +200,58 @@ return new class extends Migration
             'is_courtesy' => $historic ? (bool) data_get($case->pricing_snapshot, 'is_courtesy', false) : false,
             'status' => $historic ? $case->status : 'paid',
         ]);
+    }
+
+    /**
+     * Los payout_items legacy tienen surgical_assignment_id == surgical_case_id (antiguo
+     * procedure_id). Después de crear las SurgicalAssignment, hay que re-enlazarlos para que
+     * apunten a la asignación del instrumentista. Idempotente: ignora items que ya apuntan a
+     * una asignación válida o que no tienen mapeo posible.
+     */
+    private function relinkPayoutItems(): void
+    {
+        if (! Schema::hasColumn('payout_items', 'surgical_assignment_id')) {
+            return;
+        }
+
+        PayoutItem::withoutGlobalScopes()
+            ->whereNotNull('surgical_assignment_id')
+            ->orderBy('id')
+            ->chunkById(200, function ($items): void {
+                foreach ($items as $item) {
+                    $legacyCaseId = $item->surgical_assignment_id;
+
+                    // Ya apunta a una asignación válida: nada que hacer.
+                    if (SurgicalAssignment::withoutGlobalScopes()->where('id', $legacyCaseId)->exists()) {
+                        continue;
+                    }
+
+                    $case = SurgicalCase::withoutGlobalScopes()->where('id', $legacyCaseId)->first();
+                    if ($case === null) {
+                        continue;
+                    }
+
+                    $instrumentistRole = SurgicalRole::withoutGlobalScopes()
+                        ->where('hospital_id', $case->hospital_id)
+                        ->where('slug', 'instrumentista')
+                        ->first();
+
+                    if ($instrumentistRole === null) {
+                        continue;
+                    }
+
+                    $assignment = SurgicalAssignment::withoutGlobalScopes()
+                        ->where('surgical_case_id', $case->id)
+                        ->where('surgical_role_id', $instrumentistRole->id)
+                        ->first();
+
+                    if ($assignment === null) {
+                        continue;
+                    }
+
+                    $item->update(['surgical_assignment_id' => $assignment->id]);
+                    $assignment->update(['payout_item_id' => $item->id]);
+                }
+            });
     }
 };
