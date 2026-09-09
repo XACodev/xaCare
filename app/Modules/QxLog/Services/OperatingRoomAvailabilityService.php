@@ -30,7 +30,10 @@ class OperatingRoomAvailabilityService
             ->where('operating_room_id', $room->id)
             ->whereDate('procedure_date', $procedureDate)
             ->where('is_draft', false)
-            ->where('status', '!=', 'cancelled');
+            ->where(function ($q) {
+                $q->whereNull('surgery_status_id')
+                    ->orWhereHas('surgeryStatus', fn ($s) => $s->where('is_cancelled', false));
+            });
 
         if ($excludeCaseId) {
             $query->where('id', '!=', $excludeCaseId);

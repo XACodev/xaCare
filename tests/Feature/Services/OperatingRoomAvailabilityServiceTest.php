@@ -3,18 +3,24 @@
 use App\Models\Hospital;
 use App\Models\User;
 use App\Modules\QxLog\Models\OperatingRoom;
+use App\Modules\QxLog\Models\SurgeryStatus;
 use App\Modules\QxLog\Models\SurgicalCase;
 use App\Modules\QxLog\Services\OperatingRoomAvailabilityService;
 
-function makeScheduledCase(OperatingRoom $room, string $date, string $start, string $end, bool $isDraft = false, ?string $status = null): SurgicalCase
+function makeScheduledCase(OperatingRoom $room, string $date, string $start, string $end, bool $isDraft = false, bool $isCancelled = false): SurgicalCase
 {
+    $status = SurgeryStatus::factory()->create([
+        'hospital_id' => $room->hospital_id,
+        'is_cancelled' => $isCancelled,
+    ]);
+
     return SurgicalCase::factory()->create([
         'operating_room_id' => $room->id,
+        'surgery_status_id' => $status->id,
         'procedure_date' => $date,
         'start_time' => $start,
         'end_time' => $end,
         'is_draft' => $isDraft,
-        'status' => $status ?? 'scheduled',
     ]);
 }
 
@@ -64,7 +70,7 @@ test('ignora casos en borrador al validar choque', function () {
 
 test('ignora casos cancelados al validar choque', function () {
     $room = OperatingRoom::factory()->create();
-    makeScheduledCase($room, '2026-10-01', '08:00', '10:00', status: 'cancelled');
+    makeScheduledCase($room, '2026-10-01', '08:00', '10:00', isCancelled: true);
 
     $service = new OperatingRoomAvailabilityService();
 
