@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
-Route::middleware(['auth', 'hospital.subscribed', 'hospital.feature:qxlog'])->group(function () {
+Route::middleware(['web', 'auth', 'hospital.subscribed', 'hospital.feature:qxlog'])->group(function () {
     Volt::route('procedures/create', 'qxlog.procedures.create')->name('procedures.create');
 
     Volt::route('instrumentist/payouts', 'qxlog.instrumentist.payouts')->name('instrumentist.payouts');
@@ -14,7 +14,7 @@ Route::middleware(['auth', 'hospital.subscribed', 'hospital.feature:qxlog'])->gr
     Volt::route('surgeries', 'qxlog.surgeries.board')->name('surgeries.board');
 });
 
-Route::middleware(['auth', 'admin', 'hospital.subscribed', 'hospital.feature:qxlog'])->group(function () {
+Route::middleware(['web', 'auth', 'admin', 'hospital.subscribed', 'hospital.feature:qxlog'])->group(function () {
     Volt::route('payouts/create', 'qxlog.payouts.create')->name('payouts.create');
     Volt::route('payouts/{batch}/voucher', 'qxlog.payouts.voucher')->name('payouts.voucher');
     Volt::route('payouts', 'qxlog.payouts.index')->name('payouts.index');
