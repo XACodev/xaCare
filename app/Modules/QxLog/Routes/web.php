@@ -8,6 +8,9 @@ Route::middleware(['auth', 'hospital.subscribed', 'hospital.feature:qxlog'])->gr
 
     Volt::route('instrumentist/payouts', 'qxlog.instrumentist.payouts')->name('instrumentist.payouts');
     Volt::route('instrumentist/payouts/{batch}/voucher', 'qxlog.payouts.voucher')->name('instrumentist.payouts.voucher');
+
+    Volt::route('surgeries/create', 'qxlog.surgeries.schedule')->name('surgeries.schedule.create');
+    Volt::route('surgeries/{surgery}/edit', 'qxlog.surgeries.schedule')->name('surgeries.schedule.edit');
 });
 
 Route::middleware(['auth', 'admin', 'hospital.subscribed', 'hospital.feature:qxlog'])->group(function () {
