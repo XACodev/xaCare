@@ -244,3 +244,47 @@ test('editar un caso sin tocar el toggle manual preserva el monto calculado', fu
     expect((float) $assignment->calculated_amount)->toBe(800.0);
     expect($case->fresh()->patient_name)->toBe('Nombre Corregido');
 });
+
+test('renombrar el tipo de cirugia al editar no se descarta silenciosamente', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = User::factory()->create(['hospital_id' => $hospital->id]);
+    $admin->givePermissionTo('procedures.edit');
+
+    $role = SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Cirujano']);
+    RoleRate::factory()->create([
+        'hospital_id' => $hospital->id,
+        'surgical_role_id' => $role->id,
+        'user_id' => null,
+        'procedure_type_id' => null,
+        'base_rate' => 500,
+    ]);
+
+    $case = SurgicalCase::factory()->create([
+        'hospital_id' => $hospital->id,
+        'procedure_date' => now()->toDateString(),
+        'start_time' => '08:00',
+        'end_time' => '10:00',
+        'duration_minutes' => 120,
+        'procedure_type_id' => ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Apendicectomia'])->id,
+        'status' => 'pending',
+        'calculated_amount' => 500,
+    ]);
+
+    SurgicalAssignment::factory()->create([
+        'hospital_id' => $hospital->id,
+        'surgical_case_id' => $case->id,
+        'surgical_role_id' => $role->id,
+        'user_id' => $admin->id,
+        'calculated_amount' => 500,
+    ]);
+
+    $this->actingAs($admin);
+
+    Volt::test('qxlog.procedures.edit', ['procedure' => $case])
+        ->assertSet('procedure_type_query', 'Apendicectomia')
+        ->set('procedure_type_query', 'Colecistectomia')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($case->fresh()->procedureType->name)->toBe('Colecistectomia');
+});

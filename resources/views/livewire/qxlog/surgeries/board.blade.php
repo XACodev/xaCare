@@ -35,7 +35,7 @@ $statuses = computed(fn () => SurgeryStatus::query()->where('active', true)->ord
 
 $cases = computed(function () {
     return SurgicalCase::query()
-        ->with(['operatingRoom', 'surgeryStatus', 'patient'])
+        ->with(['operatingRoom', 'surgeryStatus', 'patient', 'procedureType'])
         ->when($this->view !== 'list', fn ($q) => $q->where('is_draft', false))
         ->when($this->room_filter, fn ($q) => $q->where('operating_room_id', $this->room_filter))
         ->when($this->status_filter, fn ($q) => $q->where('surgery_status_id', $this->status_filter))
@@ -84,7 +84,7 @@ $calendarCases = computed(function () {
     [$start, $end] = $this->calendarRange;
 
     return SurgicalCase::query()
-        ->with(['operatingRoom', 'surgeryStatus', 'patient'])
+        ->with(['operatingRoom', 'surgeryStatus', 'patient', 'procedureType'])
         ->where('is_draft', false)
         ->when($this->room_filter, fn ($q) => $q->where('operating_room_id', $this->room_filter))
         ->when($this->status_filter, fn ($q) => $q->where('surgery_status_id', $this->status_filter))

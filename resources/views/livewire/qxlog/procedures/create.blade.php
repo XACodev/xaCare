@@ -46,6 +46,14 @@ state([
 
 $hospitalId = fn () => Auth::user()?->hospital_id;
 
+// Si el usuario edita el nombre del procedimiento (a mano, o después de precargarlo
+// desde `useScheduledSurgery()`), se descarta el `procedure_type_id` precargado para
+// que `resolveProcedureType()` vuelva a resolverlo por nombre en vez de conservar en
+// silencio el tipo (y la tarifa) del caso programado original.
+updated(['procedure_type_query' => function () {
+    $this->procedure_type_id = null;
+}]);
+
 rules(fn () => [
     'procedure_date' => ['required', 'date', 'before_or_equal:'.now()->toDateString(), 'after_or_equal:'.now()->subWeeks(2)->toDateString()],
     'start_time' => ['required', 'date_format:H:i'],
@@ -209,7 +217,6 @@ $save = function () {
     abort_unless((bool) Auth::check(), 401, 'Unauthorized');
 
     $data = $this->validate();
-    $procedureType = $this->resolveProcedureType();
 
     $patientId = $data['patient_id'] ?? null;
     $patientName = $patientId ? $data['patient_name'] : trim((string) ($data['patient_query'] ?? ''));
@@ -251,7 +258,13 @@ $save = function () {
     $hospitalId = Auth::user()->hospital_id;
     $linkedCaseId = $this->linked_surgical_case_id;
 
-    DB::transaction(function () use ($data, $patientId, $patientName, $durationMinutes, $hospitalId, $linkedCaseId, $procedureType) {
+    DB::transaction(function () use ($data, $patientId, $patientName, $durationMinutes, $hospitalId, $linkedCaseId) {
+        // Resuelto dentro de la transacción y después de las validaciones manuales
+        // anteriores (paciente, roles pagables, duración): si el guardado se aborta,
+        // no queda un ProcedureType huérfano en el catálogo, y si la transacción hace
+        // rollback, la creación se revierte con ella.
+        $procedureType = $this->resolveProcedureType();
+
         $caseFields = [
             'hospital_id' => $hospitalId,
             'procedure_date' => $data['procedure_date'],
@@ -343,7 +356,7 @@ $pending_procedures = computed(function () {
         ->where('user_id', $user->id)
         ->where('status', 'pending')
         ->whereHas('surgicalCase', fn ($q) => $q->where('hospital_id', $user->hospital_id))
-        ->with('surgicalCase')
+        ->with('surgicalCase.procedureType')
         ->orderByDesc('created_at')
         ->limit(50)
         ->get();

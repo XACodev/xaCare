@@ -109,6 +109,33 @@ test('guardar tras usar la sugerencia completa la cirugia programada sin duplica
         ->and($scheduled->assignments)->toHaveCount(1);
 });
 
+test('renombrar el tipo tras usar la sugerencia no se descarta silenciosamente', function () {
+    [$hospital, $role, $user] = makeInstrumentistWithHospital();
+    $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
+    $scheduled = SurgicalCase::factory()->create([
+        'hospital_id' => $hospital->id,
+        'patient_id' => $patient->id,
+        'is_draft' => false,
+        'procedure_type_id' => ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Colecistectomia'])->id,
+    ]);
+
+    $this->actingAs($user);
+
+    Volt::test('qxlog.procedures.create')
+        ->call('selectPatient', $patient->id)
+        ->call('useScheduledSurgery')
+        ->assertSet('procedure_type_query', 'Colecistectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
+        ->set('start_time', '08:00')
+        ->set('end_time', '09:00')
+        ->set('assignments.0.role_id', $role->id)
+        ->set('assignments.0.user_id', $user->id)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($scheduled->fresh()->procedureType->name)->toBe('Apendicectomia');
+});
+
 test('sin usar la sugerencia, guardar sigue creando una cirugia nueva (sin regresion)', function () {
     [$hospital, $role, $user] = makeInstrumentistWithHospital();
     $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);

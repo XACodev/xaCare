@@ -5,7 +5,9 @@ namespace App\Modules\QxLog\Models;
 use App\Contracts\HasHospital;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasSlug;
+use App\Support\NameFormatter;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -25,4 +27,9 @@ class ProcedureType extends Model implements HasHospital
     protected $casts = [
         'active' => 'boolean',
     ];
+
+    protected function name(): Attribute
+    {
+        return Attribute::make(set: fn (?string $v) => NameFormatter::titleCase($v) ?? $v);
+    }
 }

@@ -4,8 +4,9 @@ use App\Modules\QxLog\Models\SurgicalCase;
 
 // El accessor Attribute de título-case para `procedure_type` (columna string libre) fue
 // eliminado en Task 3 del plan de catálogos qxlog al reemplazar la columna por
-// `procedure_type_id` (FK a ProcedureType), así que este test ya no cubre ese caso -- el
-// normalizado de nombre ahora vive en ProcedureType, no en SurgicalCase.
+// `procedure_type_id` (FK a ProcedureType), así que este test ya no cubre ese caso.
+// El normalizado de nombre ahora vive en el mutator `name` de ProcedureType (ver
+// tests/Feature/Models/ProcedureTypeTest.php), consistente con Patient/User.
 test('standardizes text fields to title case', function () {
     $case = new SurgicalCase;
 

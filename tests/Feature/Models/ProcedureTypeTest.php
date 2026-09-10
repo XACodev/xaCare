@@ -25,3 +25,10 @@ test('un admin no ve tipos de cirugia de otro hospital', function () {
 
     expect(ProcedureType::all())->toHaveCount(1);
 });
+
+test('normaliza el nombre a title case al guardar', function () {
+    $hospital = Hospital::factory()->create();
+    $type = ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'APENDICECTOMIA DE URGENCIA']);
+
+    expect($type->name)->toBe('Apendicectomia de Urgencia');
+});

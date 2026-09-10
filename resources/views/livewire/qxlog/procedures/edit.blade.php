@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 
-use function Livewire\Volt\{state, mount, computed, rules};
+use function Livewire\Volt\{state, mount, computed, rules, updated};
 
 state([
     'case' => null,
@@ -43,6 +43,13 @@ rules([
     'assignments.*.manual_toggles' => ['nullable', 'array'],
     'assignments.*.manual_toggles.*' => ['integer'],
 ]);
+
+// Si el usuario edita el nombre del procedimiento, se descarta el tipo precargado
+// (por `mount()`) para que `resolveProcedureType()` vuelva a resolverlo por nombre
+// en vez de conservar en silencio el tipo (y la tarifa) anterior.
+updated(['procedure_type_query' => function () {
+    $this->procedure_type_id = null;
+}]);
 
 mount(function (SurgicalCase $procedure) {
     // The parameter name MUST match the route placeholder `{procedure}`
@@ -155,14 +162,13 @@ $save = function () {
     abort_if((bool) $user?->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
 
     $data = $this->validate();
-    $procedureType = $this->resolveProcedureType();
 
     $durationMinutes = TimeHelper::durationMinutes($data['procedure_date'], $data['start_time'], $data['end_time']);
     if ($durationMinutes <= 0) {
         throw ValidationException::withMessages(['end_time' => 'La hora de finalización debe ser posterior a la hora de inicio.']);
     }
 
-    DB::transaction(function () use ($data, $durationMinutes, $procedureType) {
+    DB::transaction(function () use ($data, $durationMinutes) {
         // Reload the case from the database with a row lock. This prevents both
         // model-id tampering in the Livewire payload and race conditions where
         // the case is liquidated by another user while this edit is in flight.
@@ -180,6 +186,11 @@ $save = function () {
         if (array_diff($assignmentIds, $caseAssignmentIds)) {
             abort(403, 'Una o más asignaciones no pertenecen a este procedimiento.');
         }
+
+        // Resuelto dentro de la transacción y después de las validaciones manuales
+        // anteriores: si el guardado se aborta, no queda un ProcedureType huérfano
+        // en el catálogo, y si la transacción hace rollback, la creación se revierte.
+        $procedureType = $this->resolveProcedureType();
 
         $case->update([
             'procedure_date' => $data['procedure_date'],
