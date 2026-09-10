@@ -98,7 +98,7 @@ $manualModifiersFor = computed(function () {
     // catálogos qxlog), así que ya no puede casar contra `role_rates.procedure_type_id`
     // (FK numérica). Hasta que ese enlace exista, solo se consideran los RoleRate sin
     // procedimiento específico (procedure_type_id nulo).
-    return fn (?int $roleId, ?int $userId, ?string $procedureType) => $roleId
+    return fn (?int $roleId, ?int $userId) => $roleId
         ? RateModifier::query()
             ->whereHas('roleRate', function ($q) use ($roleId, $userId) {
                 $q->where('surgical_role_id', $roleId)
@@ -343,7 +343,7 @@ $save = function () {
                             wire:change="recalculate({{ $index }})" label="{{ __('Courtesy') }}" />
 
                         @if($row['role_id'])
-                            @foreach(($this->manualModifiersFor)($row['role_id'], $row['user_id'], $procedure_type) as $modifier)
+                            @foreach(($this->manualModifiersFor)($row['role_id'], $row['user_id']) as $modifier)
                                 <flux:checkbox wire:model.live="assignments.{{ $index }}.manual_toggles" value="{{ $modifier->id }}"
                                     wire:change="recalculate({{ $index }})" label="{{ $modifier->name }}" />
                             @endforeach
