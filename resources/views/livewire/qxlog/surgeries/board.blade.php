@@ -59,12 +59,12 @@ $calendarRange = computed(function () {
     $anchor = Carbon::parse($this->calendar_anchor);
 
     if ($this->calendar_scale === 'week') {
-        return [$anchor->copy()->startOfWeek(Carbon::MONDAY), $anchor->copy()->endOfWeek(Carbon::MONDAY)];
+        return [$anchor->copy()->startOfWeek(Carbon::MONDAY), $anchor->copy()->endOfWeek(Carbon::SUNDAY)];
     }
 
     return [
         $anchor->copy()->startOfMonth()->startOfWeek(Carbon::MONDAY),
-        $anchor->copy()->endOfMonth()->endOfWeek(Carbon::MONDAY),
+        $anchor->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY),
     ];
 });
 
