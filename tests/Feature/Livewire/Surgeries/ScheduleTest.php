@@ -309,3 +309,42 @@ test('agrega staff tentativo sin calculo de pago', function () {
     expect($case->assignments)->toHaveCount(1)
         ->and($case->assignments->first()->calculated_amount)->toEqual(0);
 });
+
+test('selecting a patient closes the patient suggestions dropdown', function () {
+    $hospital = Hospital::factory()->create();
+    $user = scheduleActingUser($hospital);
+    test()->actingAs($user);
+
+    $patient = \App\Models\Patient::factory()->for($hospital, 'hospital')->create([
+        'primer_nombre' => 'Maria',
+        'primer_apellido' => 'Lopez',
+    ]);
+
+    $component = Volt::test('qxlog.surgeries.schedule')
+        ->set('patient_query', 'Maria');
+
+    expect($component->get('patient_suggestions'))->not->toBeEmpty();
+
+    $component->call('selectPatient', $patient->id);
+
+    expect($component->get('patient_suggestions'))->toBeEmpty();
+});
+
+test('selecting a person closes that assignment row suggestions dropdown', function () {
+    $hospital = Hospital::factory()->create();
+    $user = scheduleActingUser($hospital);
+    test()->actingAs($user);
+
+    $candidate = User::factory()->create(['hospital_id' => $hospital->id, 'name' => 'Carlos Ramirez', 'role' => '']);
+
+    $component = Volt::test('qxlog.surgeries.schedule')
+        ->set('assignments.0.user_query', 'Carlos');
+
+    expect(($component->instance()->userSuggestions)('Carlos', null))->not->toBeEmpty();
+
+    $component->call('selectAssignmentUser', 0, $candidate->id);
+
+    $row = $component->get('assignments')[0];
+
+    expect(($component->instance()->userSuggestions)($row['user_query'], $row['user_id']))->toBeEmpty();
+});

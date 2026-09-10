@@ -116,6 +116,13 @@ $patient_suggestions = computed(function () {
         return [];
     }
 
+    if ($this->patient_id) {
+        $selected = Patient::find($this->patient_id);
+        if ($selected && Str::lower(trim($selected->nombreCompleto())) === Str::lower($q)) {
+            return [];
+        }
+    }
+
     $normalizedQ = Str::ascii(Str::lower($q));
 
     return Patient::query()->get()
@@ -127,17 +134,30 @@ $patient_suggestions = computed(function () {
 });
 
 $userSuggestions = computed(function () {
-    return fn (string $query) => User::query()
-        ->where('hospital_id', Auth::user()?->hospital_id)
-        ->when(trim($query) !== '', function ($q) use ($query) {
-            $normalized = Str::ascii(Str::lower($query));
-            $q->whereRaw('LOWER(name) LIKE ?', ["%{$normalized}%"]);
-        })
-        ->orderBy('name')
-        ->limit(8)
-        ->get(['id', 'name'])
-        ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
-        ->all();
+    return function (string $query, ?int $selectedUserId = null) {
+        $q = trim($query);
+        if ($q === '') {
+            return [];
+        }
+
+        if ($selectedUserId) {
+            $selected = User::find($selectedUserId);
+            if ($selected && Str::lower(trim($selected->name)) === Str::lower($q)) {
+                return [];
+            }
+        }
+
+        $normalized = Str::ascii(Str::lower($q));
+
+        return User::query()
+            ->where('hospital_id', Auth::user()?->hospital_id)
+            ->whereRaw('LOWER(name) LIKE ?', ["%{$normalized}%"])
+            ->orderBy('name')
+            ->limit(8)
+            ->get(['id', 'name'])
+            ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
+            ->all();
+    };
 });
 
 $selectPatient = function (int $id) {
@@ -413,9 +433,10 @@ $delete = function () {
                             <input type="text" wire:model.live.debounce.200ms="assignments.{{ $index }}.user_query"
                                 placeholder="{{ __('Search person...') }}"
                                 class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-700" />
-                            @if(!empty($row['user_query']))
+                            @php $rowUserSuggestions = ($this->userSuggestions)($row['user_query'] ?? '', $row['user_id'] ?? null); @endphp
+                            @if(!empty($rowUserSuggestions))
                                 <div class="absolute z-20 mt-1 w-full rounded-lg border bg-white shadow-lg dark:bg-zinc-700">
-                                    @foreach(($this->userSuggestions)($row['user_query']) as $s)
+                                    @foreach($rowUserSuggestions as $s)
                                         <button type="button" class="block w-full text-left px-4 py-2 hover:bg-zinc-50 dark:hover:bg-indigo-400/50"
                                             wire:click="selectAssignmentUser({{ $index }}, {{ $s['id'] }})">
                                             {{ $s['name'] }}
