@@ -9,22 +9,24 @@ use Illuminate\Support\Facades\Auth;
 
 use function Livewire\Volt\{state, mount, computed};
 
+state(['view' => 'list'])->url(except: 'list');
+state(['calendar_scale' => 'month'])->url(except: 'month');
 state([
-    'view' => 'list',
     'date_from' => null,
     'date_to' => null,
     'room_filter' => null,
     'status_filter' => null,
-    'calendar_scale' => 'month',
     'calendar_anchor' => null,
-    'calendar_selected_day' => null,
-]);
+])->url();
+state(['calendar_selected_day' => null]);
 
 mount(function () {
     $user = Auth::user();
     abort_unless($user && $user->can('surgeries.view'), 403);
 
-    $this->calendar_anchor = now()->toDateString();
+    if (! $this->calendar_anchor) {
+        $this->calendar_anchor = now()->toDateString();
+    }
 });
 
 $rooms = computed(fn () => OperatingRoom::query()->where('active', true)->orderBy('sort_order')->get());

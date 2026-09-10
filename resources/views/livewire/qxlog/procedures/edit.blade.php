@@ -221,8 +221,7 @@ $save = function () {
 ?>
 
 <div class="max-w-6xl mx-auto p-4 space-y-6">
-    <flux:button href="{{ route('procedures.index') }}" icon="arrow-left" variant="subtle">{{ __('Return') }}
-    </flux:button>
+    <x-back-link :fallback="route('procedures.index')" />
     <div>
         <flux:heading size="xl">{{ __('Edit Procedure') }}</flux:heading>
         <flux:subheading>{{ __('Modify the details of the surgical procedure.') }}</flux:subheading>

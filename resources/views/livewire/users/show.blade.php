@@ -25,9 +25,7 @@ mount(function (string $user) {
 
 <div class="max-w-xl mx-auto p-4 space-y-6">
     <div class="flex items-center justify-between">
-        <flux:button href="{{ route('users.index') }}" variant="primary" size="sm" icon="arrow-left">
-            {{ __('Back') }}
-        </flux:button>
+        <x-back-link :fallback="route('users.index')" />
 
         <flux:button href="{{ route('users.edit', $user) }}" variant="primary" size="sm" icon="pencil">
             {{ __('Edit') }}

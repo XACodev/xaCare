@@ -32,7 +32,7 @@ $estadoCivilLabel = function (?string $codigo) {
 <div class="max-w-3xl mx-auto p-4 space-y-6">
     <div class="flex items-center justify-between">
         <flux:heading size="xl">{{ $patient->nombreCompleto() }}</flux:heading>
-        <flux:link href="{{ route('patients.index') }}" class="text-sm">{{ __('Volver') }}</flux:link>
+        <x-back-link :fallback="route('patients.index')" />
     </div>
 
     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">

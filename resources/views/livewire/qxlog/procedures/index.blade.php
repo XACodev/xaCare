@@ -221,7 +221,7 @@ $delete = function () {
                             <flux:dropdown>
                                 <flux:button size="sm" icon="ellipsis-vertical" />
                                 <flux:menu>
-                                    <flux:menu.item href="{{ route('procedures.edit', $p->id) }}" icon="pencil">
+                                    <flux:menu.item href="{{ route('procedures.edit', $p) }}" icon="pencil">
                                         {{ __('Edit') }}
                                     </flux:menu.item>
                                     <flux:menu.separator />
@@ -400,7 +400,7 @@ $delete = function () {
                             @if ($p->status === 'pending' && ($this->status === 'all' || $this->status === 'pending'))
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
                                     <div class="flex flex-row justify-center items-center gap-2">
-                                        <a href="{{ route('procedures.edit', $p->id) }}"
+                                        <a href="{{ route('procedures.edit', $p) }}"
                                             class="inline-flex items-center gap-1.5 text-sm text-indigo-500 dark:text-indigo-500 hover:text-indigo-900 dark:hover:text-indigo-900 transition-colors">
                                             <flux:icon name="pencil" size="sm" />
                                         </a>
