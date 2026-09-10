@@ -52,6 +52,27 @@ test('instrumentist can register a procedure with a free-text patient name for e
     expect($surgicalCase->patient_name)->toBe('Paciente De Emergencia'); // Title Case cast
 });
 
+test('selecting a patient closes the suggestions dropdown', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'instrumentist', 'use_pay_scheme' => false]);
+    $patient = Patient::factory()->create([
+        'hospital_id' => $hospital->id,
+        'primer_nombre' => 'Ana', 'segundo_nombre' => null,
+        'primer_apellido' => 'Gomez', 'segundo_apellido' => null,
+    ]);
+    Admission::factory()->create(['hospital_id' => $hospital->id, 'patient_id' => $patient->id, 'va_a_quirofano' => true]);
+    $this->actingAs($user);
+
+    $component = Volt::test('qxlog.procedures.create')
+        ->set('patient_query', 'Ana');
+
+    expect($component->get('patient_suggestions'))->not->toBeEmpty();
+
+    $component->call('selectPatient', $patient->id);
+
+    expect($component->get('patient_suggestions'))->toBeEmpty();
+});
+
 test('registering a procedure requires a patient, selected or typed', function () {
     $hospital = Hospital::factory()->create();
     SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista']);

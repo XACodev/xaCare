@@ -342,6 +342,10 @@ $pending_total = computed(function () {
 });
 
 $patient_suggestions = computed(function () {
+    if ($this->patient_id) {
+        return [];
+    }
+
     $q = trim((string) $this->patient_query);
     if ($q === '') {
         return [];

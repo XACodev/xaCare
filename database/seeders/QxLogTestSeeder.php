@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\Admission;
 use App\Models\Hospital;
+use App\Models\Patient;
 use App\Models\PricingSetting;
 use App\Models\User;
 use App\Modules\QxLog\Models\PayoutBatch;
@@ -373,6 +375,63 @@ class QxLogTestSeeder extends Seeder
         }
 
         $batch2->update(['total_amount' => $total2]);
+
+        // ======================
+        // PACIENTES DE PRUEBA (para QA del flujo Nuevo Procedimiento)
+        // ======================
+        $qaPatient1 = Patient::firstOrCreate(
+            ['hospital_id' => $hospital->id, 'dpi' => '1111111110101'],
+            [
+                'primer_nombre' => 'Paciente',
+                'primer_apellido' => 'Qa Con Cirugia',
+                'fecha_nacimiento' => '1990-01-01',
+                'sexo' => 'F',
+            ]
+        );
+
+        Admission::firstOrCreate(
+            ['hospital_id' => $hospital->id, 'patient_id' => $qaPatient1->id],
+            [
+                'va_a_quirofano' => true,
+                'fecha_ingreso' => now()->subDay()->toDateString(),
+                'sala_ingreso' => 'Principal',
+            ]
+        );
+
+        // Cirugia programada ligada a este paciente, para que "Nuevo Procedimiento"
+        // muestre el aviso "A scheduled surgery was found for this patient".
+        SurgicalCase::firstOrCreate(
+            ['hospital_id' => $hospital->id, 'patient_id' => $qaPatient1->id, 'is_draft' => false],
+            [
+                'procedure_date' => now()->addDays(2)->toDateString(),
+                'start_time' => '09:00',
+                'end_time' => '11:00',
+                'patient_name' => $qaPatient1->nombreCompleto(),
+                'procedure_type' => 'Colecistectomia QA',
+                'is_videosurgery' => false,
+                'status' => 'scheduled',
+            ]
+        );
+
+        // Segundo paciente admitido, sin cirugia programada (para probar el flujo normal sin aviso).
+        $qaPatient2 = Patient::firstOrCreate(
+            ['hospital_id' => $hospital->id, 'dpi' => '2222222220202'],
+            [
+                'primer_nombre' => 'Paciente',
+                'primer_apellido' => 'Qa Sin Cirugia',
+                'fecha_nacimiento' => '1985-05-05',
+                'sexo' => 'M',
+            ]
+        );
+
+        Admission::firstOrCreate(
+            ['hospital_id' => $hospital->id, 'patient_id' => $qaPatient2->id],
+            [
+                'va_a_quirofano' => true,
+                'fecha_ingreso' => now()->subDay()->toDateString(),
+                'sala_ingreso' => 'Principal',
+            ]
+        );
     }
 
     private function assignSpatieRole(User $user): void
