@@ -56,6 +56,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'payouts.view',
             'pricing.manage',
             'settings.manage',
+            'surgeries.view',
+            'surgeries.schedule',
+            'surgeries.cancel',
+            'surgeries.delete',
         ]);
 
         $instrumentistRole->givePermissionTo([
