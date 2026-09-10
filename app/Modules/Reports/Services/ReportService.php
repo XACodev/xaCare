@@ -23,7 +23,7 @@ class ReportService
     public function proceduresByDateRange(?string $from, ?string $to): Collection
     {
         return SurgicalCase::query()
-            ->with(['assignments.surgicalRole', 'assignments.user'])
+            ->with(['assignments.surgicalRole', 'assignments.user', 'procedureType'])
             ->when($from, fn ($q) => $q->whereDate('procedure_date', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('procedure_date', '<=', $to))
             ->orderByDesc('procedure_date')

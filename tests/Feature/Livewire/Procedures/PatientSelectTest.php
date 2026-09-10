@@ -22,7 +22,7 @@ test('instrumentist selects a patient and it is stored on the procedure', functi
 
     Volt::test('qxlog.procedures.create')
         ->call('selectPatient', $patient->id)
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('start_time', '08:00')
         ->set('end_time', '09:00')
         ->call('save')
@@ -41,7 +41,7 @@ test('instrumentist can register a procedure with a free-text patient name for e
 
     Volt::test('qxlog.procedures.create')
         ->set('patient_query', 'Paciente de Emergencia')
-        ->set('procedure_type', 'Cesarea')
+        ->set('procedure_type_query', 'Cesarea')
         ->set('start_time', '02:00')
         ->set('end_time', '03:00')
         ->call('save')
@@ -80,7 +80,7 @@ test('registering a procedure requires a patient, selected or typed', function (
     $this->actingAs($user);
 
     Volt::test('qxlog.procedures.create')
-        ->set('procedure_type', 'Cesarea')
+        ->set('procedure_type_query', 'Cesarea')
         ->set('start_time', '02:00')
         ->set('end_time', '03:00')
         ->call('save')

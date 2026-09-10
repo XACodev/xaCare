@@ -2,6 +2,7 @@
 
 use App\Models\Hospital;
 use App\Models\Patient;
+use App\Modules\QxLog\Models\ProcedureType;
 use App\Modules\QxLog\Models\SurgicalCase;
 use App\Models\User;
 
@@ -17,7 +18,7 @@ test('procedures are scoped by hospital and link to a patient', function () {
         'end_time' => '09:00',
         'patient_name' => 'Ana Gomez',
         'patient_id' => $patient->id,
-        'procedure_type' => 'Apendicectomia',
+        'procedure_type_id' => ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Apendicectomia'])->id,
         'status' => 'pending',
     ]);
 

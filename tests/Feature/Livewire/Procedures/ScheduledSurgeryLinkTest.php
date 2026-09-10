@@ -3,6 +3,7 @@
 use App\Models\Hospital;
 use App\Models\Patient;
 use App\Models\User;
+use App\Modules\QxLog\Models\ProcedureType;
 use App\Modules\QxLog\Models\SurgeryStatus;
 use App\Modules\QxLog\Models\SurgicalAssignment;
 use App\Modules\QxLog\Models\SurgicalCase;
@@ -25,7 +26,7 @@ test('detecta una cirugia programada del paciente seleccionado', function () {
         'hospital_id' => $hospital->id,
         'patient_id' => $patient->id,
         'is_draft' => false,
-        'procedure_type' => 'Apendicectomia',
+        'procedure_type_id' => ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Apendicectomia'])->id,
     ]);
 
     $this->actingAs($user);
@@ -56,7 +57,7 @@ test('usar la cirugia sugerida precarga tipo de procedimiento y staff tentativo'
         'hospital_id' => $hospital->id,
         'patient_id' => $patient->id,
         'is_draft' => false,
-        'procedure_type' => 'Colecistectomia',
+        'procedure_type_id' => ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Colecistectomia'])->id,
     ]);
     SurgicalAssignment::factory()->create([
         'hospital_id' => $hospital->id,
@@ -71,7 +72,7 @@ test('usar la cirugia sugerida precarga tipo de procedimiento y staff tentativo'
         ->call('selectPatient', $patient->id)
         ->call('useScheduledSurgery');
 
-    expect($component->get('procedure_type'))->toBe('Colecistectomia')
+    expect($component->get('procedure_type_query'))->toBe('Colecistectomia')
         ->and($component->get('assignments'))->toHaveCount(1)
         ->and($component->get('assignments')[0]['role_id'])->toBe($role->id);
 });
@@ -85,7 +86,7 @@ test('guardar tras usar la sugerencia completa la cirugia programada sin duplica
         'hospital_id' => $hospital->id,
         'patient_id' => $patient->id,
         'is_draft' => false,
-        'procedure_type' => 'Colecistectomia',
+        'procedure_type_id' => ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Colecistectomia'])->id,
     ]);
 
     $this->actingAs($user);
@@ -121,7 +122,7 @@ test('sin usar la sugerencia, guardar sigue creando una cirugia nueva (sin regre
 
     Volt::test('qxlog.procedures.create')
         ->call('selectPatient', $patient->id)
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('start_time', '08:00')
         ->set('end_time', '09:00')
         ->set('assignments.0.role_id', $role->id)

@@ -31,7 +31,7 @@ $exportCsv = function () {
             fputcsv($handle, [
                 $p->procedure_date?->format('Y-m-d'),
                 $p->patient_name,
-                $p->procedure_type,
+                $p->procedureType?->name,
                 $p->status,
                 (float) $p->assignments->sum('calculated_amount'),
             ]);
@@ -84,7 +84,7 @@ $exportCsv = function () {
                         <tr>
                             <td class="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">{{ $p->procedure_date?->format('Y-m-d') }}</td>
                             <td class="px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100">{{ $p->patient_name }}</td>
-                            <td class="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">{{ $p->procedure_type }}</td>
+                            <td class="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">{{ $p->procedureType?->name }}</td>
                             <td class="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">{{ __($p->status) }}</td>
                             <td class="px-4 py-3 text-sm text-right font-medium">Q{{ number_format($p->assignments->sum('calculated_amount'), 2) }}</td>
                         </tr>

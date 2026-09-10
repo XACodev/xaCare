@@ -9,6 +9,7 @@ use App\Models\PricingSetting;
 use App\Models\User;
 use App\Modules\QxLog\Models\PayoutBatch;
 use App\Modules\QxLog\Models\PayoutItem;
+use App\Modules\QxLog\Models\ProcedureType;
 use App\Modules\QxLog\Models\SurgicalAssignment;
 use App\Modules\QxLog\Models\SurgicalCase;
 use App\Modules\QxLog\Models\SurgicalRole;
@@ -206,6 +207,12 @@ class QxLogTestSeeder extends Seeder
             'Artroscopia',
         ];
 
+        $procedureTypeModels = collect($procedureTypes)->map(
+            fn (string $name) => ProcedureType::firstOrCreate(
+                ['hospital_id' => $hospital->id, 'name' => $name]
+            )
+        );
+
         // Instanciar el servicio real para obtener los mismos datos de guardado
         $pricingService = app(\App\Modules\QxLog\Services\PricingService::class);
 
@@ -252,7 +259,7 @@ class QxLogTestSeeder extends Seeder
                 'end_time' => $endTime,
                 'duration_minutes' => $durationMinutes,
                 'patient_name' => fake()->name(),
-                'procedure_type' => fake()->randomElement($procedureTypes),
+                'procedure_type_id' => $procedureTypeModels->random()->id,
                 'is_videosurgery' => $isVideosurgery,
                 'calculated_amount' => $pricingResult['amount'],
                 'pricing_snapshot' => $pricingResult['snapshot'],
@@ -324,7 +331,7 @@ class QxLogTestSeeder extends Seeder
                 'snapshot' => [
                     'procedure_id' => $case->id,
                     'patient_name' => $case->patient_name,
-                    'procedure_type' => $case->procedure_type,
+                    'procedure_type' => $case->procedureType?->name,
                     'procedure_date' => $case->procedure_date->toDateString(),
                     'calculated_amount' => $a->calculated_amount,
                     'pricing_snapshot' => $a->pricing_snapshot,
@@ -363,7 +370,7 @@ class QxLogTestSeeder extends Seeder
                 'snapshot' => [
                     'procedure_id' => $case->id,
                     'patient_name' => $case->patient_name,
-                    'procedure_type' => $case->procedure_type,
+                    'procedure_type' => $case->procedureType?->name,
                     'procedure_date' => $case->procedure_date->toDateString(),
                     'calculated_amount' => $a->calculated_amount,
                     'pricing_snapshot' => $a->pricing_snapshot,
@@ -407,7 +414,9 @@ class QxLogTestSeeder extends Seeder
                 'start_time' => '09:00',
                 'end_time' => '11:00',
                 'patient_name' => $qaPatient1->nombreCompleto(),
-                'procedure_type' => 'Colecistectomia QA',
+                'procedure_type_id' => ProcedureType::firstOrCreate(
+                    ['hospital_id' => $hospital->id, 'name' => 'Colecistectomia QA']
+                )->id,
                 'is_videosurgery' => false,
                 'status' => 'scheduled',
             ]

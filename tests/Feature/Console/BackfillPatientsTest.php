@@ -14,7 +14,7 @@ test('backfill assigns hospital and creates patients from procedure names', func
         SurgicalCase::withoutGlobalScopes()->create([
             'procedure_date' => now()->toDateString(),
             'start_time' => '08:00', 'end_time' => '09:00',
-            'patient_name' => $name, 'procedure_type' => 'X',
+            'patient_name' => $name,
             'status' => 'pending',
         ]);
     }
@@ -40,7 +40,6 @@ test('backfill-patients does not mix patient names across hospitals', function (
         'end_time' => '09:00',
         'duration_minutes' => 60,
         'patient_name' => 'Maria Lopez',
-        'procedure_type' => 'Apendicectomia',
         'status' => 'pending',
         'calculated_amount' => 0,
     ]);
@@ -52,7 +51,6 @@ test('backfill-patients does not mix patient names across hospitals', function (
         'end_time' => '11:00',
         'duration_minutes' => 60,
         'patient_name' => 'Maria Lopez',
-        'procedure_type' => 'Colecistectomia',
         'status' => 'pending',
         'calculated_amount' => 0,
     ]);

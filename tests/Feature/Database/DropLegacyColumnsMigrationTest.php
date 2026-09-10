@@ -19,6 +19,25 @@ function loadDropLegacyColumnsMigration(): object
     return include database_path('migrations/2026_09_02_120000_drop_legacy_columns_from_surgical_cases.php');
 }
 
+/**
+ * La columna string `procedure_type` (independiente de las columnas legacy de
+ * instrumentist/doctor/circulante que este archivo prueba) también ya fue dropeada por
+ * RefreshDatabase -- Task 3 del plan de catálogos qxlog la reemplazó por `procedure_type_id`.
+ * Este archivo inserta filas legacy directamente vía DB::table() usando esa columna, así que
+ * hay que restaurarla temporalmente igual que las demás columnas legacy.
+ */
+function restoreLegacyProcedureTypeColumn(): void
+{
+    $migration = include database_path('migrations/2026_09_10_100400_drop_procedure_type_from_surgical_cases_table.php');
+    $migration->down();
+}
+
+function dropLegacyProcedureTypeColumn(): void
+{
+    $migration = include database_path('migrations/2026_09_10_100400_drop_procedure_type_from_surgical_cases_table.php');
+    $migration->up();
+}
+
 function insertLegacySurgicalCase(int $hospitalId, ?int $instrumentistId): int
 {
     return DB::table('surgical_cases')->insertGetId([
@@ -39,6 +58,7 @@ function insertLegacySurgicalCase(int $hospitalId, ?int $instrumentistId): int
 test('bloquea el drop si un caso tiene datos legacy sin ningun surgical_assignment', function () {
     $migration = loadDropLegacyColumnsMigration();
     $migration->down(); // restaurar esquema pre-drop para poder simular el escenario
+    restoreLegacyProcedureTypeColumn();
 
     $hospital = Hospital::factory()->create();
     $user = User::factory()->create(['hospital_id' => $hospital->id]);
@@ -75,6 +95,7 @@ test('bloquea el drop si un caso tiene solo doctor_name/circulating_name de text
     // nombres se perderían para siempre al dropear las columnas.
     $migration = loadDropLegacyColumnsMigration();
     $migration->down();
+    restoreLegacyProcedureTypeColumn();
 
     $hospital = Hospital::factory()->create();
 
@@ -122,6 +143,7 @@ test('bloquea el drop si un caso tiene solo doctor_name/circulating_name de text
 test('permite el drop cuando el caso legacy ya tiene al menos un surgical_assignment', function () {
     $migration = loadDropLegacyColumnsMigration();
     $migration->down();
+    restoreLegacyProcedureTypeColumn();
 
     $hospital = Hospital::factory()->create();
     $user = User::factory()->create(['hospital_id' => $hospital->id]);

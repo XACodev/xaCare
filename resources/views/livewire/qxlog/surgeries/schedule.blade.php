@@ -21,7 +21,7 @@ state([
     'patient_id' => null,
     'patient_query' => '',
     'patient_name' => '',
-    'procedure_type' => '',
+    'procedure_type_query' => '',
     'procedure_date' => null,
     'start_time' => '',
     'end_time' => '',
@@ -41,7 +41,7 @@ $baseRules = function () use ($hospitalId) {
         'patient_id' => ['nullable', 'integer', Rule::exists('patients', 'id')->where('hospital_id', $hospitalId())],
         'patient_query' => ['nullable', 'string', 'max:255'],
         'patient_name' => ['nullable', 'string', 'max:255'],
-        'procedure_type' => ['nullable', 'string', 'max:255'],
+        'procedure_type_query' => ['nullable', 'string', 'max:255'],
         'operating_room_id' => ['nullable', 'integer', Rule::exists('operating_rooms', 'id')->where('hospital_id', $hospitalId())],
         'surgery_status_id' => ['nullable', 'integer', Rule::exists('surgery_statuses', 'id')->where('hospital_id', $hospitalId())],
         'assignments' => ['array'],
@@ -64,7 +64,7 @@ mount(function (?SurgicalCase $surgery = null) {
         $this->patient_id = $surgery->patient_id;
         $this->patient_query = $surgery->patient_name ?? '';
         $this->patient_name = $surgery->patient_name ?? '';
-        $this->procedure_type = $surgery->procedure_type ?? '';
+        $this->procedure_type_query = $surgery->procedureType?->name ?? '';
         $this->procedure_date = optional($surgery->procedure_date)->format('Y-m-d');
         $this->start_time = $surgery->start_time ? substr($surgery->start_time, 0, 5) : '';
         $this->end_time = $surgery->end_time ? substr($surgery->end_time, 0, 5) : '';
@@ -188,6 +188,22 @@ $removeAssignment = function (int $index) {
     $this->assignments = array_values($this->assignments);
 };
 
+$resolveProcedureType = function (): ?\App\Modules\QxLog\Models\ProcedureType {
+    $name = trim((string) $this->procedure_type_query);
+    if ($name === '') {
+        return null;
+    }
+
+    $normalized = \Illuminate\Support\Str::lower($name);
+    $hospitalId = Auth::user()->hospital_id;
+
+    return \App\Modules\QxLog\Models\ProcedureType::withoutGlobalScopes()
+        ->where('hospital_id', $hospitalId)
+        ->whereRaw('LOWER(name) = ?', [$normalized])
+        ->first()
+        ?? \App\Modules\QxLog\Models\ProcedureType::create(['hospital_id' => $hospitalId, 'name' => $name]);
+};
+
 $persist = function (array $data, bool $isDraft) {
     $hospitalId = Auth::user()->hospital_id;
 
@@ -204,7 +220,7 @@ $persist = function (array $data, bool $isDraft) {
             : null,
         'patient_id' => $patientId,
         'patient_name' => $patientName !== '' ? $patientName : null,
-        'procedure_type' => $data['procedure_type'] ?: null,
+        'procedure_type_id' => $this->resolveProcedureType()?->id,
         'operating_room_id' => $data['operating_room_id'] ?? null,
         'surgery_status_id' => $data['surgery_status_id'] ?? null,
         'is_draft' => $isDraft,
@@ -276,7 +292,7 @@ $schedule = function () use ($baseRules) {
     $data = $this->validate(array_merge($baseRules(), [
         'start_time' => ['required', 'date_format:H:i'],
         'end_time' => ['required', 'date_format:H:i'],
-        'procedure_type' => ['required', 'string', 'max:255'],
+        'procedure_type_query' => ['required', 'string', 'max:255'],
     ]));
 
     if ($data['start_time'] >= $data['end_time']) {
@@ -383,8 +399,8 @@ $delete = function () {
 
             <flux:field>
                 <flux:label>{{ __('Procedure') }}</flux:label>
-                <flux:input type="text" wire:model="procedure_type" />
-                @error('procedure_type') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+                <flux:input type="text" wire:model="procedure_type_query" />
+                @error('procedure_type_query') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
             </flux:field>
         </div>
 

@@ -1,6 +1,7 @@
 <?php
 // tests/Feature/Livewire/Procedures/EditAssignmentTest.php
 use App\Models\Hospital;
+use App\Modules\QxLog\Models\ProcedureType;
 use App\Modules\QxLog\Models\RateModifier;
 use App\Modules\QxLog\Models\RoleRate;
 use App\Modules\QxLog\Models\SurgicalAssignment;
@@ -36,7 +37,7 @@ test('rejects editing a case whose status changed to non-pending after load', fu
         'start_time' => '08:00',
         'end_time' => '10:00',
         'duration_minutes' => 120,
-        'procedure_type' => 'Apendicectomia',
+        'procedure_type_id' => ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Apendicectomia'])->id,
         'status' => 'pending',
         'calculated_amount' => 500,
     ]);
@@ -84,7 +85,7 @@ test('rejects assignments ids that do not belong to the edited case', function (
         'start_time' => '08:00',
         'end_time' => '10:00',
         'duration_minutes' => 120,
-        'procedure_type' => 'Apendicectomia',
+        'procedure_type_id' => ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Apendicectomia'])->id,
         'status' => 'pending',
     ]);
 
@@ -138,7 +139,6 @@ test('rejects an assigned user from another hospital', function () {
         'start_time' => '08:00',
         'end_time' => '10:00',
         'duration_minutes' => 120,
-        'procedure_type' => 'Apendicectomia',
         'status' => 'pending',
     ]);
 
@@ -193,7 +193,7 @@ test('editar un caso sin tocar el toggle manual preserva el monto calculado', fu
         'start_time' => '08:00',
         'end_time' => '10:00',
         'duration_minutes' => 120,
-        'procedure_type' => 'Apendicectomia',
+        'procedure_type_id' => ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Apendicectomia'])->id,
         'status' => 'pending',
         'calculated_amount' => 800,
     ]);

@@ -29,7 +29,8 @@ state([
     'patient_query' => '',
     'patient_name' => '',
 
-    'procedure_type' => '',
+    'procedure_type_query' => '',
+    'procedure_type_id' => null,
     'is_videosurgery' => false,
 
     // Asignaciones: array de filas [role_id, user_id, user_query, is_courtesy, note, manual_toggles(array de ids)]
@@ -52,7 +53,7 @@ rules(fn () => [
     'patient_id' => ['nullable', 'integer', Rule::exists('patients', 'id')->where('hospital_id', $hospitalId())],
     'patient_query' => ['nullable', 'string', 'max:255'],
     'patient_name' => ['nullable', 'string', 'max:255'],
-    'procedure_type' => ['required', 'string', 'max:255'],
+    'procedure_type_query' => ['required', 'string', 'max:255'],
     'is_videosurgery' => ['boolean'],
     'assignments' => ['array', 'min:1'],
     'assignments.*.role_id' => ['required', 'integer', Rule::exists('surgical_roles', 'id')->where('hospital_id', $hospitalId())],
@@ -110,17 +111,14 @@ $userSuggestions = computed(function () {
 });
 
 $manualModifiersFor = computed(function () {
-    // $procedureType sigue siendo el texto libre de este formulario (todavía no está
-    // enlazado al catálogo ProcedureType -- eso lo hace una tarea posterior del plan de
-    // catálogos qxlog), así que ya no puede casar contra `role_rates.procedure_type_id`
-    // (FK numérica). Hasta que ese enlace exista, solo se consideran los RoleRate sin
-    // procedimiento específico (procedure_type_id nulo).
-    return fn (?int $roleId, ?int $userId) => $roleId
+    return fn (?int $roleId, ?int $userId, ?int $procedureTypeId) => $roleId
         ? RateModifier::query()
-            ->whereHas('roleRate', function ($q) use ($roleId, $userId) {
+            ->whereHas('roleRate', function ($q) use ($roleId, $userId, $procedureTypeId) {
                 $q->where('surgical_role_id', $roleId)
-                    ->where(function ($sub) use ($userId) {
-                        $sub->where(fn ($s) => $s->where('user_id', $userId)->whereNull('procedure_type_id'))
+                    ->where(function ($sub) use ($userId, $procedureTypeId) {
+                        $sub->where(fn ($s) => $s->where('user_id', $userId)->where('procedure_type_id', $procedureTypeId))
+                            ->orWhere(fn ($s) => $s->where('user_id', $userId)->whereNull('procedure_type_id'))
+                            ->orWhere(fn ($s) => $s->whereNull('user_id')->where('procedure_type_id', $procedureTypeId))
                             ->orWhere(fn ($s) => $s->whereNull('user_id')->whereNull('procedure_type_id'));
                     });
             })
@@ -169,10 +167,7 @@ $previewAmount = function (int $index) {
     $result = app(RateResolutionService::class)->resolve(
         role: $role,
         user: $user,
-        // $this->procedure_type es texto libre todavía no enlazado al catálogo
-        // ProcedureType (pendiente en una tarea posterior); resolve() ahora requiere un
-        // ProcedureType real, así que se pasa null hasta que ese enlace exista.
-        procedureType: null,
+        procedureType: $this->procedure_type_id ? \App\Modules\QxLog\Models\ProcedureType::find($this->procedure_type_id) : null,
         procedureDate: $this->procedure_date,
         startTimeHHMM: $this->start_time,
         durationMinutes: $this->duration_minutes,
@@ -192,12 +187,29 @@ $selectAssignmentUser = function (int $index, int $userId) {
     $this->assignments[$index]['user_query'] = $u->name;
 };
 
+$resolveProcedureType = function (): \App\Modules\QxLog\Models\ProcedureType {
+    if ($this->procedure_type_id) {
+        return \App\Modules\QxLog\Models\ProcedureType::findOrFail($this->procedure_type_id);
+    }
+
+    $name = trim($this->procedure_type_query);
+    $normalized = \Illuminate\Support\Str::lower($name);
+    $hospitalId = Auth::user()->hospital_id;
+
+    return \App\Modules\QxLog\Models\ProcedureType::withoutGlobalScopes()
+        ->where('hospital_id', $hospitalId)
+        ->whereRaw('LOWER(name) = ?', [$normalized])
+        ->first()
+        ?? \App\Modules\QxLog\Models\ProcedureType::create(['hospital_id' => $hospitalId, 'name' => $name]);
+};
+
 $save = function () {
     $this->success_message = null;
     $user = Auth::user();
     abort_unless((bool) Auth::check(), 401, 'Unauthorized');
 
     $data = $this->validate();
+    $procedureType = $this->resolveProcedureType();
 
     $patientId = $data['patient_id'] ?? null;
     $patientName = $patientId ? $data['patient_name'] : trim((string) ($data['patient_query'] ?? ''));
@@ -239,7 +251,7 @@ $save = function () {
     $hospitalId = Auth::user()->hospital_id;
     $linkedCaseId = $this->linked_surgical_case_id;
 
-    DB::transaction(function () use ($data, $patientId, $patientName, $durationMinutes, $hospitalId, $linkedCaseId) {
+    DB::transaction(function () use ($data, $patientId, $patientName, $durationMinutes, $hospitalId, $linkedCaseId, $procedureType) {
         $caseFields = [
             'hospital_id' => $hospitalId,
             'procedure_date' => $data['procedure_date'],
@@ -248,7 +260,7 @@ $save = function () {
             'duration_minutes' => $durationMinutes,
             'patient_id' => $patientId,
             'patient_name' => $patientName,
-            'procedure_type' => $data['procedure_type'],
+            'procedure_type_id' => $procedureType->id,
             'is_videosurgery' => (bool) $data['is_videosurgery'],
             'status' => 'pending',
             'calculated_amount' => 0,
@@ -281,9 +293,7 @@ $save = function () {
             $pricing = app(RateResolutionService::class)->resolve(
                 role: $role,
                 user: $assignedUser,
-                // Ver comentario en previewAmount(): $data['procedure_type'] es texto libre,
-                // todavía no enlazado al catálogo ProcedureType.
-                procedureType: null,
+                procedureType: $procedureType,
                 procedureDate: $data['procedure_date'],
                 startTimeHHMM: $data['start_time'],
                 durationMinutes: $durationMinutes,
@@ -308,7 +318,8 @@ $save = function () {
     $this->patient_id = null;
     $this->patient_query = '';
     $this->patient_name = '';
-    $this->procedure_type = '';
+    $this->procedure_type_query = '';
+    $this->procedure_type_id = null;
     $this->start_time = now()->subHour()->format('H:i');
     $this->end_time = now()->format('H:i');
     $this->is_videosurgery = false;
@@ -412,7 +423,8 @@ $useScheduledSurgery = function () {
     }
 
     $this->linked_surgical_case_id = $case->id;
-    $this->procedure_type = $case->procedure_type ?? $this->procedure_type;
+    $this->procedure_type_id = $case->procedure_type_id;
+    $this->procedure_type_query = $case->procedureType?->name ?? '';
     $this->is_videosurgery = (bool) $case->is_videosurgery;
 
     $tentative = $case->assignments()->with('user')->get();
@@ -526,7 +538,7 @@ $dismissMatchedSurgery = function () {
                     <div class="rounded-lg border border-indigo-200 bg-indigo-50 dark:bg-indigo-900/30 dark:border-indigo-800 px-4 py-3 flex items-center justify-between gap-3">
                         <div class="text-sm text-indigo-800 dark:text-indigo-200">
                             {{ __('A scheduled surgery was found for this patient') }}
-                            ({{ $this->matching_surgery->procedure_type }},
+                            ({{ $this->matching_surgery->procedureType?->name }},
                             {{ $this->matching_surgery->procedure_date?->format('d/m/Y') }}).
                         </div>
                         <div class="flex gap-2 shrink-0">
@@ -545,9 +557,9 @@ $dismissMatchedSurgery = function () {
                 <flux:label>
                     {{ __('Procedure') }}
                 </flux:label>
-                <input type="text" wire:model="procedure_type" placeholder="{{ __('Procedure Name') }}"
+                <input type="text" wire:model="procedure_type_query" placeholder="{{ __('Procedure Name') }}"
                     class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 dark:placeholder-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
-                @error('procedure_type') <p class="text-sm text-red-600 dark:text-red-400 mt-1">
+                @error('procedure_type_query') <p class="text-sm text-red-600 dark:text-red-400 mt-1">
                         {{ $message }}
                     </p>
                 @enderror
@@ -625,7 +637,7 @@ $dismissMatchedSurgery = function () {
                         <flux:checkbox wire:model.live="assignments.{{ $index }}.is_courtesy" label="{{ __('Courtesy') }}" />
 
                         @if($row['role_id'])
-                            @foreach(($this->manualModifiersFor)($row['role_id'], $row['user_id']) as $modifier)
+                            @foreach(($this->manualModifiersFor)($row['role_id'], $row['user_id'], $procedure_type_id) as $modifier)
                                 <flux:checkbox wire:model.live="assignments.{{ $index }}.manual_toggles" value="{{ $modifier->id }}"
                                     label="{{ $modifier->name }}" />
                             @endforeach
@@ -759,7 +771,7 @@ $dismissMatchedSurgery = function () {
                                     {{ strtolower((string) $case?->patient_name) }}
                                 </td>
                                 <td class="px-6 py-3 truncate capitalize max-w-35">
-                                    {{ strtolower((string) $case?->procedure_type) }}
+                                    {{ strtolower((string) $case?->procedureType?->name) }}
                                 </td>
                                 <td class="px-6 py-3">
                                     @if (Auth::user()->use_pay_scheme)
@@ -805,7 +817,7 @@ $dismissMatchedSurgery = function () {
                                     {{ $case?->patient_name }}
                                 </div>
                                 <div class="text-sm text-zinc-500 dark:text-zinc-400">
-                                    {{ $case?->procedure_type }}
+                                    {{ $case?->procedureType?->name }}
                                 </div>
                             </div>
                             <div class="text-right shrink-0">

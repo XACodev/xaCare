@@ -24,7 +24,7 @@ test('an instrumentist cannot reassign their own row to a different role to chan
 
     $component = Volt::test('qxlog.procedures.create')
         ->call('selectPatient', $patient->id)
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         // El usuario manipula su propia fila (index 0, user_id = el mismo) hacia un rol
         // distinto al que el sistema le auto-asignó al montar el componente.
         ->set('assignments.0.role_id', $circulanteRole->id)
@@ -51,7 +51,7 @@ test('an admin can freely assign any role to any person, including themselves', 
 
     Volt::test('qxlog.procedures.create')
         ->call('selectPatient', $patient->id)
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('assignments.0.role_id', $role->id)
         ->call('save')
         ->assertHasNoErrors();

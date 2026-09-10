@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[UseFactory(\Database\Factories\SurgicalCaseFactory::class)]
@@ -28,13 +29,6 @@ class SurgicalCase extends Model implements HasHospital
         );
     }
 
-    protected function procedureType(): Attribute
-    {
-        return Attribute::make(
-            set: fn (?string $value) => $value ? ucwords(strtolower($value)) : null,
-        );
-    }
-
     protected $fillable = [
         'hospital_id',
         'patient_id',
@@ -44,7 +38,7 @@ class SurgicalCase extends Model implements HasHospital
         'end_time',
         'duration_minutes',
         'patient_name',
-        'procedure_type',
+        'procedure_type_id',
         'is_videosurgery',
 
         'calculated_amount',
@@ -89,5 +83,10 @@ class SurgicalCase extends Model implements HasHospital
     public function surgeryStatus()
     {
         return $this->belongsTo(SurgeryStatus::class);
+    }
+
+    public function procedureType(): BelongsTo
+    {
+        return $this->belongsTo(ProcedureType::class);
     }
 }

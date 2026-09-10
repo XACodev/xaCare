@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Modules\QxLog\Models\ProcedureType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -22,7 +23,19 @@ class SurgicalCaseFactory extends Factory
             'end_time' => '10:00',
             'duration_minutes' => 120,
             'patient_name' => $this->faker->name(),
-            'procedure_type' => $this->faker->word(),
+            // Closure de atributo: Eloquent la invoca con los atributos ya resueltos
+            // (incluyendo overrides explícitos como 'hospital_id' pasados a create()), así
+            // que el ProcedureType generado hereda el mismo hospital que el SurgicalCase aun
+            // en tests sin usuario autenticado (donde el creating hook de BelongsToTenant no
+            // tiene de dónde tomar el hospital_id por defecto).
+            'procedure_type_id' => function (array $attributes) {
+                $factory = ProcedureType::factory();
+                if (! empty($attributes['hospital_id'])) {
+                    $factory = $factory->state(['hospital_id' => $attributes['hospital_id']]);
+                }
+
+                return $factory->create()->id;
+            },
             'is_videosurgery' => $this->faker->boolean(),
             'calculated_amount' => $this->faker->randomFloat(2, 100, 1000),
             'pricing_snapshot' => [],

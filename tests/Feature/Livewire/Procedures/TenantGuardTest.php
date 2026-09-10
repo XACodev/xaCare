@@ -29,7 +29,7 @@ test('procedures.create rejects a patient from another hospital', function () {
 
     Volt::test('qxlog.procedures.create')
         ->set('patient_id', $patient->id)
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('start_time', '08:00')
         ->set('end_time', '09:00')
         ->call('save')
@@ -46,7 +46,7 @@ test('procedures.create rejects a surgical role from another hospital', function
     $this->actingAs($user);
 
     Volt::test('qxlog.procedures.create')
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('start_time', '08:00')
         ->set('end_time', '09:00')
         ->set('assignments.0.role_id', $otherRole->id)
@@ -64,7 +64,7 @@ test('procedures.create rejects an assigned user from another hospital', functio
     $this->actingAs($user);
 
     Volt::test('qxlog.procedures.create')
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('start_time', '08:00')
         ->set('end_time', '09:00')
         ->set('assignments.0.user_id', $otherUser->id)
@@ -99,7 +99,7 @@ test('procedures.create always writes to the authenticated user hospital regardl
     $this->actingAs($user);
 
     Volt::test('qxlog.procedures.create')
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('procedure_date', now()->toDateString())
         ->set('start_time', '08:00')
         ->set('end_time', '09:00')
@@ -125,7 +125,7 @@ test('procedures.create rejects future and too-old dates', function () {
     $this->actingAs($user);
 
     Volt::test('qxlog.procedures.create')
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('procedure_date', now()->addDay()->toDateString())
         ->set('start_time', '08:00')
         ->set('end_time', '09:00')
@@ -135,7 +135,7 @@ test('procedures.create rejects future and too-old dates', function () {
         ->assertHasErrors(['procedure_date']);
 
     Volt::test('qxlog.procedures.create')
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('procedure_date', now()->subWeeks(3)->toDateString())
         ->set('start_time', '08:00')
         ->set('end_time', '09:00')

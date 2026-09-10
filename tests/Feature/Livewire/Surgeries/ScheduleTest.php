@@ -63,7 +63,7 @@ test('programa una cirugia completa y la deja publicada', function () {
         ->set('procedure_date', '2026-11-01')
         ->set('start_time', '08:00')
         ->set('end_time', '10:00')
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('patient_query', 'Paciente Emergencia')
         ->set('operating_room_id', $room->id)
         ->call('schedule')
@@ -99,7 +99,7 @@ test('rechaza programar con choque de quirofano', function () {
         ->set('procedure_date', '2026-11-01')
         ->set('start_time', '09:00')
         ->set('end_time', '11:00')
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('patient_query', 'Paciente Emergencia')
         ->set('operating_room_id', $room->id)
         ->call('schedule')
@@ -119,7 +119,7 @@ test('un hospital recien creado ya tiene quirofano por defecto y rechaza el choq
         ->set('procedure_date', '2026-11-01')
         ->set('start_time', '08:00')
         ->set('end_time', '10:00')
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('patient_query', 'Paciente Emergencia')
         ->call('schedule')
         ->assertHasNoErrors();
@@ -131,7 +131,7 @@ test('un hospital recien creado ya tiene quirofano por defecto y rechaza el choq
         ->set('procedure_date', '2026-11-01')
         ->set('start_time', '09:00')
         ->set('end_time', '11:00')
-        ->set('procedure_type', 'Colecistectomia')
+        ->set('procedure_type_query', 'Colecistectomia')
         ->set('patient_query', 'Paciente Emergencia Dos')
         ->call('schedule')
         ->assertHasErrors(['operating_room_id']);
@@ -169,24 +169,25 @@ test('edita una cirugia ya programada', function () {
     test()->actingAs($user);
 
     $room = OperatingRoom::factory()->create(['hospital_id' => $hospital->id]);
+    $procedureType = \App\Modules\QxLog\Models\ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Apendicectomia']);
     $case = SurgicalCase::factory()->create([
         'hospital_id' => $hospital->id,
         'operating_room_id' => $room->id,
         'procedure_date' => '2026-11-01',
         'start_time' => '08:00',
         'end_time' => '10:00',
-        'procedure_type' => 'Apendicectomia',
+        'procedure_type_id' => $procedureType->id,
         'is_draft' => false,
         'status' => 'scheduled',
     ]);
 
     Volt::test('qxlog.surgeries.schedule', ['surgery' => $case])
-        ->assertSet('procedure_type', 'Apendicectomia')
-        ->set('procedure_type', 'Colecistectomia')
+        ->assertSet('procedure_type_query', 'Apendicectomia')
+        ->set('procedure_type_query', 'Colecistectomia')
         ->call('schedule')
         ->assertHasNoErrors();
 
-    expect($case->fresh()->procedure_type)->toBe('Colecistectomia');
+    expect($case->fresh()->procedureType->name)->toBe('Colecistectomia');
 });
 
 test('permite editar la misma cirugia en su propio horario sin falso choque', function () {
@@ -201,7 +202,7 @@ test('permite editar la misma cirugia en su propio horario sin falso choque', fu
         'procedure_date' => '2026-11-01',
         'start_time' => '08:00',
         'end_time' => '10:00',
-        'procedure_type' => 'Apendicectomia',
+        'procedure_type_id' => \App\Modules\QxLog\Models\ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Apendicectomia'])->id,
         'is_draft' => false,
         'status' => 'scheduled',
     ]);
@@ -281,7 +282,7 @@ test('rechaza un quirofano de otro hospital', function () {
         ->set('procedure_date', '2026-11-01')
         ->set('start_time', '08:00')
         ->set('end_time', '10:00')
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('operating_room_id', $foreignRoom->id)
         ->call('schedule')
         ->assertHasErrors(['operating_room_id']);
@@ -298,7 +299,7 @@ test('agrega staff tentativo sin calculo de pago', function () {
         ->set('procedure_date', '2026-11-01')
         ->set('start_time', '08:00')
         ->set('end_time', '10:00')
-        ->set('procedure_type', 'Apendicectomia')
+        ->set('procedure_type_query', 'Apendicectomia')
         ->set('assignments.0.role_id', $role->id)
         ->set('assignments.0.user_id', $user->id)
         ->call('schedule')

@@ -32,7 +32,7 @@ $instrumentists = computed(function () {
 
 $procedures = computed(function () {
     $query = SurgicalCase::query()
-        ->with(['assignments.surgicalRole', 'assignments.user'])
+        ->with(['assignments.surgicalRole', 'assignments.user', 'procedureType'])
         ->orderByDesc('procedure_date')
         ->orderByDesc('id');
 
@@ -64,7 +64,9 @@ $procedures = computed(function () {
         $term = trim($this->q);
         $query->where(function ($s) use ($term) {
             $s->where('patient_name', 'like', "%{$term}%")
-                ->orWhere('procedure_type', 'like', "%{$term}%");
+                ->orWhereHas('procedureType', function ($pt) use ($term) {
+                    $pt->where('name', 'like', "%{$term}%");
+                });
         });
     }
 
@@ -207,7 +209,7 @@ $delete = function () {
                                 {{ strtolower($p->patient_name) }}
                             </div>
                             <div class="text-xs text-zinc-400 font-mono">
-                                {{ $p->procedure_type }}
+                                {{ $p->procedureType?->name }}
                             </div>
                             <div class="text-xs text-zinc-500 dark:text-zinc-500">
                                 {{ $p->procedure_date?->format('d/m/Y') }}
@@ -358,8 +360,8 @@ $delete = function () {
                                 class="px-4 py-3 text-pretty max-w-3xs capitalize text-sm font-medium text-zinc-900 dark:text-zinc-100">
                                 {{ strtolower($p->patient_name) }}
                             </td>
-                            <td class="px-4 py-3 text-sm truncate max-w-50" title="{{ $p->procedure_type }}">
-                                {{ $p->procedure_type }}
+                            <td class="px-4 py-3 text-sm truncate max-w-50" title="{{ $p->procedureType?->name }}">
+                                {{ $p->procedureType?->name }}
                             </td>
                             <td class="px-4 py-3 truncate max-w-50 text-sm"
                                 title="{{ $p->assignments->map(fn($a) => $a->surgicalRole->name . ': ' . ($a->user->name ?? '—'))->implode(', ') }}">

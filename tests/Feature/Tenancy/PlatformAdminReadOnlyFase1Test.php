@@ -45,7 +45,7 @@ test('super admin cannot edit (save) a SurgicalCase / SurgicalAssignment of anot
 
     $case = SurgicalCase::factory()->create([
         'hospital_id' => $hospital->id,
-        'procedure_type' => 'Original',
+        'procedure_type_id' => \App\Modules\QxLog\Models\ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Original'])->id,
     ]);
     $assignment = SurgicalAssignment::factory()->create([
         'hospital_id' => $hospital->id,
@@ -56,7 +56,7 @@ test('super admin cannot edit (save) a SurgicalCase / SurgicalAssignment of anot
     $superAdmin = makeFase1PlatformAdmin();
     $this->actingAs($superAdmin);
 
-    expect(fn () => $case->update(['procedure_type' => 'Tampered']))
+    expect(fn () => $case->update(['patient_name' => 'Tampered']))
         ->toThrow(\Symfony\Component\HttpKernel\Exception\HttpException::class);
 
     expect(fn () => $assignment->update(['note' => 'tampered']))

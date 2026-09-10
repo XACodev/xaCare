@@ -56,7 +56,7 @@ function makePaidBatchWithItem(User $instrumentist, User $admin): PayoutBatch
             'end_time' => $surgicalCase->end_time,
             'duration_minutes' => $surgicalCase->duration_minutes,
             'patient_name' => $surgicalCase->patient_name,
-            'procedure_type' => $surgicalCase->procedure_type,
+            'procedure_type' => $surgicalCase->procedureType?->name,
             'is_videosurgery' => false,
             'calculated_amount' => 100,
             'pricing_snapshot' => [
@@ -89,6 +89,7 @@ test('shows liquidate again button when instrumentist still has pending procedur
 
     SurgicalAssignment::factory()->create([
         'hospital_id' => $instrumentist->hospital_id,
+        'surgical_case_id' => SurgicalCase::factory()->create(['hospital_id' => $instrumentist->hospital_id])->id,
         'surgical_role_id' => SurgicalRole::factory()->create(['hospital_id' => $instrumentist->hospital_id])->id,
         'user_id' => $instrumentist->id,
         'status' => 'pending',

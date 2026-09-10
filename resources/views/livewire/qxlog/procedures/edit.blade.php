@@ -20,7 +20,8 @@ state([
     'start_time' => '',
     'end_time' => '',
     'patient_name' => '',
-    'procedure_type' => '',
+    'procedure_type_query' => '',
+    'procedure_type_id' => null,
     'is_videosurgery' => false,
     'assignments' => [],
     'success_message' => null,
@@ -31,7 +32,7 @@ rules([
     'start_time' => ['required', 'date_format:H:i'],
     'end_time' => ['required', 'date_format:H:i'],
     'patient_name' => ['required', 'string', 'max:255'],
-    'procedure_type' => ['required', 'string', 'max:255'],
+    'procedure_type_query' => ['required', 'string', 'max:255'],
     'is_videosurgery' => ['boolean'],
     'assignments' => ['required', 'array', 'min:1'],
     'assignments.*.id' => ['required', 'integer'],
@@ -58,7 +59,8 @@ mount(function (SurgicalCase $procedure) {
     $this->start_time = substr($surgicalCase->start_time, 0, 5);
     $this->end_time = substr($surgicalCase->end_time, 0, 5);
     $this->patient_name = $surgicalCase->patient_name ?? '';
-    $this->procedure_type = $surgicalCase->procedure_type ?? '';
+    $this->procedure_type_id = $surgicalCase->procedure_type_id;
+    $this->procedure_type_query = $surgicalCase->procedureType?->name ?? '';
     $this->is_videosurgery = (bool) $surgicalCase->is_videosurgery;
 
     $this->assignments = $surgicalCase->assignments()->with(['surgicalRole', 'user'])->get()
@@ -93,17 +95,14 @@ $historyFor = computed(function () {
 });
 
 $manualModifiersFor = computed(function () {
-    // $procedureType sigue siendo el texto libre de este formulario (todavía no está
-    // enlazado al catálogo ProcedureType -- eso lo hace una tarea posterior del plan de
-    // catálogos qxlog), así que ya no puede casar contra `role_rates.procedure_type_id`
-    // (FK numérica). Hasta que ese enlace exista, solo se consideran los RoleRate sin
-    // procedimiento específico (procedure_type_id nulo).
-    return fn (?int $roleId, ?int $userId) => $roleId
+    return fn (?int $roleId, ?int $userId, ?int $procedureTypeId) => $roleId
         ? RateModifier::query()
-            ->whereHas('roleRate', function ($q) use ($roleId, $userId) {
+            ->whereHas('roleRate', function ($q) use ($roleId, $userId, $procedureTypeId) {
                 $q->where('surgical_role_id', $roleId)
-                    ->where(function ($sub) use ($userId) {
-                        $sub->where(fn ($s) => $s->where('user_id', $userId)->whereNull('procedure_type_id'))
+                    ->where(function ($sub) use ($userId, $procedureTypeId) {
+                        $sub->where(fn ($s) => $s->where('user_id', $userId)->where('procedure_type_id', $procedureTypeId))
+                            ->orWhere(fn ($s) => $s->where('user_id', $userId)->whereNull('procedure_type_id'))
+                            ->orWhere(fn ($s) => $s->whereNull('user_id')->where('procedure_type_id', $procedureTypeId))
                             ->orWhere(fn ($s) => $s->whereNull('user_id')->whereNull('procedure_type_id'));
                     });
             })
@@ -122,10 +121,7 @@ $recalculate = function (int $index) {
     $pricing = app(RateResolutionService::class)->resolve(
         role: $role,
         user: $user,
-        // $this->procedure_type es texto libre todavía no enlazado al catálogo
-        // ProcedureType (pendiente en una tarea posterior); resolve() ahora requiere un
-        // ProcedureType real, así que se pasa null hasta que ese enlace exista.
-        procedureType: null,
+        procedureType: $this->procedure_type_id ? \App\Modules\QxLog\Models\ProcedureType::find($this->procedure_type_id) : null,
         procedureDate: $this->procedure_date,
         startTimeHHMM: $this->start_time,
         durationMinutes: max($mins, 0),
@@ -136,6 +132,22 @@ $recalculate = function (int $index) {
     $this->assignments[$index]['amount'] = (float) $pricing['amount'];
 };
 
+$resolveProcedureType = function (): \App\Modules\QxLog\Models\ProcedureType {
+    if ($this->procedure_type_id) {
+        return \App\Modules\QxLog\Models\ProcedureType::findOrFail($this->procedure_type_id);
+    }
+
+    $name = trim($this->procedure_type_query);
+    $normalized = \Illuminate\Support\Str::lower($name);
+    $hospitalId = Auth::user()->hospital_id;
+
+    return \App\Modules\QxLog\Models\ProcedureType::withoutGlobalScopes()
+        ->where('hospital_id', $hospitalId)
+        ->whereRaw('LOWER(name) = ?', [$normalized])
+        ->first()
+        ?? \App\Modules\QxLog\Models\ProcedureType::create(['hospital_id' => $hospitalId, 'name' => $name]);
+};
+
 $save = function () {
     $this->success_message = null;
     $user = Auth::user();
@@ -143,13 +155,14 @@ $save = function () {
     abort_if((bool) $user?->is_platform_admin, 403, 'Administrador de plataforma es de solo lectura; usa una cuenta de hospital para operar.');
 
     $data = $this->validate();
+    $procedureType = $this->resolveProcedureType();
 
     $durationMinutes = TimeHelper::durationMinutes($data['procedure_date'], $data['start_time'], $data['end_time']);
     if ($durationMinutes <= 0) {
         throw ValidationException::withMessages(['end_time' => 'La hora de finalización debe ser posterior a la hora de inicio.']);
     }
 
-    DB::transaction(function () use ($data, $durationMinutes) {
+    DB::transaction(function () use ($data, $durationMinutes, $procedureType) {
         // Reload the case from the database with a row lock. This prevents both
         // model-id tampering in the Livewire payload and race conditions where
         // the case is liquidated by another user while this edit is in flight.
@@ -174,7 +187,7 @@ $save = function () {
             'end_time' => $data['end_time'],
             'duration_minutes' => $durationMinutes,
             'patient_name' => $data['patient_name'],
-            'procedure_type' => $data['procedure_type'],
+            'procedure_type_id' => $procedureType->id,
             'is_videosurgery' => (bool) $data['is_videosurgery'],
         ]);
 
@@ -199,9 +212,7 @@ $save = function () {
             $pricing = app(RateResolutionService::class)->resolve(
                 role: $role,
                 user: $assignedUser,
-                // Ver comentario en recalculate(): $data['procedure_type'] es texto libre,
-                // todavía no enlazado al catálogo ProcedureType.
-                procedureType: null,
+                procedureType: $procedureType,
                 procedureDate: $data['procedure_date'],
                 startTimeHHMM: $data['start_time'],
                 durationMinutes: $durationMinutes,
@@ -286,9 +297,9 @@ $save = function () {
                 <flux:label>
                     {{ __('Procedure') }}
                 </flux:label>
-                <flux:input type="text" wire:model="procedure_type" clearable
+                <flux:input type="text" wire:model="procedure_type_query" clearable
                     placeholder="{{ __('Procedure Name') }}" />
-                @error('procedure_type') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
+                @error('procedure_type_query') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p>
                 @enderror
             </flux:field>
         </div>
@@ -343,7 +354,7 @@ $save = function () {
                             wire:change="recalculate({{ $index }})" label="{{ __('Courtesy') }}" />
 
                         @if($row['role_id'])
-                            @foreach(($this->manualModifiersFor)($row['role_id'], $row['user_id']) as $modifier)
+                            @foreach(($this->manualModifiersFor)($row['role_id'], $row['user_id'], $procedure_type_id) as $modifier)
                                 <flux:checkbox wire:model.live="assignments.{{ $index }}.manual_toggles" value="{{ $modifier->id }}"
                                     wire:change="recalculate({{ $index }})" label="{{ $modifier->name }}" />
                             @endforeach

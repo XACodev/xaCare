@@ -235,7 +235,7 @@ $moveToStatus = function (int $caseId, int $statusId) {
                                 @endif
                             </div>
                             <div class="text-sm text-zinc-500 dark:text-zinc-400">
-                                {{ $case->procedure_type }} · {{ $case->operatingRoom?->name }}
+                                {{ $case->procedureType?->name }} · {{ $case->operatingRoom?->name }}
                             </div>
                         </div>
                         <div class="text-right text-sm text-zinc-500 dark:text-zinc-400">
@@ -363,7 +363,7 @@ $moveToStatus = function (int $caseId, int $statusId) {
                                         {{ $case->patient_name ?? __('Unnamed patient') }}
                                     </div>
                                     <div class="text-sm text-zinc-500 dark:text-zinc-400">
-                                        {{ $case->procedure_type }} · {{ $case->operatingRoom?->name }}
+                                        {{ $case->procedureType?->name }} · {{ $case->operatingRoom?->name }}
                                     </div>
                                 </div>
                                 <div class="text-right text-sm text-zinc-500 dark:text-zinc-400">

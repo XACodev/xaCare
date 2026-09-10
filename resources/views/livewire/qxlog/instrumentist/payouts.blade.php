@@ -35,7 +35,7 @@ mount(function () {
     $this->pending_total = (float) $pendingBase->sum('calculated_amount');
 
     $this->pending = $pendingBase
-        ->with(['surgicalCase', 'surgicalRole'])
+        ->with(['surgicalCase.procedureType', 'surgicalRole'])
         ->orderByDesc('created_at')
         ->limit(50)
         ->get();
@@ -148,7 +148,7 @@ $ruleColor = function (?string $rule) {
                                 </td>
                                 <td class="px-6 py-4 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">
                                     <div class="flex items-center gap-2">
-                                        <span>{{ $p->surgicalCase->procedure_type ?? '-' }}</span>
+                                        <span>{{ $p->surgicalCase->procedureType?->name ?? '-' }}</span>
                                         @if (Auth::user()->use_pay_scheme)
                                             <x-procedure-rule-badge :rule="data_get($p->pricing_snapshot, 'rule')"
                                                 :videosurgery="$p->surgicalCase->is_videosurgery" />

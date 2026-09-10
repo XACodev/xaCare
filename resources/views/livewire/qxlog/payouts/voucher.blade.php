@@ -30,7 +30,7 @@ mount(function (string|int $batch) {
         ->with([
             'payee:id,name',
             'paidByUser:id,name',
-            'items.surgicalAssignment.surgicalCase',
+            'items.surgicalAssignment.surgicalCase.procedureType',
             'items.surgicalAssignment.surgicalRole',
             'items.surgicalAssignment.activities' => fn ($q) => $q->latest(),
             'items.surgicalAssignment.activities.causer:id,name',
@@ -615,7 +615,7 @@ mount(function (string|int $batch) {
                                     {{ $p->patient_name ?? '-' }}
                                 </td>
                                 <td class="py-3 pr-3" style="color: var(--ink-soft)">
-                                    {{ $p->procedure_type ?? '-' }}
+                                    {{ $p->procedureType?->name ?? '-' }}
                                     @if(($p->is_videosurgery ?? false) === true)
                                         <span
                                             class="ml-2 inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:text-zinc-200 no-print">
@@ -679,7 +679,7 @@ mount(function (string|int $batch) {
                             @endphp
                             <details class="px-6 py-3">
                                 <summary class="cursor-pointer text-sm font-medium" style="color: var(--ink)">
-                                    {{ $case->patient_name ?? '-' }} &mdash; {{ $case->procedure_type ?? '-' }}
+                                    {{ $case->patient_name ?? '-' }} &mdash; {{ $case->procedureType?->name ?? '-' }}
                                     <span class="text-xs font-normal" style="color: var(--ink-soft)">
                                         ({{ $it->surgicalAssignment->activities->count() }} {{ __('changes') }})
                                     </span>

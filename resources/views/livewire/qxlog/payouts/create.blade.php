@@ -55,7 +55,7 @@ $pending_assignments = computed(function () {
         ->where('hospital_id', $this->hospitalId)
         ->where('user_id', $this->payee_id)
         ->where('status', 'pending')
-        ->with(['surgicalCase', 'surgicalRole'])
+        ->with(['surgicalCase.procedureType', 'surgicalRole'])
         ->orderByDesc('created_at')
         ->get();
 });
@@ -135,7 +135,7 @@ $liquidate = function () {
                 'snapshot' => [
                     'procedure_date' => $a->surgicalCase->procedure_date,
                     'patient_name' => $a->surgicalCase->patient_name,
-                    'procedure_type' => $a->surgicalCase->procedure_type,
+                    'procedure_type' => $a->surgicalCase->procedureType?->name,
                     'role' => $a->surgicalRole->name,
                     'calculated_amount' => (float) $a->calculated_amount,
                     'pricing_snapshot' => $a->pricing_snapshot,
@@ -290,8 +290,8 @@ $liquidate = function () {
                                     <td class="px-4 py-3 font-medium capitalize text-zinc-900 dark:text-zinc-100">
                                         {{ strtolower($p->surgicalCase->patient_name) }}
                                     </td>
-                                    <td class="px-4 py-3 truncate max-w-45" title="{{ $p->surgicalCase->procedure_type }}">
-                                        {{ $p->surgicalCase->procedure_type }}
+                                    <td class="px-4 py-3 truncate max-w-45" title="{{ $p->surgicalCase->procedureType?->name }}">
+                                        {{ $p->surgicalCase->procedureType?->name }}
                                     </td>
                                     <td class="px-4 py-3">
                                         {{ $p->surgicalRole->name }}
@@ -323,7 +323,7 @@ $liquidate = function () {
                                             {{ $p->surgicalCase->patient_name }}
                                         </div>
                                         <div class="text-sm text-zinc-500 dark:text-zinc-400">
-                                            {{ $p->surgicalCase->procedure_type }}
+                                            {{ $p->surgicalCase->procedureType?->name }}
                                         </div>
                                         <div class="text-xs text-zinc-500 dark:text-zinc-400">
                                             {{ $p->surgicalRole->name }}

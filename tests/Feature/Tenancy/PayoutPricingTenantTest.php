@@ -20,7 +20,10 @@ test('payout batches and items are scoped to the authenticated user hospital', f
         'payout_batch_id' => $batchA->id,
         'surgical_assignment_id' => SurgicalAssignment::factory()
             ->for(SurgicalRole::factory()->create(['hospital_id' => $hospitalA->id]), 'surgicalRole')
-            ->create(['hospital_id' => $hospitalA->id])->id,
+            ->create([
+                'hospital_id' => $hospitalA->id,
+                'surgical_case_id' => \App\Modules\QxLog\Models\SurgicalCase::factory()->create(['hospital_id' => $hospitalA->id])->id,
+            ])->id,
         'amount' => 100,
         'snapshot' => [],
     ]);

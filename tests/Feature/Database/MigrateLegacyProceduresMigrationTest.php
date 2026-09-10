@@ -26,6 +26,13 @@ function loadMigrateLegacyProceduresMigration(): object
 
 function addLegacyColumnsToSurgicalCases(): void
 {
+    // La columna string `procedure_type` ya no existe (Task 3 del plan de catálogos qxlog la
+    // reemplazó por `procedure_type_id`), pero este test inserta filas legacy directamente vía
+    // DB::table() usando esa columna, así que hay que restaurarla temporalmente -- mismo patrón
+    // que MigrateSurgicalCasesProcedureTypeTest.php usa para el mismo problema.
+    $dropProcedureTypeMigration = include database_path('migrations/2026_09_10_100400_drop_procedure_type_from_surgical_cases_table.php');
+    $dropProcedureTypeMigration->down();
+
     Schema::table('surgical_cases', function (Blueprint $table) {
         // Mismos tipos que la migración original de creación de `procedures`
         // (2026_01_12_165926_create_procedures_table.php).
@@ -49,6 +56,10 @@ function dropLegacyColumnsFromSurgicalCases(): void
     // SQLite (dropColumn directo no funciona ahí por las foreign keys inline).
     $dropMigration = include database_path('migrations/2026_09_02_120000_drop_legacy_columns_from_surgical_cases.php');
     $dropMigration->up();
+
+    // Deja la BD como la encontró (con procedure_type ya dropeada).
+    $dropProcedureTypeMigration = include database_path('migrations/2026_09_10_100400_drop_procedure_type_from_surgical_cases_table.php');
+    $dropProcedureTypeMigration->up();
 }
 
 function insertLegacySurgicalCaseForMigrateTest(int $hospitalId, array $overrides = []): int
