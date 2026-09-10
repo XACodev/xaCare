@@ -188,6 +188,25 @@ $removeAssignment = function (int $index) {
     $this->assignments = array_values($this->assignments);
 };
 
+$procedureTypeSuggestions = computed(function () {
+    $q = trim($this->procedure_type_query);
+    if ($q === '') {
+        return collect();
+    }
+
+    return \App\Modules\QxLog\Models\ProcedureType::query()
+        ->where('active', true)
+        ->where('name', 'like', '%'.$q.'%')
+        ->orderBy('name')
+        ->limit(8)
+        ->get();
+});
+
+$selectProcedureType = function (int $id) {
+    $type = \App\Modules\QxLog\Models\ProcedureType::findOrFail($id);
+    $this->procedure_type_query = $type->name;
+};
+
 $resolveProcedureType = function (): ?\App\Modules\QxLog\Models\ProcedureType {
     $name = trim((string) $this->procedure_type_query);
     if ($name === '') {
@@ -399,7 +418,20 @@ $delete = function () {
 
             <flux:field>
                 <flux:label>{{ __('Procedure') }}</flux:label>
-                <flux:input type="text" wire:model="procedure_type_query" />
+                <div class="relative">
+                    <flux:input type="text" wire:model.live.debounce.200ms="procedure_type_query" />
+                    @if($this->procedureTypeSuggestions->isNotEmpty())
+                        <div class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-indigo-400 overflow-hidden">
+                            @foreach($this->procedureTypeSuggestions as $s)
+                                <button type="button"
+                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-indigo-400/50 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-indigo-400 last:border-0"
+                                    wire:click="selectProcedureType({{ $s->id }})">
+                                    {{ $s->name }}
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
                 @error('procedure_type_query') <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
             </flux:field>
         </div>

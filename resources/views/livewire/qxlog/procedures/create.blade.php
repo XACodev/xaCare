@@ -413,6 +413,30 @@ $selectPatient = function (int $id) {
     $this->match_dismissed = false;
 };
 
+$procedureTypeSuggestions = computed(function () {
+    if ($this->procedure_type_id) {
+        return collect();
+    }
+
+    $q = trim($this->procedure_type_query);
+    if ($q === '') {
+        return collect();
+    }
+
+    return \App\Modules\QxLog\Models\ProcedureType::query()
+        ->where('active', true)
+        ->where('name', 'like', '%'.$q.'%')
+        ->orderBy('name')
+        ->limit(8)
+        ->get();
+});
+
+$selectProcedureType = function (int $id) {
+    $type = \App\Modules\QxLog\Models\ProcedureType::findOrFail($id);
+    $this->procedure_type_id = $type->id;
+    $this->procedure_type_query = $type->name;
+};
+
 $matching_surgery = computed(function () {
     if (!$this->patient_id || $this->linked_surgical_case_id || $this->match_dismissed) {
         return null;
@@ -570,8 +594,22 @@ $dismissMatchedSurgery = function () {
                 <flux:label>
                     {{ __('Procedure') }}
                 </flux:label>
-                <input type="text" wire:model="procedure_type_query" placeholder="{{ __('Procedure Name') }}"
-                    class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 dark:placeholder-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
+                <div class="relative">
+                    <input type="text" wire:model.live.debounce.200ms="procedure_type_query"
+                        placeholder="{{ __('Procedure Name') }}"
+                        class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 dark:placeholder-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
+                    @if($this->procedureTypeSuggestions->isNotEmpty())
+                        <div class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-indigo-400 overflow-hidden">
+                            @foreach($this->procedureTypeSuggestions as $s)
+                                <button type="button"
+                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-indigo-400/50 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-indigo-400 last:border-0"
+                                    wire:click="selectProcedureType({{ $s->id }})">
+                                    {{ $s->name }}
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
                 @error('procedure_type_query') <p class="text-sm text-red-600 dark:text-red-400 mt-1">
                         {{ $message }}
                     </p>
