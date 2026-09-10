@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\SubscriptionStatus;
 use App\Modules\QxLog\Models\OperatingRoom;
 use App\Modules\QxLog\Models\SurgeryStatus;
+use App\Support\CoreRoleProvisioner;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -134,6 +135,7 @@ class Hospital extends Model
 
             OperatingRoom::seedDefaultFor($hospital);
             SurgeryStatus::seedDefaultsFor($hospital);
+            CoreRoleProvisioner::provisionFor($hospital);
         });
     }
 }

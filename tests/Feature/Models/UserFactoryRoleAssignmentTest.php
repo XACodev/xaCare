@@ -5,17 +5,16 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
-test('user factory assigns a core spatie role with a hospital team on the pivot', function () {
+test('user factory assigns a core spatie role scoped to the user hospital', function () {
     $hospital = Hospital::factory()->create();
     $user = User::factory()->create([
         'hospital_id' => $hospital->id,
         'role' => 'doctor',
     ]);
 
-    $role = Role::where('name', 'doctor')->where('guard_name', 'web')->first();
+    $role = Role::where('name', 'doctor')->where('guard_name', 'web')->where('team_id', $hospital->id)->first();
 
     expect($role)->not->toBeNull()
-        ->and($role->team_id)->toBeNull()
         ->and(DB::table('model_has_roles')->where('model_id', $user->id)->value('team_id'))
         ->toBe($hospital->id);
 

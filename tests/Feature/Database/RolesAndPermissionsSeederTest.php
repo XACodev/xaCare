@@ -7,15 +7,26 @@ use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
-test('roles and permissions seeder creates core roles as global', function () {
+test('roles and permissions seeder creates admin as a global role', function () {
     $this->seed(RolesAndPermissionsSeeder::class);
 
-    foreach (Hospital::CORE_ROLES as $roleName) {
-        $role = Role::where('name', $roleName)->where('guard_name', 'web')->first();
+    $adminRole = Role::where('name', 'admin')->where('guard_name', 'web')->first();
 
-        expect($role)->not->toBeNull()
-            ->and($role->team_id)->toBeNull();
+    expect($adminRole)->not->toBeNull()
+        ->and($adminRole->team_id)->toBeNull();
+});
+
+test('doctor, instrumentist and circulating are provisioned per hospital, not global', function () {
+    $hospital = Hospital::factory()->create();
+    $this->seed(RolesAndPermissionsSeeder::class);
+
+    foreach (['doctor', 'instrumentist', 'circulating'] as $roleName) {
+        $role = Role::where('name', $roleName)->where('guard_name', 'web')->where('team_id', $hospital->id)->first();
+
+        expect($role)->not->toBeNull();
     }
+
+    expect(Role::where('name', 'doctor')->where('guard_name', 'web')->whereNull('team_id')->exists())->toBeFalse();
 });
 
 test('roles and permissions seeder assigns roles inside the user hospital team', function () {

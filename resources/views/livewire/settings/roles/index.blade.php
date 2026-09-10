@@ -139,10 +139,13 @@ $saveRole = function () {
     }
 
     $role = $this->findOwnRole((int) $this->selected_role_id);
+    $isCoreRole = in_array($role->name, Hospital::CORE_ROLES, true);
 
     $newName = $this->normalizeName((string) $this->selected_role_name);
 
-    if ($role->name !== $newName) {
+    if ($isCoreRole) {
+        $this->selected_role_name = $role->name;
+    } elseif ($role->name !== $newName) {
         $this->assertNameIsAvailable($newName, 'selected_role_name', $role->id);
         $role->name = $newName;
         $role->save();
@@ -166,6 +169,10 @@ $deleteRole = function () {
     }
 
     $role = $this->findOwnRole((int) $this->selected_role_id);
+
+    if (in_array($role->name, Hospital::CORE_ROLES, true)) {
+        throw ValidationException::withMessages(['delete' => 'Los roles del sistema no se pueden eliminar.']);
+    }
 
     if ($role->users()->count() > 0) {
         throw ValidationException::withMessages(['delete' => 'No puedes eliminar un rol que tiene usuarios asignados.']);
@@ -234,11 +241,14 @@ $deleteRole = function () {
                         <p>{{ __('Selecciona un rol de la lista para editar sus permisos.') }}</p>
                     </div>
                 @else
+                    @php $isCoreRole = in_array($selected_role_name, Hospital::CORE_ROLES, true); @endphp
                     {{-- Header --}}
                     <div class="p-6 border-b border-zinc-200 dark:border-zinc-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                             <flux:heading size="lg">{{ __('Editar Rol') }}: <span class="font-mono text-indigo-600 dark:text-indigo-400">{{ $selected_role_name }}</span></flux:heading>
-                            <flux:subheading>{{ __('Administra el nombre y los permisos asignados.') }}</flux:subheading>
+                            <flux:subheading>
+                                {{ $isCoreRole ? __('Rol del sistema: no se puede renombrar ni eliminar, solo ajustar sus permisos.') : __('Administra el nombre y los permisos asignados.') }}
+                            </flux:subheading>
                         </div>
                         @if($success)
                             <div class="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium border border-green-200 dark:border-green-800">
@@ -250,7 +260,7 @@ $deleteRole = function () {
                     {{-- Body --}}
                     <div class="p-6 space-y-6 flex-1 overflow-y-auto mb-20">
                         <div class="max-w-md">
-                            <flux:input wire:model="selected_role_name" label="{{ __('Nombre del Rol') }}" />
+                            <flux:input wire:model="selected_role_name" label="{{ __('Nombre del Rol') }}" :disabled="$isCoreRole" />
                             @error('selected_role_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                         </div>
 
@@ -291,9 +301,11 @@ $deleteRole = function () {
                     {{-- Footer Actions --}}
                     <div class="absolute bottom-0 left-0 right-0 p-6 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-700 rounded-b-xl flex items-center justify-between gap-4">
                         <div class="flex flex-col gap-1">
-                            <flux:button variant="danger" wire:click="deleteRole" icon="trash">
-                                {{ __('Eliminar Rol') }}
-                            </flux:button>
+                            @unless($isCoreRole)
+                                <flux:button variant="danger" wire:click="deleteRole" icon="trash">
+                                    {{ __('Eliminar Rol') }}
+                                </flux:button>
+                            @endunless
                             @error('delete') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                         </div>
 

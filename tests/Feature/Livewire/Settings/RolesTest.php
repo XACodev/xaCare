@@ -9,9 +9,7 @@ use Spatie\Permission\Models\Role;
 beforeEach(function () {
     app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
-    foreach (Hospital::CORE_ROLES as $role) {
-        Role::firstOrCreate(['name' => $role, 'guard_name' => 'web', 'team_id' => null]);
-    }
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web', 'team_id' => null]);
 });
 
 function makeHospitalAdmin(?Hospital $hospital = null): User
@@ -49,7 +47,7 @@ test('a hospital admin cannot create a role with a core name', function () {
         ->call('createRole')
         ->assertHasErrors(['new_role']);
 
-    expect(Role::where('name', 'doctor')->where('team_id', $admin->hospital_id)->exists())->toBeFalse();
+    expect(Role::where('name', 'doctor')->where('team_id', $admin->hospital_id)->count())->toBe(1);
 });
 
 test('a hospital admin cannot create a duplicate role in their own hospital', function () {
@@ -64,6 +62,39 @@ test('a hospital admin cannot create a duplicate role in their own hospital', fu
         ->assertHasErrors(['new_role']);
 
     expect(Role::where('name', 'bodeguero')->where('team_id', $admin->hospital_id)->count())->toBe(1);
+});
+
+test('a hospital admin can adjust permissions of a core role but cannot rename it', function () {
+    $admin = makeHospitalAdmin();
+    $doctorRole = Role::where('name', 'doctor')->where('team_id', $admin->hospital_id)->first();
+
+    $this->actingAs($admin);
+
+    Volt::test('settings.roles.index')
+        ->call('selectRole', $doctorRole->id)
+        ->set('selected_role_name', 'medico_jefe')
+        ->set('selected_permissions', ['procedures.create'])
+        ->call('saveRole')
+        ->assertHasNoErrors();
+
+    $doctorRole->refresh();
+
+    expect($doctorRole->name)->toBe('doctor')
+        ->and($doctorRole->permissions()->pluck('name')->all())->toBe(['procedures.create']);
+});
+
+test('a hospital admin cannot delete a core role', function () {
+    $admin = makeHospitalAdmin();
+    $doctorRole = Role::where('name', 'doctor')->where('team_id', $admin->hospital_id)->first();
+
+    $this->actingAs($admin);
+
+    Volt::test('settings.roles.index')
+        ->call('selectRole', $doctorRole->id)
+        ->call('deleteRole')
+        ->assertHasErrors(['delete']);
+
+    expect(Role::where('id', $doctorRole->id)->exists())->toBeTrue();
 });
 
 test('a hospital admin cannot edit a role belonging to another hospital', function () {

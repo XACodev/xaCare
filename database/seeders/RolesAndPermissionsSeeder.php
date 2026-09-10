@@ -24,9 +24,6 @@ class RolesAndPermissionsSeeder extends Seeder
         setPermissionsTeamId(null);
 
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web', 'team_id' => null]);
-        $instrumentistRole = Role::firstOrCreate(['name' => 'instrumentist', 'guard_name' => 'web', 'team_id' => null]);
-        $doctorRole = Role::firstOrCreate(['name' => 'doctor', 'guard_name' => 'web', 'team_id' => null]);
-        $circulatingRole = Role::firstOrCreate(['name' => 'circulating', 'guard_name' => 'web', 'team_id' => null]);
 
         $permissions = [
             'procedures.create',
@@ -62,40 +59,45 @@ class RolesAndPermissionsSeeder extends Seeder
             'surgeries.delete',
         ]);
 
-        $instrumentistRole->givePermissionTo([
-            'procedures.create',
-            'procedures.view',
-        ]);
-
-        $doctorRole->givePermissionTo([
-            'procedures.create',
-            'procedures.view',
-        ]);
-
-        $circulatingRole->givePermissionTo([
-            'procedures.create',
-            'procedures.view',
-        ]);
-
         if ($wasExplicit) {
             setPermissionsTeamId($previousTeamId);
         } else {
             PermissionTeamResolver::clearExplicitTeamId();
         }
 
-        $this->assignRoleToUsersWithLegacyRole('admin', $adminRole);
-        $this->assignRoleToUsersWithLegacyRole('instrumentist', $instrumentistRole);
-        $this->assignRoleToUsersWithLegacyRole('doctor', $doctorRole);
-        $this->assignRoleToUsersWithLegacyRole('circulating', $circulatingRole);
+        User::query()
+            ->where('role', 'admin')
+            ->get()
+            ->each(fn (User $user) => $user->assignRole($adminRole));
+
+        foreach (['instrumentist', 'doctor', 'circulating'] as $legacyRole) {
+            $this->assignHospitalScopedLegacyRole($legacyRole);
+        }
     }
 
-    private function assignRoleToUsersWithLegacyRole(string $legacyRole, Role $role): void
+    /**
+     * doctor/instrumentist/circulating son un rol por hospital (Fase B): cada
+     * usuario recibe el rol correspondiente a su propio hospital, no uno global.
+     */
+    private function assignHospitalScopedLegacyRole(string $legacyRole): void
     {
         User::query()
             ->where('role', $legacyRole)
+            ->whereNotNull('hospital_id')
             ->get()
-            ->each(function (User $user) use ($role): void {
-                $user->assignRole($role);
+            ->groupBy('hospital_id')
+            ->each(function ($users, $hospitalId) use ($legacyRole): void {
+                $role = Role::query()
+                    ->where('name', $legacyRole)
+                    ->where('guard_name', 'web')
+                    ->where('team_id', $hospitalId)
+                    ->first();
+
+                if (! $role) {
+                    return;
+                }
+
+                $users->each(fn (User $user) => $user->assignRole($role));
             });
     }
 }

@@ -34,22 +34,22 @@ test('adding team columns is idempotent when they already exist', function () {
     expect(Schema::hasColumn('roles', 'team_id'))->toBeTrue();
 });
 
-test('backfill keeps core roles global and stamps assignments with the user hospital', function () {
+test('backfill keeps a globally-shared role global and stamps assignments with the user hospital', function () {
     $hospital = Hospital::factory()->create();
-    $user = User::factory()->create([
-        'hospital_id' => $hospital->id,
-        'role' => 'doctor',
-    ]);
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => '']);
 
-    DB::table('roles')->where('name', 'doctor')->update(['team_id' => $hospital->id]);
-    DB::table('model_has_roles')
-        ->where('model_id', $user->id)
-        ->update(['team_id' => null]);
+    $legacyRole = Role::create(['name' => 'legacy_role', 'guard_name' => 'web', 'team_id' => null]);
+    DB::table('model_has_roles')->insert([
+        'role_id' => $legacyRole->id,
+        'model_type' => $user->getMorphClass(),
+        'model_id' => $user->id,
+        'team_id' => null,
+    ]);
 
     loadEnableSpatieTeamsMigration()->backfillTeamIds();
 
-    expect(DB::table('roles')->where('name', 'doctor')->value('team_id'))->toBeNull()
-        ->and(DB::table('model_has_roles')->where('model_id', $user->id)->value('team_id'))
+    expect(DB::table('roles')->where('name', 'legacy_role')->value('team_id'))->toBeNull()
+        ->and(DB::table('model_has_roles')->where('model_id', $user->id)->where('role_id', $legacyRole->id)->value('team_id'))
         ->toBe($hospital->id);
 });
 
@@ -118,7 +118,7 @@ test('backfill stamps direct permission assignments with the user hospital', fun
         'hospital_id' => $hospital->id,
         'role' => 'doctor',
     ]);
-    $permission = Permission::create(['name' => 'procedures.view', 'guard_name' => 'web']);
+    $permission = Permission::firstOrCreate(['name' => 'procedures.view', 'guard_name' => 'web']);
 
     DB::table('model_has_permissions')->insert([
         'permission_id' => $permission->id,

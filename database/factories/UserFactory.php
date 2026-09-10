@@ -51,9 +51,7 @@ class UserFactory extends Factory
             Role::firstOrCreate([
                 'name' => $user->role,
                 'guard_name' => 'web',
-                'team_id' => in_array($user->role, Hospital::CORE_ROLES, true)
-                    ? null
-                    : $user->hospital_id,
+                'team_id' => $user->role === 'admin' ? null : $user->hospital_id,
             ]);
             $user->assignRole($user->role);
         });
