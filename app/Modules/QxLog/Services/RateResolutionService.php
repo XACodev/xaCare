@@ -3,6 +3,7 @@
 namespace App\Modules\QxLog\Services;
 
 use App\Models\User;
+use App\Modules\QxLog\Models\ProcedureType;
 use App\Modules\QxLog\Models\RateModifier;
 use App\Modules\QxLog\Models\RoleRate;
 use App\Modules\QxLog\Models\SurgicalRole;
@@ -17,7 +18,7 @@ class RateResolutionService
     public function resolve(
         SurgicalRole $role,
         ?User $user,
-        ?string $procedureType,
+        ?ProcedureType $procedureType,
         string $procedureDate,
         string $startTimeHHMM,
         int $durationMinutes,
@@ -103,34 +104,34 @@ class RateResolutionService
         ];
     }
 
-    private function resolveRoleRate(SurgicalRole $role, ?User $user, ?string $procedureType): ?RoleRate
+    private function resolveRoleRate(SurgicalRole $role, ?User $user, ?ProcedureType $procedureType): ?RoleRate
     {
         $query = fn () => RoleRate::query()
             ->where('surgical_role_id', $role->id)
             ->where('active', true);
 
         if ($user && $procedureType) {
-            $found = $query()->where('user_id', $user->id)->where('procedure_type', $procedureType)->first();
+            $found = $query()->where('user_id', $user->id)->where('procedure_type_id', $procedureType->id)->first();
             if ($found) {
                 return $found;
             }
         }
 
         if ($user) {
-            $found = $query()->where('user_id', $user->id)->whereNull('procedure_type')->first();
+            $found = $query()->where('user_id', $user->id)->whereNull('procedure_type_id')->first();
             if ($found) {
                 return $found;
             }
         }
 
         if ($procedureType) {
-            $found = $query()->whereNull('user_id')->where('procedure_type', $procedureType)->first();
+            $found = $query()->whereNull('user_id')->where('procedure_type_id', $procedureType->id)->first();
             if ($found) {
                 return $found;
             }
         }
 
-        return $query()->whereNull('user_id')->whereNull('procedure_type')->first();
+        return $query()->whereNull('user_id')->whereNull('procedure_type_id')->first();
     }
 
     private function modifierApplies(

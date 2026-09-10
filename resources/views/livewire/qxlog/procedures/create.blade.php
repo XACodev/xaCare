@@ -110,15 +110,18 @@ $userSuggestions = computed(function () {
 });
 
 $manualModifiersFor = computed(function () {
+    // $procedureType sigue siendo el texto libre de este formulario (todavía no está
+    // enlazado al catálogo ProcedureType -- eso lo hace una tarea posterior del plan de
+    // catálogos qxlog), así que ya no puede casar contra `role_rates.procedure_type_id`
+    // (FK numérica). Hasta que ese enlace exista, solo se consideran los RoleRate sin
+    // procedimiento específico (procedure_type_id nulo).
     return fn (?int $roleId, ?int $userId, ?string $procedureType) => $roleId
         ? RateModifier::query()
-            ->whereHas('roleRate', function ($q) use ($roleId, $userId, $procedureType) {
+            ->whereHas('roleRate', function ($q) use ($roleId, $userId) {
                 $q->where('surgical_role_id', $roleId)
-                    ->where(function ($sub) use ($userId, $procedureType) {
-                        $sub->where(fn ($s) => $s->where('user_id', $userId)->where('procedure_type', $procedureType))
-                            ->orWhere(fn ($s) => $s->where('user_id', $userId)->whereNull('procedure_type'))
-                            ->orWhere(fn ($s) => $s->whereNull('user_id')->where('procedure_type', $procedureType))
-                            ->orWhere(fn ($s) => $s->whereNull('user_id')->whereNull('procedure_type'));
+                    ->where(function ($sub) use ($userId) {
+                        $sub->where(fn ($s) => $s->where('user_id', $userId)->whereNull('procedure_type_id'))
+                            ->orWhere(fn ($s) => $s->whereNull('user_id')->whereNull('procedure_type_id'));
                     });
             })
             ->where('trigger_type', RateModifier::TRIGGER_MANUAL_TOGGLE)
@@ -166,7 +169,10 @@ $previewAmount = function (int $index) {
     $result = app(RateResolutionService::class)->resolve(
         role: $role,
         user: $user,
-        procedureType: $this->procedure_type ?: null,
+        // $this->procedure_type es texto libre todavía no enlazado al catálogo
+        // ProcedureType (pendiente en una tarea posterior); resolve() ahora requiere un
+        // ProcedureType real, así que se pasa null hasta que ese enlace exista.
+        procedureType: null,
         procedureDate: $this->procedure_date,
         startTimeHHMM: $this->start_time,
         durationMinutes: $this->duration_minutes,
@@ -275,7 +281,9 @@ $save = function () {
             $pricing = app(RateResolutionService::class)->resolve(
                 role: $role,
                 user: $assignedUser,
-                procedureType: $data['procedure_type'],
+                // Ver comentario en previewAmount(): $data['procedure_type'] es texto libre,
+                // todavía no enlazado al catálogo ProcedureType.
+                procedureType: null,
                 procedureDate: $data['procedure_date'],
                 startTimeHHMM: $data['start_time'],
                 durationMinutes: $durationMinutes,

@@ -114,7 +114,7 @@ test('migra roles, tarifas y asignaciones desde datos legacy cuando las columnas
     // El RoleRate + los 3 RateModifiers se migraron desde PricingSetting.
     $rate = RoleRate::withoutGlobalScopes()
         ->where('surgical_role_id', $instrumentistRole->id)
-        ->whereNull('user_id')->whereNull('procedure_type')->first();
+        ->whereNull('user_id')->whereNull('procedure_type_id')->first();
 
     expect($rate)->not->toBeNull()
         ->and((float) $rate->base_rate)->toBe(100.0);

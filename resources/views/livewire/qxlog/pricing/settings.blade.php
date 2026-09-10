@@ -62,7 +62,7 @@ $targetUser = computed(fn () => $this->user_id ? User::query()->find($this->user
 $default_rate = computed(function () {
     $query = RoleRate::query()
         ->where('surgical_role_id', $this->selected_role_id)
-        ->whereNull('procedure_type');
+        ->whereNull('procedure_type_id');
 
     $query = $this->user_id ? $query->where('user_id', $this->user_id) : $query->whereNull('user_id');
 
@@ -119,7 +119,7 @@ $saveBaseRate = function () {
     DB::transaction(function () use ($role) {
         $rate = RoleRate::query()
             ->where('surgical_role_id', $this->selected_role_id)
-            ->whereNull('procedure_type')
+            ->whereNull('procedure_type_id')
             ->when($this->user_id, fn ($q) => $q->where('user_id', $this->user_id), fn ($q) => $q->whereNull('user_id'))
             ->lockForUpdate()
             ->first();
@@ -131,7 +131,7 @@ $saveBaseRate = function () {
                 'hospital_id' => $role->hospital_id,
                 'surgical_role_id' => $this->selected_role_id,
                 'user_id' => $this->user_id,
-                'procedure_type' => null,
+                'procedure_type_id' => null,
                 'base_rate' => $this->base_rate,
                 'active' => true,
             ]);

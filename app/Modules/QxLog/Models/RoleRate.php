@@ -23,7 +23,7 @@ class RoleRate extends Model implements HasHospital, Priced
         'hospital_id',
         'surgical_role_id',
         'user_id',
-        'procedure_type',
+        'procedure_type_id',
         'base_rate',
         'active',
     ];
@@ -41,6 +41,11 @@ class RoleRate extends Model implements HasHospital, Priced
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function procedureType(): BelongsTo
+    {
+        return $this->belongsTo(ProcedureType::class);
     }
 
     public function modifiers(): HasMany

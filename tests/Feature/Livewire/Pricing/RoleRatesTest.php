@@ -42,7 +42,7 @@ test('un admin puede configurar tarifa base con override individual por instrume
 
     $rate = RoleRate::where('surgical_role_id', $role->id)
         ->where('user_id', $instrumentist->id)
-        ->whereNull('procedure_type')
+        ->whereNull('procedure_type_id')
         ->first();
 
     expect($rate)->not->toBeNull();

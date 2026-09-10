@@ -15,7 +15,7 @@ class RoleRateFactory extends Factory
         return [
             'surgical_role_id' => SurgicalRole::factory(),
             'user_id' => null,
-            'procedure_type' => null,
+            'procedure_type_id' => null,
             'base_rate' => $this->faker->randomFloat(2, 100, 2000),
             'active' => true,
         ];

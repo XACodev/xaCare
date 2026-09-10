@@ -100,7 +100,7 @@ return new class extends Migration
         $existing = RoleRate::withoutGlobalScopes()
             ->where('surgical_role_id', $instrumentistRole->id)
             ->whereNull('user_id')
-            ->whereNull('procedure_type')
+            ->whereNull('procedure_type_id')
             ->first();
 
         if ($existing) {
@@ -117,7 +117,7 @@ return new class extends Migration
             'hospital_id' => $hospital->id,
             'surgical_role_id' => $instrumentistRole->id,
             'user_id' => null,
-            'procedure_type' => null,
+            'procedure_type_id' => null,
             'base_rate' => $settings->default_rate,
             'active' => true,
         ]);

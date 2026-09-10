@@ -3,6 +3,7 @@
 // tests/Feature/Services/RateResolutionServiceTest.php
 use App\Models\Hospital;
 use App\Models\User;
+use App\Modules\QxLog\Models\ProcedureType;
 use App\Modules\QxLog\Models\RateModifier;
 use App\Modules\QxLog\Models\RoleRate;
 use App\Modules\QxLog\Models\SurgicalRole;
@@ -17,16 +18,17 @@ beforeEach(function () {
 
 test('resuelve la tarifa especifica de usuario+procedimiento antes que cualquier default', function () {
     $doctor = User::factory()->create(['hospital_id' => $this->hospital->id]);
+    $cesarea = ProcedureType::factory()->for($this->hospital, 'hospital')->create(['name' => 'Cesárea']);
 
     RoleRate::factory()->for($this->role, 'surgicalRole')->create(['base_rate' => 200]); // default hospital
     RoleRate::factory()->for($this->role, 'surgicalRole')->create(['user_id' => $doctor->id, 'base_rate' => 500]); // base del médico
     $specific = RoleRate::factory()->for($this->role, 'surgicalRole')
-        ->create(['user_id' => $doctor->id, 'procedure_type' => 'Cesárea', 'base_rate' => 2000]);
+        ->create(['user_id' => $doctor->id, 'procedure_type_id' => $cesarea->id, 'base_rate' => 2000]);
 
     $result = $this->service->resolve(
         role: $this->role,
         user: $doctor,
-        procedureType: 'Cesárea',
+        procedureType: $cesarea,
         procedureDate: '2026-09-02',
         startTimeHHMM: '10:00',
         durationMinutes: 60,
@@ -41,11 +43,12 @@ test('resuelve la tarifa especifica de usuario+procedimiento antes que cualquier
 test('cae al default del hospital cuando el medico no tiene tarifa propia', function () {
     RoleRate::factory()->for($this->role, 'surgicalRole')->create(['base_rate' => 200]);
     $otroMedico = User::factory()->create(['hospital_id' => $this->hospital->id]);
+    $apendicectomia = ProcedureType::factory()->for($this->hospital, 'hospital')->create(['name' => 'Apendicectomía']);
 
     $result = $this->service->resolve(
         role: $this->role,
         user: $otroMedico,
-        procedureType: 'Apendicectomía',
+        procedureType: $apendicectomia,
         procedureDate: '2026-09-02',
         startTimeHHMM: '10:00',
         durationMinutes: 60,
@@ -58,11 +61,12 @@ test('cae al default del hospital cuando el medico no tiene tarifa propia', func
 
 test('sin ninguna tarifa aplicable devuelve monto 0 sin regla', function () {
     $medico = User::factory()->create(['hospital_id' => $this->hospital->id]);
+    $algoRaro = ProcedureType::factory()->for($this->hospital, 'hospital')->create(['name' => 'Algo raro']);
 
     $result = $this->service->resolve(
         role: $this->role,
         user: $medico,
-        procedureType: 'Algo raro',
+        procedureType: $algoRaro,
         procedureDate: '2026-09-02',
         startTimeHHMM: '10:00',
         durationMinutes: 60,

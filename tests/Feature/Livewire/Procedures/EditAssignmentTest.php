@@ -26,7 +26,7 @@ test('rejects editing a case whose status changed to non-pending after load', fu
         'hospital_id' => $hospital->id,
         'surgical_role_id' => $role->id,
         'user_id' => null,
-        'procedure_type' => null,
+        'procedure_type_id' => null,
         'base_rate' => 500,
     ]);
 
@@ -74,7 +74,7 @@ test('rejects assignments ids that do not belong to the edited case', function (
         'hospital_id' => $hospital->id,
         'surgical_role_id' => $role->id,
         'user_id' => null,
-        'procedure_type' => null,
+        'procedure_type_id' => null,
         'base_rate' => 500,
     ]);
 
@@ -128,7 +128,7 @@ test('rejects an assigned user from another hospital', function () {
         'hospital_id' => $hospitalA->id,
         'surgical_role_id' => $role->id,
         'user_id' => null,
-        'procedure_type' => null,
+        'procedure_type_id' => null,
         'base_rate' => 500,
     ]);
 
@@ -175,7 +175,7 @@ test('editar un caso sin tocar el toggle manual preserva el monto calculado', fu
         'hospital_id' => $hospital->id,
         'surgical_role_id' => $role->id,
         'user_id' => null,
-        'procedure_type' => null,
+        'procedure_type_id' => null,
         'base_rate' => 500,
     ]);
     $modifier = RateModifier::factory()->manualToggle('Video')->create([

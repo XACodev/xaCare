@@ -27,7 +27,7 @@ test('reloading the page with ?selected_role_id keeps showing the saved rate for
         'hospital_id' => $hospital->id,
         'surgical_role_id' => $secondRole->id,
         'user_id' => null,
-        'procedure_type' => null,
+        'procedure_type_id' => null,
         'base_rate' => 350,
     ]);
 
