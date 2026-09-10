@@ -443,7 +443,7 @@ $delete = function () {
                 @endcan
             @endif
             <flux:button wire:click="saveDraft" variant="subtle">{{ __('Save as Draft') }}</flux:button>
-            <flux:button wire:click="schedule" variant="primary">{{ __('Schedule') }}</flux:button>
+            <flux:button wire:click="schedule" variant="primary">{{ __('Confirm Schedule') }}</flux:button>
         </div>
     </div>
 </div>
