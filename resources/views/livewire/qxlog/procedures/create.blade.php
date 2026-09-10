@@ -559,7 +559,7 @@ $dismissMatchedSurgery = function () {
             <div class="flex items-center justify-between">
                 <flux:heading size="lg">{{ __('Assignments') }}</flux:heading>
                 <flux:button type="button" wire:click="addAssignment" size="sm" variant="filled">
-                    {{ __('Add role') }}
+                    {{ __('Add participant') }}
                 </flux:button>
             </div>
 

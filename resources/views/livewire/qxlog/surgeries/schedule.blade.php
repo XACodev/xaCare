@@ -410,46 +410,44 @@ $delete = function () {
 
         <hr class="border-indigo-300 dark:border-zinc-600">
 
-        <div class="space-y-4">
+        <div class="space-y-3">
             <div class="flex items-center justify-between">
-                <flux:heading size="lg">{{ __('Tentative Staff') }}</flux:heading>
+                <flux:heading size="lg">{{ __('Surgical Staff') }}</flux:heading>
                 <flux:button type="button" wire:click="addAssignment" size="sm" variant="filled">
-                    {{ __('Add role') }}
+                    {{ __('Add participant') }}
                 </flux:button>
             </div>
 
             @foreach($assignments as $index => $row)
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-3">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                        <flux:select wire:model="assignments.{{ $index }}.role_id" label="{{ __('Role') }}"
-                            placeholder="{{ __('Select role') }}">
-                            @foreach($this->roles as $r)
-                                <flux:select.option value="{{ $r->id }}">{{ $r->name }}</flux:select.option>
-                            @endforeach
-                        </flux:select>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end py-2 {{ !$loop->last ? 'border-b border-zinc-100 dark:border-zinc-800' : '' }}">
+                    <flux:select wire:model="assignments.{{ $index }}.role_id" label="{{ __('Role') }}"
+                        placeholder="{{ __('Select role') }}">
+                        @foreach($this->roles as $r)
+                            <flux:select.option value="{{ $r->id }}">{{ $r->name }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
 
-                        <div class="relative">
-                            <flux:label>{{ __('Person') }}</flux:label>
-                            <input type="text" wire:model.live.debounce.200ms="assignments.{{ $index }}.user_query"
-                                placeholder="{{ __('Search person...') }}"
-                                class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-700" />
-                            @php $rowUserSuggestions = ($this->userSuggestions)($row['user_query'] ?? '', $row['user_id'] ?? null); @endphp
-                            @if(!empty($rowUserSuggestions))
-                                <div class="absolute z-20 mt-1 w-full rounded-lg border bg-white shadow-lg dark:bg-zinc-700">
-                                    @foreach($rowUserSuggestions as $s)
-                                        <button type="button" class="block w-full text-left px-4 py-2 hover:bg-zinc-50 dark:hover:bg-indigo-400/50"
-                                            wire:click="selectAssignmentUser({{ $index }}, {{ $s['id'] }})">
-                                            {{ $s['name'] }}
-                                        </button>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
-
-                        <flux:input wire:model="assignments.{{ $index }}.note" label="{{ __('Note (optional)') }}" />
-
-                        <flux:button type="button" wire:click="removeAssignment({{ $index }})" size="sm" variant="danger" icon="trash" />
+                    <div class="relative">
+                        <flux:label>{{ __('Person') }}</flux:label>
+                        <input type="text" wire:model.live.debounce.200ms="assignments.{{ $index }}.user_query"
+                            placeholder="{{ __('Search person...') }}"
+                            class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-700" />
+                        @php $rowUserSuggestions = ($this->userSuggestions)($row['user_query'] ?? '', $row['user_id'] ?? null); @endphp
+                        @if(!empty($rowUserSuggestions))
+                            <div class="absolute z-20 mt-1 w-full rounded-lg border bg-white shadow-lg dark:bg-zinc-700">
+                                @foreach($rowUserSuggestions as $s)
+                                    <button type="button" class="block w-full text-left px-4 py-2 hover:bg-zinc-50 dark:hover:bg-indigo-400/50"
+                                        wire:click="selectAssignmentUser({{ $index }}, {{ $s['id'] }})">
+                                        {{ $s['name'] }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
+
+                    <flux:input wire:model="assignments.{{ $index }}.note" label="{{ __('Note (optional)') }}" />
+
+                    <flux:button type="button" wire:click="removeAssignment({{ $index }})" size="sm" variant="danger" icon="trash" />
                 </div>
             @endforeach
         </div>
