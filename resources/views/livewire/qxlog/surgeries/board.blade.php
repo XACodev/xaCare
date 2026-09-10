@@ -80,7 +80,7 @@ $moveToStatus = function (int $caseId, int $statusId) {
             {{ __('Kanban') }}
         </flux:button>
         <flux:button size="sm" :variant="$view === 'calendar' ? 'primary' : 'subtle'" wire:click="$set('view', 'calendar')">
-            {{ __('Calendar') }}
+            {{ __('Agenda') }}
         </flux:button>
     </div>
 

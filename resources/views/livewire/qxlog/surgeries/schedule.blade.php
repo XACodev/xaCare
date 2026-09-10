@@ -399,8 +399,8 @@ $delete = function () {
             </div>
 
             @foreach($assignments as $index => $row)
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-4 space-y-3">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-3">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                         <flux:select wire:model="assignments.{{ $index }}.role_id" label="{{ __('Role') }}"
                             placeholder="{{ __('Select role') }}">
                             @foreach($this->roles as $r)
@@ -408,7 +408,7 @@ $delete = function () {
                             @endforeach
                         </flux:select>
 
-                        <div class="space-y-2 relative">
+                        <div class="relative">
                             <flux:label>{{ __('Person') }}</flux:label>
                             <input type="text" wire:model.live.debounce.200ms="assignments.{{ $index }}.user_query"
                                 placeholder="{{ __('Search person...') }}"
@@ -425,10 +425,10 @@ $delete = function () {
                             @endif
                         </div>
 
+                        <flux:input wire:model="assignments.{{ $index }}.note" label="{{ __('Note (optional)') }}" />
+
                         <flux:button type="button" wire:click="removeAssignment({{ $index }})" size="sm" variant="danger" icon="trash" />
                     </div>
-
-                    <flux:input wire:model="assignments.{{ $index }}.note" label="{{ __('Note (optional)') }}" />
                 </div>
             @endforeach
         </div>
