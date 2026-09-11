@@ -12,7 +12,7 @@
 
     @php($me = auth()->user())
 
-    <flux:navlist variant="outline">
+    <flux:navlist variant="outline" class="[&[data-current]]:bg-mist [&[data-current]]:text-accent">
         <flux:navlist.group :heading="__('Plataforma')" class="grid">
             <flux:navlist.item icon="chart-bar" :href="route('platform.dashboard')"
                 :current="request()->routeIs('platform.dashboard')" wire:navigate>
