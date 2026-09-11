@@ -1,9 +1,8 @@
 <?php
-// Componente Volt definitivo (Task 6) sobre el trait/vista compartidos (Task 5). Mantiene
-// el mismo nombre de ruta `qxlog.settings.roles` que uso el test ancla de Task 5
-// (CatalogManagerTest.php) para probar CatalogManagerState de punta a punta.
+// Componente Volt (Task 6) sobre el trait/vista compartidos (Task 5). Mismo patron que
+// roles.blade.php, aplicado a OperatingRoom.
 
-use App\Modules\QxLog\Models\SurgicalRole;
+use App\Modules\QxLog\Models\OperatingRoom;
 use App\Modules\QxLog\Support\Volt\CatalogManagerState;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,9 +11,9 @@ use function Livewire\Volt\{state, computed, mount, uses};
 uses(CatalogManagerState::class);
 
 state([
-    'modelClass' => SurgicalRole::class,
-    'title' => __('Surgical Roles'),
-    'form' => ['name' => '', 'is_payable' => true],
+    'modelClass' => OperatingRoom::class,
+    'title' => __('Operating Rooms'),
+    'form' => ['name' => ''],
     'extraFieldsSlot' => null,
 ]);
 
@@ -29,7 +28,7 @@ $items = computed(fn () => $this->catalogItems($this->modelClass));
 $create = function () {
     $this->validate(['form.name' => ['required', 'string', 'max:255']]);
 
-    $this->catalogCreate($this->modelClass, ['name' => $this->form['name'], 'is_payable' => (bool) $this->form['is_payable']]);
+    $this->catalogCreate($this->modelClass, ['name' => $this->form['name']]);
 
     $this->form['name'] = '';
 };

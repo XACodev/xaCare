@@ -86,6 +86,18 @@
                             :current="request()->routeIs('pricing.settings')" wire:navigate>
                             {{ __('Instrumentist Pricing') }}
                         </flux:navlist.item>
+                        <flux:navlist.item icon="tag" :href="route('settings.roles')"
+                            :current="request()->routeIs('settings.roles')" wire:navigate>
+                            {{ __('Surgical Roles') }}
+                        </flux:navlist.item>
+                        <flux:navlist.item icon="flag" :href="route('settings.statuses')"
+                            :current="request()->routeIs('settings.statuses')" wire:navigate>
+                            {{ __('Surgery Statuses') }}
+                        </flux:navlist.item>
+                        <flux:navlist.item icon="building-office-2" :href="route('settings.rooms')"
+                            :current="request()->routeIs('settings.rooms')" wire:navigate>
+                            {{ __('Operating Rooms') }}
+                        </flux:navlist.item>
                     @endif
                     @can('settings.manage')
                         <flux:navlist.item icon="building-office" :href="route('settings.organization')"

@@ -1,9 +1,10 @@
 <?php
-// Componente Volt definitivo (Task 6) sobre el trait/vista compartidos (Task 5). Mantiene
-// el mismo nombre de ruta `qxlog.settings.roles` que uso el test ancla de Task 5
-// (CatalogManagerTest.php) para probar CatalogManagerState de punta a punta.
+// Componente Volt (Task 6) sobre el trait/vista compartidos (Task 5). Mismo patron que
+// roles.blade.php, aplicado a SurgeryStatus. Fuera de alcance: editar is_default/
+// is_completed/is_cancelled desde este CRUD simple (se gestionan solo por los defaults
+// sembrados en SurgeryStatus::seedDefaultsFor()).
 
-use App\Modules\QxLog\Models\SurgicalRole;
+use App\Modules\QxLog\Models\SurgeryStatus;
 use App\Modules\QxLog\Support\Volt\CatalogManagerState;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,9 +13,9 @@ use function Livewire\Volt\{state, computed, mount, uses};
 uses(CatalogManagerState::class);
 
 state([
-    'modelClass' => SurgicalRole::class,
-    'title' => __('Surgical Roles'),
-    'form' => ['name' => '', 'is_payable' => true],
+    'modelClass' => SurgeryStatus::class,
+    'title' => __('Surgery Statuses'),
+    'form' => ['name' => '', 'color' => '#6366f1'],
     'extraFieldsSlot' => null,
 ]);
 
@@ -29,7 +30,7 @@ $items = computed(fn () => $this->catalogItems($this->modelClass));
 $create = function () {
     $this->validate(['form.name' => ['required', 'string', 'max:255']]);
 
-    $this->catalogCreate($this->modelClass, ['name' => $this->form['name'], 'is_payable' => (bool) $this->form['is_payable']]);
+    $this->catalogCreate($this->modelClass, ['name' => $this->form['name'], 'color' => $this->form['color']]);
 
     $this->form['name'] = '';
 };

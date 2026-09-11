@@ -24,4 +24,12 @@ Route::middleware(['web', 'auth', 'admin', 'hospital.subscribed', 'hospital.feat
 
     Volt::route('pricing/settings', 'qxlog.pricing.settings')->name('pricing.settings');
     Volt::route('pricing/instrumentists', 'qxlog.pricing.instrumentist')->name('pricing.instrumentists');
+
+    // URI 'settings/surgical-roles' (no 'settings/roles') a proposito: esa URI ya la usa
+    // routes/web.php para settings.roles.index (roles Spatie/RBAC "Custom", sin relacion con
+    // este catalogo de SurgicalRole de QxLog). El nombre de ruta si es `settings.roles` per
+    // el contrato de este plan.
+    Volt::route('settings/surgical-roles', 'qxlog.settings.roles')->name('settings.roles');
+    Volt::route('settings/statuses', 'qxlog.settings.statuses')->name('settings.statuses');
+    Volt::route('settings/rooms', 'qxlog.settings.rooms')->name('settings.rooms');
 });
