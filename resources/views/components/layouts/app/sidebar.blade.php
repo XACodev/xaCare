@@ -6,14 +6,14 @@
 </head>
 
 <body class="min-h-screen bg-slate-50 dark:bg-zinc-950">
-    <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-indigo-100 dark:border-zinc-800 dark:bg-zinc-700">
+    <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-white dark:border-zinc-800 dark:bg-night">
         <flux:sidebar.toggle
-            class="lg:hidden ml-2 bg-indigo-400 dark:bg-indigo-400 border border-indigo-600 dark:border-indigo-600 rounded-lg"
+            class="lg:hidden ml-2 bg-accent dark:bg-accent border border-accent-content dark:border-accent-content rounded-lg"
             icon="x-mark" inset="left" />
 
         <flux:sidebar.brand href="{{ route('dashboard') }}" name="{{ config('app.name') }}"
             class="flex items-center rtl:space-x-reverse" wire:navigate>
-            <x-slot name="logo" class="bg-accent text-accent-foreground border-indigo-600 dark:border-indigo-600">
+            <x-slot name="logo" class="border-accent-content dark:border-accent-content">
                 <x-app-logo-icon class="size-4 fill-none" />
             </x-slot>
         </flux:sidebar.brand>
@@ -21,7 +21,7 @@
         @php($me = auth()->user())
         @php($hasQxlog = $me?->hospital?->hasFeature('qxlog') || $me?->is_platform_admin)
 
-        <flux:navlist variant="outline">
+        <flux:navlist variant="outline" class="[&[data-current]]:bg-mist [&[data-current]]:text-accent">
             @if($me && $me->is_platform_admin)
                 <flux:navlist.group :heading="__('Plataforma')" class="grid">
                     <flux:navlist.item icon="squares-2x2" :href="route('platform.dashboard')"
@@ -208,7 +208,7 @@
     <!-- Mobile User Menu -->
     <flux:header class="lg:hidden">
         <flux:sidebar.toggle
-            class="lg:hidden ml-2 bg-indigo-400 dark:bg-indigo-400 border border-indigo-600 dark:border-indigo-600 rounded-lg"
+            class="lg:hidden ml-2 bg-accent dark:bg-accent border border-accent-content dark:border-accent-content rounded-lg"
             icon="bars-3" inset="left" />
 
         <flux:spacer />
