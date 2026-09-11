@@ -13,6 +13,39 @@ test('el sidebar usa las clases de marca teal, no indigo', function () {
     expect($blade)->toContain('text-accent');
 });
 
+test('el item activo del sidebar tiene bg-mist/text-accent aplicables sobre el nodo con data-current', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+
+    $html = $this->actingAs($admin)->get('/patients')->assertOk()->getContent();
+
+    $dom = new DOMDocument();
+    @$dom->loadHTML($html);
+    $xpath = new DOMXPath($dom);
+
+    $current = $xpath->query('//*[@data-current]')->item(0);
+    expect($current)->not->toBeNull();
+
+    // La clase debe vivir en un ancestro (selector con combinador descendiente [&_[data-current]]),
+    // nunca en el propio elemento con data-current (ese selector [&[data-current]] es codigo muerto:
+    // Flux pone data-current en el <a> hijo, no en el <nav> donde se aplicaba la clase antes del fix).
+    expect($current->getAttribute('class'))->not->toContain('[&_[data-current]]');
+    expect($current->getAttribute('class'))->not->toContain('[&[data-current]]');
+
+    $ancestorHasClass = false;
+    $node = $current->parentNode;
+    while ($node instanceof DOMElement) {
+        if (str_contains($node->getAttribute('class'), '[&_[data-current]]:bg-mist')
+            && str_contains($node->getAttribute('class'), '[&_[data-current]]:text-accent')) {
+            $ancestorHasClass = true;
+            break;
+        }
+        $node = $node->parentNode;
+    }
+
+    expect($ancestorHasClass)->toBeTrue();
+});
+
 test('las etiquetas del sidebar en ingles tienen traduccion en es.json', function () {
     $hospital = Hospital::factory()->create();
     $admin = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);

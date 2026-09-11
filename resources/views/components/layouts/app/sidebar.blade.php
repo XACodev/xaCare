@@ -21,7 +21,7 @@
         @php($me = auth()->user())
         @php($hasQxlog = $me?->hospital?->hasFeature('qxlog') || $me?->is_platform_admin)
 
-        <flux:navlist variant="outline" class="[&[data-current]]:bg-mist [&[data-current]]:text-accent">
+        <flux:navlist variant="outline" class="[&_[data-current]]:bg-mist! [&_[data-current]]:text-accent!">
             @if($me && $me->is_platform_admin)
                 <flux:navlist.group :heading="__('Plataforma')" class="grid">
                     <flux:navlist.item icon="squares-2x2" :href="route('platform.dashboard')"
