@@ -11,28 +11,45 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
-    --color-zinc-50: #fafafa;
-    --color-zinc-100: #f5f5f5;
-    --color-zinc-200: #e5e5e5;
-    --color-zinc-300: #d4d4d4;
-    --color-zinc-400: #a3a3a3;
-    --color-zinc-500: #737373;
-    --color-zinc-600: #525252;
-    --color-zinc-700: #404040;
-    --color-zinc-800: #262626;
-    --color-zinc-900: #171717;
-    --color-zinc-950: #0a0a0a;
+    --color-zinc-50: #F4F6F5;
+    --color-zinc-100: #EEF1EF;
+    --color-zinc-200: #DDE3E1;
+    --color-zinc-300: #C9D2CF;
+    --color-zinc-400: #92A09D;
+    --color-zinc-500: #5B6B68;
+    --color-zinc-600: #4A5957;
+    --color-zinc-700: #3A4846;
+    --color-zinc-800: #263432;
+    --color-zinc-900: #12201F;
+    --color-zinc-950: #0B1413;
 
-    --color-accent: var(--color-indigo-500);
-    --color-accent-content: var(--color-indigo-600);
-    --color-accent-foreground: var(--color-white);
+    --color-accent: #0F766E;
+    --color-accent-content: #0B3B37;
+    --color-accent-foreground: #ffffff;
+
+    --color-mist: #E6F2F0;
+    --color-ink: #12201F;
+    --color-night: #0E1214;
+    --color-surface-dark: #161B1E;
+    --color-border-dark: #232C30;
+    --color-field-dark: #1C2226;
+    --color-canvas: #F4F6F5;
+    --color-border: #DDE3E1;
+    --color-muted: #5B6B68;
+
+    --color-urgent: #B4321F;
+    --color-urgent-soft: #FDECEA;
+    --color-pending: #B45309;
+    --color-pending-soft: #FEF3E2;
+    --color-done: #15803D;
+    --color-done-soft: #E7F5EC;
 }
 
 @layer theme {
     .dark {
-        --color-accent: var(--color-indigo-400);
-        --color-accent-content: var(--color-indigo-400);
-        --color-accent-foreground: var(--color-zinc-950);
+        --color-accent: #2DD4BF;
+        --color-accent-content: #2DD4BF;
+        --color-accent-foreground: #062A27;
     }
 }
 
