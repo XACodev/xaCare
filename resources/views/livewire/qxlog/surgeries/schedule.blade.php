@@ -213,14 +213,7 @@ $resolveProcedureType = function (): ?\App\Modules\QxLog\Models\ProcedureType {
         return null;
     }
 
-    $normalized = \Illuminate\Support\Str::lower($name);
-    $hospitalId = Auth::user()->hospital_id;
-
-    return \App\Modules\QxLog\Models\ProcedureType::withoutGlobalScopes()
-        ->where('hospital_id', $hospitalId)
-        ->whereRaw('LOWER(name) = ?', [$normalized])
-        ->first()
-        ?? \App\Modules\QxLog\Models\ProcedureType::create(['hospital_id' => $hospitalId, 'name' => $name]);
+    return \App\Modules\QxLog\Models\ProcedureType::resolveOrCreateFor(Auth::user()->hospital_id, $name);
 };
 
 $persist = function (array $data, bool $isDraft) {

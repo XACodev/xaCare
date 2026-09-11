@@ -77,6 +77,36 @@ test('programa una cirugia completa y la deja publicada', function () {
         ->and($case->surgery_status_id)->toBe($status->id);
 });
 
+test('resuelve el tipo de procedimiento por nombre ignorando acentos, sin duplicar el catalogo', function () {
+    // Finding 2 de la revision final: resolveProcedureType() usaba una comparación
+    // accent-sensitive (LOWER(name) sin ascii-fold), así que "Cesarea" (sin tilde,
+    // escrito por el usuario) y "Cesárea" (con tilde, ya en el catálogo) se trataban
+    // como dos tipos distintos.
+    $hospital = Hospital::factory()->create();
+    $user = scheduleActingUser($hospital);
+    test()->actingAs($user);
+
+    $existing = \App\Modules\QxLog\Models\ProcedureType::factory()->for($hospital, 'hospital')->create(['name' => 'Cesárea']);
+
+    $room = OperatingRoom::factory()->create(['hospital_id' => $hospital->id]);
+    $status = SurgeryStatus::query()->where('hospital_id', $hospital->id)->where('is_default', true)->firstOrFail();
+
+    Volt::test('qxlog.surgeries.schedule')
+        ->set('procedure_date', '2026-11-01')
+        ->set('start_time', '08:00')
+        ->set('end_time', '10:00')
+        ->set('procedure_type_query', 'cesarea') // sin tilde y en minusculas
+        ->set('patient_query', 'Paciente Emergencia')
+        ->set('operating_room_id', $room->id)
+        ->call('schedule')
+        ->assertHasNoErrors();
+
+    $case = SurgicalCase::latest('id')->first();
+
+    expect($case->procedure_type_id)->toBe($existing->id);
+    expect(\App\Modules\QxLog\Models\ProcedureType::withoutGlobalScopes()->where('hospital_id', $hospital->id)->count())->toBe(1);
+});
+
 test('rechaza programar con choque de quirofano', function () {
     $hospital = Hospital::factory()->create();
     $user = scheduleActingUser($hospital);

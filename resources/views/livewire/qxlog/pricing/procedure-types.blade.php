@@ -5,7 +5,6 @@ use App\Modules\QxLog\Models\RoleRate;
 use App\Modules\QxLog\Models\SurgicalRole;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 use function Livewire\Volt\{state, computed, mount, rules, updated};
@@ -33,7 +32,7 @@ mount(function () {
 $roles = computed(fn () => SurgicalRole::query()->where('is_payable', true)->orderBy('sort_order')->get());
 
 $rates = computed(fn () => $this->selected_role_id
-    ? RoleRate::query()->where('surgical_role_id', $this->selected_role_id)->whereNotNull('procedure_type_id')->with('procedureType')->get()
+    ? RoleRate::query()->where('surgical_role_id', $this->selected_role_id)->whereNotNull('procedure_type_id')->whereNull('user_id')->with('procedureType')->get()
     : collect());
 
 $typeSuggestions = computed(function () {
@@ -68,16 +67,7 @@ $addRate = function () {
 
     $type = $this->new_rate_type_id
         ? ProcedureType::withoutGlobalScopes()->findOrFail($this->new_rate_type_id)
-        : (function () use ($hospitalId) {
-            $name = trim($this->new_rate_type_query);
-            $normalized = Str::lower($name);
-
-            return ProcedureType::withoutGlobalScopes()
-                ->where('hospital_id', $hospitalId)
-                ->whereRaw('LOWER(name) = ?', [$normalized])
-                ->first()
-                ?? ProcedureType::create(['hospital_id' => $hospitalId, 'name' => $name]);
-        })();
+        : ProcedureType::resolveOrCreateFor($hospitalId, $this->new_rate_type_query);
 
     abort_if($type->hospital_id !== $hospitalId, 403);
 

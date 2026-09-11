@@ -10,7 +10,6 @@ use App\Support\TimeHelper;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Str;
 
 use function Livewire\Volt\{state, mount, computed, rules, updated};
 
@@ -128,7 +127,7 @@ $recalculate = function (int $index) {
     $pricing = app(RateResolutionService::class)->resolve(
         role: $role,
         user: $user,
-        procedureType: $this->procedure_type_id ? \App\Modules\QxLog\Models\ProcedureType::find($this->procedure_type_id) : null,
+        procedureType: $this->previewProcedureType(),
         procedureDate: $this->procedure_date,
         startTimeHHMM: $this->start_time,
         durationMinutes: max($mins, 0),
@@ -168,15 +167,22 @@ $resolveProcedureType = function (): \App\Modules\QxLog\Models\ProcedureType {
         return \App\Modules\QxLog\Models\ProcedureType::findOrFail($this->procedure_type_id);
     }
 
-    $name = trim($this->procedure_type_query);
-    $normalized = \Illuminate\Support\Str::lower($name);
-    $hospitalId = Auth::user()->hospital_id;
+    return \App\Modules\QxLog\Models\ProcedureType::resolveOrCreateFor(Auth::user()->hospital_id, $this->procedure_type_query);
+};
 
-    return \App\Modules\QxLog\Models\ProcedureType::withoutGlobalScopes()
-        ->where('hospital_id', $hospitalId)
-        ->whereRaw('LOWER(name) = ?', [$normalized])
-        ->first()
-        ?? \App\Modules\QxLog\Models\ProcedureType::create(['hospital_id' => $hospitalId, 'name' => $name]);
+// Variante sin efectos secundarios de $resolveProcedureType, usada por recalculate()
+// y manualModifiersFor -- ver el comentario equivalente en procedures/create.blade.php.
+$previewProcedureType = function (): ?\App\Modules\QxLog\Models\ProcedureType {
+    if ($this->procedure_type_id) {
+        return \App\Modules\QxLog\Models\ProcedureType::find($this->procedure_type_id);
+    }
+
+    $name = trim((string) $this->procedure_type_query);
+    if ($name === '') {
+        return null;
+    }
+
+    return \App\Modules\QxLog\Models\ProcedureType::findByNameFor(Auth::user()->hospital_id, $name);
 };
 
 $save = function () {
@@ -402,7 +408,7 @@ $save = function () {
                             wire:change="recalculate({{ $index }})" label="{{ __('Courtesy') }}" />
 
                         @if($row['role_id'])
-                            @foreach(($this->manualModifiersFor)($row['role_id'], $row['user_id'], $procedure_type_id) as $modifier)
+                            @foreach(($this->manualModifiersFor)($row['role_id'], $row['user_id'], $this->previewProcedureType()?->id) as $modifier)
                                 <flux:checkbox wire:model.live="assignments.{{ $index }}.manual_toggles" value="{{ $modifier->id }}"
                                     wire:change="recalculate({{ $index }})" label="{{ $modifier->name }}" />
                             @endforeach

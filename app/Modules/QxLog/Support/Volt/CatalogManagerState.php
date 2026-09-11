@@ -3,6 +3,8 @@
 namespace App\Modules\QxLog\Support\Volt;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 trait CatalogManagerState
 {
@@ -14,6 +16,20 @@ trait CatalogManagerState
     protected function catalogCreate(string $modelClass, array $data): void
     {
         $hospitalId = Auth::user()->hospital_id;
+
+        // SurgicalRole/SurgeryStatus derivan su slug del name y las 3 tablas tienen un
+        // unique constraint por hospital (slug o name) — sin este chequeo, un nombre
+        // duplicado (ej. "Cirujano", ya sembrado por seedDefaultsFor()) revienta con un
+        // QueryException sin manejar en vez de mostrarse como un error de formulario normal.
+        $duplicate = $modelClass::withoutGlobalScopes()
+            ->where('hospital_id', $hospitalId)
+            ->whereRaw('LOWER(name) = ?', [Str::lower(trim($data['name']))])
+            ->exists();
+
+        if ($duplicate) {
+            throw ValidationException::withMessages(['form.name' => __('This name already exists.')]);
+        }
+
         $maxSort = (int) $modelClass::withoutGlobalScopes()->where('hospital_id', $hospitalId)->max('sort_order');
 
         $modelClass::create([...$data, 'hospital_id' => $hospitalId, 'sort_order' => $maxSort + 1, 'active' => true]);
