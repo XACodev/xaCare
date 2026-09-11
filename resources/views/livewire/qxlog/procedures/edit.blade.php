@@ -373,6 +373,7 @@ $save = function () {
             {{-- La persona asignada se selecciona de la lista de usuarios; el rol no se reasigna al editar. --}}
             @php($allUsers = \App\Models\User::query()
                 ->when(Auth::user()?->hospital_id, fn ($q) => $q->where('hospital_id', Auth::user()->hospital_id))
+                ->appearsAsSuggestion()
                 ->orderBy('name')
                 ->get(['id', 'name']))
 

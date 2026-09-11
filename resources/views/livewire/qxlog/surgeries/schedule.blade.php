@@ -151,6 +151,7 @@ $userSuggestions = computed(function () {
 
         return User::query()
             ->where('hospital_id', Auth::user()?->hospital_id)
+            ->appearsAsSuggestion()
             ->whereRaw('LOWER(name) LIKE ?', ["%{$normalized}%"])
             ->orderBy('name')
             ->limit(8)
