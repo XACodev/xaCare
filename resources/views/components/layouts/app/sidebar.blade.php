@@ -86,6 +86,10 @@
                             :current="request()->routeIs('pricing.settings')" wire:navigate>
                             {{ __('Instrumentist Pricing') }}
                         </flux:navlist.item>
+                        <flux:navlist.item icon="calculator" :href="route('pricing.procedure-types')"
+                            :current="request()->routeIs('pricing.procedure-types')" wire:navigate>
+                            {{ __('Pricing by Procedure') }}
+                        </flux:navlist.item>
                         <flux:navlist.item icon="tag" :href="route('settings.roles')"
                             :current="request()->routeIs('settings.roles')" wire:navigate>
                             {{ __('Surgical Roles') }}

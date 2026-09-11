@@ -24,6 +24,7 @@ Route::middleware(['web', 'auth', 'admin', 'hospital.subscribed', 'hospital.feat
 
     Volt::route('pricing/settings', 'qxlog.pricing.settings')->name('pricing.settings');
     Volt::route('pricing/instrumentists', 'qxlog.pricing.instrumentist')->name('pricing.instrumentists');
+    Volt::route('pricing/procedure-types', 'qxlog.pricing.procedure-types')->name('pricing.procedure-types');
 
     // URI 'settings/surgical-roles' (no 'settings/roles') a proposito: esa URI ya la usa
     // routes/web.php para settings.roles.index (roles Spatie/RBAC "Custom", sin relacion con
