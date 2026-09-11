@@ -123,11 +123,11 @@ $removeRate = function (int $id) {
             <div class="relative md:col-span-2">
                 <flux:label>{{ __('Procedure Type') }}</flux:label>
                 <input type="text" wire:model.live.debounce.200ms="new_rate_type_query"
-                    class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-700" />
+                    class="mt-2 block w-full rounded-lg border-zinc-200 bg-mist py-2.5 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-700" />
                 @if($this->typeSuggestions->isNotEmpty())
                     <div class="absolute z-20 mt-1 w-full rounded-lg border bg-white shadow-lg dark:bg-zinc-700">
                         @foreach($this->typeSuggestions as $s)
-                            <button type="button" class="block w-full text-left px-4 py-2 hover:bg-zinc-50 dark:hover:bg-indigo-400/50"
+                            <button type="button" class="block w-full text-left px-4 py-2 hover:bg-zinc-50 dark:hover:bg-accent/50"
                                 wire:click="selectType({{ $s->id }})">
                                 {{ $s->name }}
                             </button>

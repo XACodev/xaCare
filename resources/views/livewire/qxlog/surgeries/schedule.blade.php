@@ -415,7 +415,7 @@ $delete = function () {
                 @if(!empty($this->patient_suggestions))
                     <div class="absolute z-20 mt-1 w-full rounded-lg border bg-white shadow-lg dark:bg-zinc-700">
                         @foreach($this->patient_suggestions as $s)
-                            <button type="button" class="block w-full text-left px-4 py-2 hover:bg-zinc-50 dark:hover:bg-indigo-400/50"
+                            <button type="button" class="block w-full text-left px-4 py-2 hover:bg-zinc-50 dark:hover:bg-accent/50"
                                 wire:click="selectPatient({{ $s['id'] }})">
                                 {{ $s['name'] }}
                             </button>
@@ -429,10 +429,10 @@ $delete = function () {
                 <div class="relative">
                     <flux:input type="text" wire:model.live.debounce.200ms="procedure_type_query" />
                     @if($this->procedureTypeSuggestions->isNotEmpty())
-                        <div class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-indigo-400 overflow-hidden">
+                        <div class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-accent overflow-hidden">
                             @foreach($this->procedureTypeSuggestions as $s)
                                 <button type="button"
-                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-indigo-400/50 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-indigo-400 last:border-0"
+                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-accent/50 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-accent last:border-0"
                                     wire:click="selectProcedureType({{ $s->id }})">
                                     {{ $s->name }}
                                 </button>
@@ -467,7 +467,7 @@ $delete = function () {
             </flux:field>
         @endif
 
-        <hr class="border-indigo-300 dark:border-zinc-600">
+        <hr class="border-accent/40 dark:border-zinc-600">
 
         <div class="space-y-3">
             <div class="flex items-center justify-between">
@@ -490,12 +490,12 @@ $delete = function () {
                         <flux:label>{{ __('Person') }}</flux:label>
                         <input type="text" wire:model.live.debounce.200ms="assignments.{{ $index }}.user_query"
                             placeholder="{{ __('Search person...') }}"
-                            class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-700" />
+                            class="mt-2 block w-full rounded-lg border-zinc-200 bg-mist py-2.5 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-700" />
                         @php $rowUserSuggestions = ($this->userSuggestions)($row['user_query'] ?? '', $row['user_id'] ?? null); @endphp
                         @if(!empty($rowUserSuggestions))
                             <div class="absolute z-20 mt-1 w-full rounded-lg border bg-white shadow-lg dark:bg-zinc-700">
                                 @foreach($rowUserSuggestions as $s)
-                                    <button type="button" class="block w-full text-left px-4 py-2 hover:bg-zinc-50 dark:hover:bg-indigo-400/50"
+                                    <button type="button" class="block w-full text-left px-4 py-2 hover:bg-zinc-50 dark:hover:bg-accent/50"
                                         wire:click="selectAssignmentUser({{ $index }}, {{ $s['id'] }})">
                                         {{ $s['name'] }}
                                     </button>

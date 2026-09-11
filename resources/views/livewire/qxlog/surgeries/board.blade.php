@@ -315,8 +315,8 @@ $moveToStatus = function (int $caseId, int $statusId) {
                             @if($day['cases']->count() > 0) wire:click="openCalendarDay('{{ $day['date']->toDateString() }}')" @endif
                             class="min-h-24 border-b border-r border-zinc-100 dark:border-zinc-700 p-2 text-left align-top
                             {{ $day['in_current_month'] ? 'bg-white dark:bg-zinc-800' : 'bg-zinc-50 dark:bg-zinc-900/40 text-zinc-400 dark:text-zinc-600' }}
-                            {{ $day['cases']->count() > 0 ? 'hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer' : 'cursor-default' }}">
-                            <span class="text-sm {{ $day['is_today'] ? 'inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-white font-medium' : '' }}">
+                            {{ $day['cases']->count() > 0 ? 'hover:bg-mist dark:hover:bg-accent/10 cursor-pointer' : 'cursor-default' }}">
+                            <span class="text-sm {{ $day['is_today'] ? 'inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white font-medium' : '' }}">
                                 {{ $day['date']->day }}
                             </span>
                             @if($day['cases']->count() > 0)
@@ -331,11 +331,11 @@ $moveToStatus = function (int $caseId, int $statusId) {
                 <div class="grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-zinc-100 dark:divide-zinc-700">
                     @foreach($this->calendarDays as $day)
                         <div class="p-2 space-y-2 min-h-32">
-                            <div class="text-xs font-medium {{ $day['is_today'] ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-500 dark:text-zinc-400' }}">
+                            <div class="text-xs font-medium {{ $day['is_today'] ? 'text-accent dark:text-accent' : 'text-zinc-500 dark:text-zinc-400' }}">
                                 {{ $day['date']->day }}
                             </div>
                             @forelse($day['cases'] as $case)
-                                <a href="{{ route('surgeries.schedule.edit', $case) }}" class="block text-sm rounded bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 hover:bg-indigo-100 dark:hover:bg-indigo-900/50">
+                                <a href="{{ route('surgeries.schedule.edit', $case) }}" class="block text-sm rounded bg-mist dark:bg-accent/10 px-2 py-1 hover:bg-mist dark:hover:bg-accent/20">
                                     <span class="font-mono text-xs">{{ $case->start_time ? substr($case->start_time, 0, 5) : '--:--' }}</span>
                                     {{ $case->patient_name ?? __('Unnamed patient') }}
                                 </a>

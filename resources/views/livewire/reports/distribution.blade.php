@@ -45,12 +45,12 @@ $exportCsv = function () {
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('From') }}</label>
                     <input type="date" wire:model.live="date_from"
-                        class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 p-2.5">
+                        class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-mist dark:bg-zinc-700/60 p-2.5">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('To') }}</label>
                     <input type="date" wire:model.live="date_to"
-                        class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 p-2.5">
+                        class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-mist dark:bg-zinc-700/60 p-2.5">
                 </div>
             </div>
 

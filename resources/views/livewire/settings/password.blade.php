@@ -53,7 +53,7 @@ new class extends Component {
             <div class="flex items-center gap-4">
                 <div class="flex items-center justify-end">
                     <flux:button type="submit"
-                        class="w-full !bg-indigo-500 hover:!bg-indigo-600 !border-indigo-500 !text-white dark:!bg-indigo-600 dark:hover:!bg-indigo-500"
+                        class="w-full !bg-accent hover:!bg-accent !border-accent !text-white dark:!bg-accent dark:hover:!bg-accent"
                         data-test="update-password-button">
                         {{ __('Save') }}
                     </flux:button>
