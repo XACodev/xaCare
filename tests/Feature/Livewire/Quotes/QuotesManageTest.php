@@ -71,6 +71,16 @@ test('sin el permiso manage, el componente responde 403', function () {
     Volt::test('qxlog.quotes.manage')->assertForbidden();
 });
 
+test('sin el permiso manage, editar una cotizacion existente del mismo hospital responde 403', function () {
+    $hospital = Hospital::factory()->create();
+    $patient = Patient::factory()->for($hospital, 'hospital')->create();
+    $quote = SurgeryQuote::factory()->for($hospital, 'hospital')->create(['patient_id' => $patient->id]);
+    $user = User::factory()->create(['hospital_id' => $hospital->id]);
+    $this->actingAs($user);
+
+    Volt::test('qxlog.quotes.manage', ['quote' => $quote])->assertForbidden();
+});
+
 test('una cotizacion de otro hospital no puede editarse', function () {
     $hospitalA = Hospital::factory()->create();
     $hospitalB = Hospital::factory()->create();
