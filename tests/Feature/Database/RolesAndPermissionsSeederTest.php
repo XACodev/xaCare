@@ -69,7 +69,7 @@ test('roles and permissions seeder does not duplicate permissions when run twice
 
     $admin = Role::where('name', 'admin')->first();
 
-    expect($admin->permissions()->count())->toBe(11);
+    expect($admin->permissions()->count())->toBe(13);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 });
