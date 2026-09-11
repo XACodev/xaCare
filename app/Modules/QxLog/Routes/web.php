@@ -12,6 +12,14 @@ Route::middleware(['web', 'auth', 'hospital.subscribed', 'hospital.feature:qxlog
     Volt::route('surgeries/create', 'qxlog.surgeries.schedule')->name('surgeries.schedule.create');
     Volt::route('surgeries/{surgery}/edit', 'qxlog.surgeries.schedule')->name('surgeries.schedule.edit');
     Volt::route('surgeries', 'qxlog.surgeries.board')->name('surgeries.board');
+
+    Route::middleware(['hospital.feature:qxlog_quotes'])->group(function () {
+        Volt::route('quotes', 'qxlog.quotes.index')->name('quotes.index');
+        Volt::route('quotes/create', 'qxlog.quotes.manage')->name('quotes.create');
+        Volt::route('quotes/{quote}/edit', 'qxlog.quotes.manage')->name('quotes.edit');
+        Volt::route('quotes/{quote}', 'qxlog.quotes.show')->name('quotes.show');
+        Volt::route('quotes/{quote}/print', 'qxlog.quotes.print')->name('quotes.print');
+    });
 });
 
 Route::middleware(['web', 'auth', 'admin', 'hospital.subscribed', 'hospital.feature:qxlog'])->group(function () {

@@ -21,9 +21,9 @@ class CoreRoleProvisioner
      * @var array<string, list<string>>
      */
     public const DEFAULT_PERMISSIONS = [
-        'doctor' => ['procedures.create', 'procedures.view'],
-        'instrumentist' => ['procedures.create', 'procedures.view'],
-        'circulating' => ['procedures.create', 'procedures.view'],
+        'doctor' => ['procedures.create', 'procedures.view', 'surgeries.budget.view_own', 'search.appear_as_suggestion'],
+        'instrumentist' => ['procedures.create', 'procedures.view', 'surgeries.budget.view_own', 'search.appear_as_suggestion'],
+        'circulating' => ['procedures.create', 'procedures.view', 'surgeries.budget.view_own', 'search.appear_as_suggestion'],
     ];
 
     public static function provisionFor(Hospital $hospital): void

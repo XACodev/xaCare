@@ -107,6 +107,7 @@ $roles = computed(fn () => SurgicalRole::query()
 $userSuggestions = computed(function () {
     return fn (string $query) => User::query()
         ->where('hospital_id', Auth::user()?->hospital_id)
+        ->appearsAsSuggestion()
         ->when(trim($query) !== '', function ($q) use ($query) {
             $normalized = Str::ascii(Str::lower($query));
             $q->whereRaw('LOWER(name) LIKE ?', ["%{$normalized}%"]);

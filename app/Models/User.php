@@ -264,6 +264,14 @@ class User extends Authenticatable
         }
     }
 
+    public function scopeAppearsAsSuggestion(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where(function ($q) {
+            $q->whereHas('permissions', fn ($q2) => $q2->where('name', 'search.appear_as_suggestion'))
+                ->orWhereHas('roles.permissions', fn ($q2) => $q2->where('name', 'search.appear_as_suggestion'));
+        });
+    }
+
     /**
      * Get the user's initials
      */

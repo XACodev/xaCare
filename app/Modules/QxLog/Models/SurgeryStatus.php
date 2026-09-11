@@ -25,10 +25,9 @@ class SurgeryStatus extends Model implements HasHospital
 
         $statuses = [
             ['name' => 'Programada', 'slug' => 'programada', 'sort_order' => 0, 'is_default' => true],
-            ['name' => 'Confirmada', 'slug' => 'confirmada', 'sort_order' => 1],
-            ['name' => 'En curso', 'slug' => 'en-curso', 'sort_order' => 2],
-            ['name' => 'Completada', 'slug' => 'completada', 'sort_order' => 3, 'is_completed' => true],
-            ['name' => 'Cancelada', 'slug' => 'cancelada', 'sort_order' => 4, 'is_cancelled' => true],
+            ['name' => 'En curso', 'slug' => 'en-curso', 'sort_order' => 1],
+            ['name' => 'Completada', 'slug' => 'completada', 'sort_order' => 2, 'is_completed' => true],
+            ['name' => 'Cancelada', 'slug' => 'cancelada', 'sort_order' => 3, 'is_cancelled' => true],
         ];
 
         foreach ($statuses as $status) {

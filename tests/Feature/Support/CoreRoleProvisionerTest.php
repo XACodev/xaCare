@@ -11,7 +11,7 @@ test('creating a hospital provisions doctor, instrumentist and circulating scope
         $role = Role::where('name', $roleName)->where('guard_name', 'web')->where('team_id', $hospital->id)->first();
 
         expect($role)->not->toBeNull()
-            ->and($role->permissions()->pluck('name')->sort()->values()->all())->toBe(['procedures.create', 'procedures.view']);
+            ->and($role->permissions()->pluck('name')->sort()->values()->all())->toBe(['procedures.create', 'procedures.view', 'search.appear_as_suggestion', 'surgeries.budget.view_own']);
     }
 
     expect(Role::where('name', 'admin')->where('team_id', $hospital->id)->exists())->toBeFalse();

@@ -26,7 +26,7 @@ test('crea un quirófano principal y el catálogo de estados por defecto para ca
 
     $statuses = SurgeryStatus::withoutGlobalScopes()->where('hospital_id', $hospital->id)->get();
     expect($statuses->pluck('slug')->sort()->values()->all())
-        ->toBe(['cancelada', 'completada', 'confirmada', 'en-curso', 'programada']);
+        ->toBe(['cancelada', 'completada', 'en-curso', 'programada']);
 
     $default = $statuses->firstWhere('is_default', true);
     $completed = $statuses->firstWhere('is_completed', true);
@@ -58,5 +58,5 @@ test('correr la migración dos veces es idempotente', function () {
     $migration->up();
 
     expect(OperatingRoom::withoutGlobalScopes()->where('hospital_id', $hospital->id)->count())->toBe(1)
-        ->and(SurgeryStatus::withoutGlobalScopes()->where('hospital_id', $hospital->id)->count())->toBe(5);
+        ->and(SurgeryStatus::withoutGlobalScopes()->where('hospital_id', $hospital->id)->count())->toBe(4);
 });

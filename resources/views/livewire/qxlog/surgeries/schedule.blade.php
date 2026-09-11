@@ -7,6 +7,7 @@ use App\Modules\QxLog\Models\SurgeryStatus;
 use App\Modules\QxLog\Models\SurgicalAssignment;
 use App\Modules\QxLog\Models\SurgicalCase;
 use App\Modules\QxLog\Models\SurgicalRole;
+use App\Modules\QxLog\Models\SurgeryQuote;
 use App\Modules\QxLog\Services\OperatingRoomAvailabilityService;
 use App\Support\TimeHelper;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +19,7 @@ use function Livewire\Volt\{state, mount, computed, rules};
 
 state([
     'surgery' => null,
+    'quote_id' => null,
     'patient_id' => null,
     'patient_query' => '',
     'patient_name' => '',
@@ -94,6 +96,8 @@ mount(function (?SurgicalCase $surgery = null) {
         }
     }
 
+    $this->quote_id = request()->integer('quote_id') ?: null;
+
     $defaultRoom = OperatingRoom::query()->where('active', true)
         ->orderByDesc('is_default')->orderBy('sort_order')->first();
     $this->operating_room_id = $defaultRoom?->id;
@@ -151,6 +155,7 @@ $userSuggestions = computed(function () {
 
         return User::query()
             ->where('hospital_id', Auth::user()?->hospital_id)
+            ->appearsAsSuggestion()
             ->whereRaw('LOWER(name) LIKE ?', ["%{$normalized}%"])
             ->orderBy('name')
             ->limit(8)
@@ -327,6 +332,16 @@ $schedule = function () use ($baseRules) {
     }
 
     $this->persist($data, isDraft: false);
+
+    if ($this->quote_id && $this->surgery->wasRecentlyCreated) {
+        $quote = SurgeryQuote::query()
+            ->where('id', $this->quote_id)
+            ->where('hospital_id', Auth::user()->hospital_id)
+            ->where('patient_id', $this->surgery->patient_id)
+            ->first();
+
+        $quote?->attachToSurgicalCase($this->surgery);
+    }
 
     $this->success_message = $this->surgery->wasRecentlyCreated ? 'Cirugía programada.' : 'Cirugía actualizada.';
 };

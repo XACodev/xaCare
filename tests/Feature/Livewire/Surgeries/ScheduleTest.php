@@ -11,7 +11,7 @@ use Spatie\Permission\Models\Permission;
 
 beforeEach(function () {
     app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
-    foreach (['surgeries.schedule', 'surgeries.cancel', 'surgeries.delete', 'surgeries.view'] as $name) {
+    foreach (['surgeries.schedule', 'surgeries.cancel', 'surgeries.delete', 'surgeries.view', 'search.appear_as_suggestion'] as $name) {
         Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
     }
 });
@@ -367,6 +367,7 @@ test('selecting a person closes that assignment row suggestions dropdown', funct
     test()->actingAs($user);
 
     $candidate = User::factory()->create(['hospital_id' => $hospital->id, 'name' => 'Carlos Ramirez', 'role' => '']);
+    $candidate->givePermissionTo('search.appear_as_suggestion');
 
     $component = Volt::test('qxlog.surgeries.schedule')
         ->set('assignments.0.user_query', 'Carlos');

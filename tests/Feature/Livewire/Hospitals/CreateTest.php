@@ -46,7 +46,7 @@ test('creating a hospital seeds a default operating room and surgery status cata
     expect($room->active)->toBeTrue();
 
     $statuses = SurgeryStatus::withoutGlobalScopes()->where('hospital_id', $hospital->id)->pluck('slug');
-    expect($statuses->sort()->values()->all())->toBe(['cancelada', 'completada', 'confirmada', 'en-curso', 'programada']);
+    expect($statuses->sort()->values()->all())->toBe(['cancelada', 'completada', 'en-curso', 'programada']);
 });
 
 test('non super admin cannot create a hospital', function () {
