@@ -209,7 +209,7 @@ $deleteRole = function () {
                     {{-- Header --}}
                     <div class="p-6 border-b border-zinc-200 dark:border-zinc-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <flux:heading size="lg">Edit Role: <span class="font-mono text-indigo-600 dark:text-indigo-400">{{ $selected_role_name }}</span></flux:heading>
+                            <flux:heading size="lg">Edit Role: <span class="font-mono text-accent dark:text-accent">{{ $selected_role_name }}</span></flux:heading>
                             <flux:subheading>Manage name and assigned permissions.</flux:subheading>
                         </div>
                         @if($success)

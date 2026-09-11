@@ -90,7 +90,7 @@ $exportCsv = function () {
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Status') }}</label>
                     <select wire:model.live="status_filter"
-                        class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
+                        class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-mist dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
                         <option value="">{{ __('Todos') }}</option>
                         @foreach(SubscriptionStatus::cases() as $status)
                             <option value="{{ $status->value }}">{{ $status->value }}</option>
@@ -101,7 +101,7 @@ $exportCsv = function () {
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Plan') }}</label>
                     <select wire:model.live="plan_filter"
-                        class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
+                        class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-mist dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
                         <option value="">{{ __('Todos') }}</option>
                         @foreach(config('billing.plans') as $planKey => $plan)
                             <option value="{{ $planKey }}">{{ $plan['name'] }}</option>

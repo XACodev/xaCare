@@ -121,7 +121,7 @@ $save = function () {
             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ __('Paciente') }}</label>
             <input type="text" wire:model.live.debounce.200ms="patient_query"
                 placeholder="{{ __('Buscar paciente...') }}"
-                class="block w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5" />
+                class="block w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-mist dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5" />
             @if(!empty($this->patient_suggestions))
                 <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-700 divide-y dark:divide-zinc-600">
                     @foreach($this->patient_suggestions as $s)

@@ -74,7 +74,7 @@ new #[Layout('components.layouts.app')] #[Title('Dashboard')] class extends Comp
                     <dd class="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
                         {{ $stats['total_procedures'] }}</dd>
                     <div
-                        class="absolute right-4 top-6 p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600 dark:text-indigo-400">
+                        class="absolute right-4 top-6 p-2 bg-mist dark:bg-accent/10 rounded-lg text-accent dark:text-accent">
                         <flux:icon.layout-grid class="size-5" />
                     </div>
                 </div>
@@ -143,7 +143,7 @@ new #[Layout('components.layouts.app')] #[Title('Dashboard')] class extends Comp
                     <dd class="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
                         {{ $stats['procedures_count'] }}</dd>
                     <div
-                        class="absolute right-4 top-6 p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600 dark:text-indigo-400">
+                        class="absolute right-4 top-6 p-2 bg-mist dark:bg-accent/10 rounded-lg text-accent dark:text-accent">
                         <flux:icon.layout-grid class="size-5" />
                     </div>
                 </div>
@@ -162,7 +162,7 @@ new #[Layout('components.layouts.app')] #[Title('Dashboard')] class extends Comp
                         class="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-zinc-200 p-6 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600 bg-white dark:bg-zinc-900 transition-colors">
                         <div>
                             <div
-                                class="mb-4 inline-flex items-center justify-center rounded-lg bg-indigo-100 p-3 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+                                class="mb-4 inline-flex items-center justify-center rounded-lg bg-mist p-3 text-accent dark:bg-accent/20 dark:text-accent">
                                 <flux:icon.layout-grid class="size-6" />
                             </div>
                             <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Procedimientos') }}</h3>
