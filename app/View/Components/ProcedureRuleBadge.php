@@ -30,7 +30,7 @@ class ProcedureRuleBadge extends Component
         return match ($this->rule) {
             'default_rate' => [
                 'label' => __('Standard'),
-                'color' => 'indigo',
+                'color' => 'accent',
                 'tooltip' => __('Standard procedure'),
             ],
             'night_rate' => [
@@ -55,7 +55,7 @@ class ProcedureRuleBadge extends Component
             ],
             default => [
                 'label' => __('Standard'),
-                'color' => 'indigo',
+                'color' => 'accent',
                 'tooltip' => __('Standard procedure'),
             ],
         };

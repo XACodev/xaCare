@@ -35,14 +35,14 @@ class ProcedureRuleBadges extends Component
             $badges[] = match ($this->rule) {
                 'night_rate' => ['key' => 'night', 'label' => __('Night'), 'color' => 'violet'],
                 'long_case_rate' => ['key' => 'long', 'label' => __('Long'), 'color' => 'yellow'],
-                'default_rate' => ['key' => 'std', 'label' => __('Standard'), 'color' => 'indigo'],
+                'default_rate' => ['key' => 'std', 'label' => __('Standard'), 'color' => 'accent'],
                 'video_rate' => ['key' => 'video', 'label' => __('Video'), 'color' => 'blue'],
-                default => ['key' => 'std', 'label' => __('Standard'), 'color' => 'indigo'],
+                default => ['key' => 'std', 'label' => __('Standard'), 'color' => 'accent'],
             };
         }
 
         if (empty($badges)) {
-            $badges[] = ['key' => 'std', 'label' => __('Standard'), 'color' => 'indigo'];
+            $badges[] = ['key' => 'std', 'label' => __('Standard'), 'color' => 'accent'];
         }
 
         if ($this->unique) {
