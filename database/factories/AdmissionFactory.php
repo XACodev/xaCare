@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\AdmissionType;
 use App\Models\Admission;
 use App\Models\Hospital;
 use App\Models\Patient;
@@ -16,6 +17,7 @@ class AdmissionFactory extends Factory
         return [
             'hospital_id' => Hospital::factory(),
             'patient_id' => Patient::factory(),
+            'tipo_atencion' => AdmissionType::HOSPITALIZACION->value,
             'va_a_quirofano' => false,
             'fecha_ingreso' => now()->toDateString(),
         ];
