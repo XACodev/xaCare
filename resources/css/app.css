@@ -47,8 +47,8 @@
 
 @layer theme {
     .dark {
-        --color-accent: #2DD4BF;
-        --color-accent-content: #2DD4BF;
+        --color-accent: #18BAAD;
+        --color-accent-content: #18BAAD;
         --color-accent-foreground: #062A27;
     }
 }
