@@ -33,3 +33,28 @@ test('returns null for null input', function () {
 test('returns null for an empty or whitespace-only string', function () {
     expect(NameFormatter::titleCase('   '))->toBeNull();
 });
+
+test('does not preserve acronyms by default', function () {
+    expect(NameFormatter::titleCase('Hospital CSTP'))->toBe('Hospital Cstp');
+});
+
+test('preserves a word that is already fully uppercase as an acronym when opted in', function () {
+    expect(NameFormatter::titleCase('Hospital CSTP', preserveAcronyms: true))->toBe('Hospital CSTP');
+});
+
+test('preserves multiple acronyms in the same string when opted in', function () {
+    expect(NameFormatter::titleCase('CSTP QA', preserveAcronyms: true))->toBe('CSTP QA');
+});
+
+test('preserves an acronym even as the first word when opted in', function () {
+    expect(NameFormatter::titleCase('QA con cirugia', preserveAcronyms: true))->toBe('QA Con Cirugia');
+});
+
+test('still title-cases a word that is not fully uppercase in the input, even when opted in', function () {
+    expect(NameFormatter::titleCase('Qa con cirugia', preserveAcronyms: true))->toBe('Qa Con Cirugia');
+});
+
+test('a long all-caps word is never mistaken for an acronym even when opted in', function () {
+    expect(NameFormatter::titleCase('APENDICECTOMIA DE URGENCIA', preserveAcronyms: true))
+        ->toBe('Apendicectomia de Urgencia');
+});

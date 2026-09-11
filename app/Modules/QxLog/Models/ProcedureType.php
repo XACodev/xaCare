@@ -31,7 +31,7 @@ class ProcedureType extends Model implements HasHospital
 
     protected function name(): Attribute
     {
-        return Attribute::make(set: fn (?string $v) => NameFormatter::titleCase($v) ?? $v);
+        return Attribute::make(set: fn (?string $v) => NameFormatter::titleCase($v, preserveAcronyms: true) ?? $v);
     }
 
     /**

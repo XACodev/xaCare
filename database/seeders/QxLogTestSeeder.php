@@ -415,7 +415,7 @@ class QxLogTestSeeder extends Seeder
                 'end_time' => '11:00',
                 'patient_name' => $qaPatient1->nombreCompleto(),
                 'procedure_type_id' => ProcedureType::firstOrCreate(
-                    ['hospital_id' => $hospital->id, 'name' => 'Colecistectomia QA']
+                    ['hospital_id' => $hospital->id, 'name' => \App\Support\NameFormatter::titleCase('Colecistectomia QA', preserveAcronyms: true)]
                 )->id,
                 'is_videosurgery' => false,
                 'status' => 'scheduled',
