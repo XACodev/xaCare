@@ -10,7 +10,6 @@ use Livewire\Volt\Volt;
 
 test('instrumentist selects a patient and it is stored on the procedure', function () {
     $hospital = Hospital::factory()->create();
-    SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista']);
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'instrumentist', 'use_pay_scheme' => false]);
     $patient = Patient::factory()->create([
         'hospital_id' => $hospital->id,
@@ -35,7 +34,6 @@ test('instrumentist selects a patient and it is stored on the procedure', functi
 
 test('instrumentist can register a procedure with a free-text patient name for emergency cases', function () {
     $hospital = Hospital::factory()->create();
-    SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista']);
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'instrumentist', 'use_pay_scheme' => false]);
     $this->actingAs($user);
 
@@ -75,7 +73,6 @@ test('selecting a patient closes the suggestions dropdown', function () {
 
 test('registering a procedure requires a patient, selected or typed', function () {
     $hospital = Hospital::factory()->create();
-    SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista']);
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'instrumentist']);
     $this->actingAs($user);
 

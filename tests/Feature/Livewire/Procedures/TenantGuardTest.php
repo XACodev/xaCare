@@ -22,7 +22,6 @@ test('procedures.create rejects a patient from another hospital', function () {
     $hospital = Hospital::factory()->create();
     $otherHospital = Hospital::factory()->create();
     $user = User::factory()->create(['role' => 'instrumentist', 'hospital_id' => $hospital->id]);
-    SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista']);
     $patient = Patient::factory()->create(['hospital_id' => $otherHospital->id]);
 
     $this->actingAs($user);
@@ -40,8 +39,7 @@ test('procedures.create rejects a surgical role from another hospital', function
     $hospital = Hospital::factory()->create();
     $otherHospital = Hospital::factory()->create();
     $user = User::factory()->create(['role' => 'instrumentist', 'hospital_id' => $hospital->id]);
-    SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista']);
-    $otherRole = SurgicalRole::factory()->for($otherHospital, 'hospital')->create(['name' => 'Circulante', 'slug' => 'circulante']);
+    $otherRole = SurgicalRole::where('hospital_id', $otherHospital->id)->first();
 
     $this->actingAs($user);
 
@@ -58,7 +56,6 @@ test('procedures.create rejects an assigned user from another hospital', functio
     $hospital = Hospital::factory()->create();
     $otherHospital = Hospital::factory()->create();
     $user = User::factory()->create(['role' => 'instrumentist', 'hospital_id' => $hospital->id]);
-    SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista']);
     $otherUser = User::factory()->create(['hospital_id' => $otherHospital->id]);
 
     $this->actingAs($user);
@@ -77,7 +74,6 @@ test('user suggestions only include users from the same hospital', function () {
     $otherHospital = Hospital::factory()->create();
     $user = User::factory()->create(['role' => 'instrumentist', 'hospital_id' => $hospital->id, 'name' => 'Local User']);
     User::factory()->create(['hospital_id' => $otherHospital->id, 'name' => 'Remote User']);
-    SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista']);
 
     $this->actingAs($user);
 
@@ -93,8 +89,7 @@ test('procedures.create always writes to the authenticated user hospital regardl
     $hospitalB = Hospital::factory()->create();
 
     $user = User::factory()->create(['role' => 'instrumentist', 'hospital_id' => $hospitalA->id]);
-    $roleA = SurgicalRole::factory()->for($hospitalA, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista', 'is_payable' => true]);
-    SurgicalRole::factory()->for($hospitalB, 'hospital')->create(['name' => 'Cirujano', 'is_payable' => true]);
+    $roleA = SurgicalRole::where('hospital_id', $hospitalA->id)->where('name', 'Instrumentista')->first();
 
     $this->actingAs($user);
 
@@ -120,7 +115,6 @@ test('procedures.create always writes to the authenticated user hospital regardl
 test('procedures.create rejects future and too-old dates', function () {
     $hospital = Hospital::factory()->create();
     $user = User::factory()->create(['role' => 'instrumentist', 'hospital_id' => $hospital->id]);
-    SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista', 'is_payable' => true]);
 
     $this->actingAs($user);
 
@@ -129,7 +123,7 @@ test('procedures.create rejects future and too-old dates', function () {
         ->set('procedure_date', now()->addDay()->toDateString())
         ->set('start_time', '08:00')
         ->set('end_time', '09:00')
-        ->set('assignments.0.role_id', SurgicalRole::first()->id)
+        ->set('assignments.0.role_id', SurgicalRole::where('hospital_id', $hospital->id)->first()->id)
         ->set('assignments.0.user_id', $user->id)
         ->call('save')
         ->assertHasErrors(['procedure_date']);
@@ -139,7 +133,7 @@ test('procedures.create rejects future and too-old dates', function () {
         ->set('procedure_date', now()->subWeeks(3)->toDateString())
         ->set('start_time', '08:00')
         ->set('end_time', '09:00')
-        ->set('assignments.0.role_id', SurgicalRole::first()->id)
+        ->set('assignments.0.role_id', SurgicalRole::where('hospital_id', $hospital->id)->first()->id)
         ->set('assignments.0.user_id', $user->id)
         ->call('save')
         ->assertHasErrors(['procedure_date']);

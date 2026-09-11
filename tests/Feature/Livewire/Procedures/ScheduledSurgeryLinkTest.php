@@ -13,7 +13,7 @@ use Livewire\Volt\Volt;
 function makeInstrumentistWithHospital(): array
 {
     $hospital = Hospital::factory()->create();
-    $role = SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Instrumentista', 'slug' => 'instrumentista']);
+    $role = SurgicalRole::where('hospital_id', $hospital->id)->where('name', 'Instrumentista')->first();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'instrumentist', 'use_pay_scheme' => false]);
 
     return [$hospital, $role, $user];

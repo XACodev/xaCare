@@ -27,13 +27,13 @@ test('lista solo catalogos del hospital del usuario, crea, edita, activa/desacti
     $admin = catalogManagerAdmin($hospital);
     $this->actingAs($admin);
 
-    $roleA = SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Cirujano', 'sort_order' => 0]);
-    $roleB = SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Circulante', 'sort_order' => 1]);
+    $roleA = SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Cardiólogo', 'sort_order' => 3]);
+    $roleB = SurgicalRole::factory()->for($hospital, 'hospital')->create(['name' => 'Anestesista', 'sort_order' => 4]);
     SurgicalRole::factory()->for($otherHospital, 'hospital')->create(['name' => 'De otro hospital']);
 
     $component = Volt::test('qxlog.settings.roles');
 
-    expect($component->instance()->items)->toHaveCount(2);
+    expect($component->instance()->items)->toHaveCount(5);
 
     $component->set('form.name', 'Anestesiólogo')
         ->call('create')

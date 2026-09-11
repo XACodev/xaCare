@@ -11,12 +11,8 @@ test('an instrumentist cannot reassign their own row to a different role to chan
     $hospital = Hospital::factory()->create();
     $instrumentist = User::factory()->create(['role' => 'instrumentist', 'hospital_id' => $hospital->id]);
 
-    $instrumentistRole = SurgicalRole::factory()->for($hospital, 'hospital')->create([
-        'name' => 'Instrumentista', 'slug' => 'instrumentista', 'is_payable' => true,
-    ]);
-    $circulanteRole = SurgicalRole::factory()->for($hospital, 'hospital')->create([
-        'name' => 'Circulante', 'slug' => 'circulante', 'is_payable' => true,
-    ]);
+    $instrumentistRole = SurgicalRole::where('hospital_id', $hospital->id)->where('name', 'Instrumentista')->first();
+    $circulanteRole = SurgicalRole::where('hospital_id', $hospital->id)->where('name', 'Circulante')->first();
 
     $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
 
@@ -41,9 +37,7 @@ test('an admin can freely assign any role to any person, including themselves', 
     $hospital = Hospital::factory()->create();
     $admin = User::factory()->create(['role' => 'admin', 'hospital_id' => $hospital->id]);
 
-    $role = SurgicalRole::factory()->for($hospital, 'hospital')->create([
-        'name' => 'Circulante', 'slug' => 'circulante', 'is_payable' => true,
-    ]);
+    $role = SurgicalRole::where('hospital_id', $hospital->id)->where('name', 'Circulante')->first();
 
     $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
 

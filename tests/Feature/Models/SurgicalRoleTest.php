@@ -7,13 +7,13 @@ test('surgical role belongs to its hospital and is scoped by tenant', function (
     $hospitalA = Hospital::factory()->create();
     $hospitalB = Hospital::factory()->create();
 
-    $roleA = SurgicalRole::factory()->for($hospitalA, 'hospital')->create(['name' => 'Cirujano']);
-    SurgicalRole::factory()->for($hospitalB, 'hospital')->create(['name' => 'Cirujano']);
+    $roleA = SurgicalRole::factory()->for($hospitalA, 'hospital')->create(['name' => 'Cardiólogo']);
+    SurgicalRole::factory()->for($hospitalB, 'hospital')->create(['name' => 'Cardiólogo']);
 
     $this->actingAs(\App\Models\User::factory()->create(['hospital_id' => $hospitalA->id]));
 
-    expect(SurgicalRole::all())->toHaveCount(1)
-        ->and(SurgicalRole::first()->id)->toBe($roleA->id)
+    expect(SurgicalRole::all())->toHaveCount(4)
+        ->and(SurgicalRole::where('name', 'Cardiólogo')->first()->id)->toBe($roleA->id)
         ->and($roleA->hospital->id)->toBe($hospitalA->id);
 });
 

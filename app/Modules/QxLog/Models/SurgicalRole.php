@@ -4,6 +4,7 @@ namespace App\Modules\QxLog\Models;
 
 use App\Contracts\HasHospital;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Hospital;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -29,6 +30,30 @@ class SurgicalRole extends Model implements HasHospital
         'active' => 'boolean',
         'sort_order' => 'integer',
     ];
+
+    /** Ver OperatingRoom::seedDefaultFor(): mismo problema, mismo remedio. */
+    public static function seedDefaultsFor(Hospital $hospital): void
+    {
+        if (static::withoutGlobalScopes()->where('hospital_id', $hospital->id)->exists()) {
+            return;
+        }
+
+        $roles = [
+            ['name' => 'Cirujano', 'sort_order' => 0],
+            ['name' => 'Instrumentista', 'sort_order' => 1],
+            ['name' => 'Circulante', 'sort_order' => 2],
+        ];
+
+        foreach ($roles as $role) {
+            static::withoutGlobalScopes()->create([
+                'hospital_id' => $hospital->id,
+                'name' => $role['name'],
+                'sort_order' => $role['sort_order'],
+                'is_payable' => true,
+                'active' => true,
+            ]);
+        }
+    }
 
     protected static function booted(): void
     {
