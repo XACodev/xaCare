@@ -153,10 +153,12 @@ test('hospital admin cannot create an admission pointing at a patient from anoth
     $this->actingAs($adminA);
 
     Volt::test('admissions.create')
-        ->set('patient_id', $patientB->id)
-        ->set('fecha_ingreso', now()->toDateString())
+        ->set('currentStep', 4)
+        ->set('patientId', $patientB->id)
+        ->set('a_tipo_atencion', 'hospitalizacion')
+        ->set('a_fecha_ingreso', now()->toDateString())
         ->call('save')
-        ->assertHasErrors(['patient_id']);
+        ->assertHasErrors(['patientId']);
 
     expect(Admission::withoutGlobalScopes()->where('patient_id', $patientB->id)->exists())->toBeFalse();
 });

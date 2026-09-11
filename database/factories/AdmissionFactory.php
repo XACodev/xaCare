@@ -20,6 +20,7 @@ class AdmissionFactory extends Factory
             'tipo_atencion' => AdmissionType::HOSPITALIZACION->value,
             'va_a_quirofano' => false,
             'fecha_ingreso' => now()->toDateString(),
+            'completo' => true,
         ];
     }
 }

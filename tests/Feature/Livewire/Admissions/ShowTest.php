@@ -4,6 +4,7 @@ use App\Models\Admission;
 use App\Models\Hospital;
 use App\Models\Patient;
 use App\Models\User;
+use Livewire\Livewire;
 use Livewire\Volt\Volt;
 use Spatie\Permission\Models\Role;
 
@@ -24,6 +25,8 @@ test('show admission renders with valid qr token', function () {
     ]);
     $this->actingAs($user);
 
+    Livewire::withQueryParams(['token' => 'valid-token-123']);
+
     Volt::test('admissions.show', ['admission' => $admission])
         ->assertOk()
         ->assertSee($patient->nombreCompleto());
@@ -40,6 +43,8 @@ test('show admission rejects invalid qr token', function () {
         'qr_token' => 'valid-token-123',
     ]);
     $this->actingAs($user);
+
+    Livewire::withQueryParams(['token' => 'invalid-token']);
 
     Volt::test('admissions.show', ['admission' => $admission])
         ->assertForbidden();

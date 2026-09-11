@@ -17,8 +17,8 @@ class Admission extends Model
         'fecha_ingreso', 'hora_ingreso', 'fecha_egreso', 'hora_egreso', 'total_dias',
         'tiene_seguro', 'tiene_igss', 'compania_seguros', 'poliza', 'certificado',
         'impresion_clinica', 'diagnostico_final', 'complicaciones', 'operaciones',
-        'sala_ingreso', 'referido_por', 'otras_hospitalizaciones', 'muestra_patologia',
-        'medico_responsable', 'qr_token', 'qr_printed_at',
+        'sala_ingreso', 'habitacion', 'referido_por', 'otras_hospitalizaciones', 'muestra_patologia',
+        'medico_responsable', 'qr_token', 'qr_printed_at', 'completo',
     ];
 
     protected $casts = [
@@ -26,6 +26,7 @@ class Admission extends Model
         'tiene_seguro' => 'boolean',
         'tiene_igss' => 'boolean',
         'muestra_patologia' => 'boolean',
+        'completo' => 'boolean',
         'fecha_ingreso' => 'date',
         'fecha_egreso' => 'date',
         'qr_printed_at' => 'datetime',

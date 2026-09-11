@@ -22,12 +22,13 @@ test('tras registrar un ingreso marcado va_a_quirofano, expone el paciente para 
 
     $component = Volt::test('admissions.create')
         ->call('selectPatient', $patient->id)
-        ->set('va_a_quirofano', true)
-        ->set('fecha_ingreso', now()->toDateString())
+        ->set('a_tipo_atencion', 'hospitalizacion')
+        ->set('a_va_a_quirofano', true)
+        ->set('a_fecha_ingreso', now()->toDateString())
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($component->get('last_admission_patient_id'))->toBe($patient->id);
+    expect($component->get('lastAdmissionPatientId'))->toBe($patient->id);
 });
 
 test('el formulario de programar cirugia precarga el paciente recibido por query string', function () {

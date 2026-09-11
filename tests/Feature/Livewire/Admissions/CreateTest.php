@@ -13,7 +13,7 @@ beforeEach(function () {
     Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 });
 
-test('admin can register a hospitalization admission selecting an existing patient', function () {
+test('admin can register an admission selecting an existing patient', function () {
     $hospital = Hospital::factory()->create();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
@@ -21,10 +21,8 @@ test('admin can register a hospitalization admission selecting an existing patie
     $this->actingAs($user);
 
     Volt::test('admissions.create')
-        ->set('tipoAtencion', AdmissionType::HOSPITALIZACION->value)
-        ->call('nextStep')
         ->call('selectPatient', $patient->id)
-        ->call('nextStep')
+        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
         ->set('a_fecha_ingreso', now()->toDateString())
         ->set('a_medico_responsable', 'Dr. Test')
         ->call('save')
@@ -36,6 +34,7 @@ test('admin can register a hospitalization admission selecting an existing patie
     expect($admission->hospital_id)->toBe($hospital->id);
     expect($admission->tipo_atencion)->toBe(AdmissionType::HOSPITALIZACION->value);
     expect($admission->qr_token)->not->toBeNull();
+    expect($admission->completo)->toBeTrue();
 });
 
 test('admin can register an admission creating a new patient inline', function () {
@@ -45,12 +44,13 @@ test('admin can register an admission creating a new patient inline', function (
     $this->actingAs($user);
 
     Volt::test('admissions.create')
-        ->set('tipoAtencion', AdmissionType::HOSPITALIZACION->value)
-        ->call('nextStep')
+        ->call('newPatient')
         ->set('p_primer_apellido', 'Gomez')
         ->set('p_primer_nombre', 'Ana')
         ->set('p_sexo', 'F')
         ->call('nextStep')
+        ->call('nextStep')
+        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
         ->set('a_fecha_ingreso', now()->toDateString())
         ->call('save')
         ->assertHasNoErrors();
@@ -64,48 +64,35 @@ test('admin can register an admission creating a new patient inline', function (
     expect($admission->patient_id)->toBe($patient->id);
 });
 
-test('emergency mode registers admission with minimal data', function () {
+test('rapid mode registers urgent admission with minimal data and marks incomplete', function () {
     $hospital = Hospital::factory()->create();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $this->actingAs($user);
 
     Volt::test('admissions.create')
-        ->set('tipoAtencion', AdmissionType::EMERGENCIA->value)
-        ->call('nextStep')
+        ->set('isRapidMode', true)
         ->set('p_primer_apellido', 'Perez')
         ->set('p_primer_nombre', 'Luis')
-        ->call('nextStep')
         ->set('a_fecha_ingreso', now()->toDateString())
-        ->set('a_impresion_clinica', 'Dolor torácico')
         ->call('save')
         ->assertHasNoErrors();
 
     $admission = Admission::first();
     expect($admission)->not->toBeNull();
-    expect($admission->tipo_atencion)->toBe(AdmissionType::EMERGENCIA->value);
+    expect($admission->tipo_atencion)->toBe(AdmissionType::URGENCIA->value);
+    expect($admission->completo)->toBeFalse();
     expect($admission->patient->nombreCompleto())->toBe('Luis Perez');
     expect($admission->qr_token)->not->toBeNull();
 });
 
-test('admission requires attention type', function () {
+test('admission requires personal data when creating inline', function () {
     $user = User::factory()->create(['hospital_id' => Hospital::factory()->create()->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $this->actingAs($user);
 
     Volt::test('admissions.create')
-        ->call('nextStep')
-        ->assertHasErrors(['tipoAtencion']);
-});
-
-test('admission requires patient names when creating inline', function () {
-    $user = User::factory()->create(['hospital_id' => Hospital::factory()->create()->id, 'role' => 'admin']);
-    $user->assignRole('admin');
-    $this->actingAs($user);
-
-    Volt::test('admissions.create')
-        ->set('tipoAtencion', AdmissionType::HOSPITALIZACION->value)
-        ->call('nextStep')
+        ->call('newPatient')
         ->call('nextStep')
         ->assertHasErrors(['p_primer_apellido', 'p_primer_nombre']);
 });
@@ -118,11 +105,23 @@ test('admission requires episode date', function () {
     $this->actingAs($user);
 
     Volt::test('admissions.create')
-        ->set('tipoAtencion', AdmissionType::HOSPITALIZACION->value)
-        ->call('nextStep')
         ->call('selectPatient', $patient->id)
-        ->call('nextStep')
         ->set('a_fecha_ingreso', '')
         ->call('save')
         ->assertHasErrors(['a_fecha_ingreso']);
+});
+
+test('set now button fills current date and time', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
+    $this->actingAs($user);
+
+    $component = Volt::test('admissions.create')
+        ->call('selectPatient', $patient->id)
+        ->call('setNow');
+
+    expect($component->get('a_fecha_ingreso'))->toBe(now()->toDateString());
+    expect($component->get('a_hora_ingreso'))->toBe(now()->format('H:i'));
 });
