@@ -77,25 +77,38 @@ class SurgeryQuote extends Model implements HasHospital
      * ya fue emitida, crea una fila nueva con version+1 y marca la anterior
      * (si existia) como superseded — asi nunca se pierde lo que se le
      * mostro al paciente en una version ya entregada.
+     *
+     * `latestFor()` busca solo por patient_id, sin distinguir episodio
+     * quirurgico: un mismo paciente puede tener cotizaciones de cirugias
+     * completamente distintas a lo largo del tiempo. Por eso $previous solo
+     * se trata como "la misma cotizacion en progreso" cuando su
+     * surgical_case_id coincide con el que el llamador pasa explicitamente
+     * (o ambos son null, caso de una cotizacion sin cirugia asociada
+     * todavia). El surgical_case_id nunca se hereda implicitamente de
+     * $previous: solo se usa el que el llamador haya pasado explicitamente
+     * (p.ej. al revisar/crear una nueva version de una cotizacion ya
+     * conocida).
      */
     public static function saveDraftOrNewVersion(array $attributes): self
     {
         $previous = static::latestFor($attributes['hospital_id'], $attributes['patient_id']);
+        $surgicalCaseId = $attributes['surgical_case_id'] ?? null;
+        $sameEpisode = $previous && $previous->surgical_case_id === $surgicalCaseId;
 
-        if ($previous && $previous->status === 'draft') {
+        if ($sameEpisode && $previous->status === 'draft') {
             $previous->fill($attributes);
             $previous->save();
 
             return $previous;
         }
 
-        $attributes['version'] = ($previous?->version ?? 0) + 1;
+        $attributes['version'] = ($sameEpisode ? $previous->version : 0) + 1;
         $attributes['status'] = 'draft';
-        $attributes['surgical_case_id'] = $attributes['surgical_case_id'] ?? $previous?->surgical_case_id;
+        $attributes['surgical_case_id'] = $surgicalCaseId;
 
         $new = static::create($attributes);
 
-        if ($previous) {
+        if ($sameEpisode) {
             $previous->update(['status' => 'superseded']);
         }
 

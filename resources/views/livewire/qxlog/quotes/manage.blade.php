@@ -77,6 +77,12 @@ $save = function () {
     $quote = SurgeryQuote::saveDraftOrNewVersion([
         'hospital_id' => $user->hospital_id,
         'patient_id' => $data['patient_id'],
+        // Si $this->quote existe, estamos revisando una cotizacion ya
+        // conocida (misma cirugia): se propaga su surgical_case_id de
+        // forma explicita. Si no existe (Nueva cotizacion desde cero),
+        // nunca se hereda el surgical_case_id de una cotizacion previa
+        // no relacionada del mismo paciente.
+        'surgical_case_id' => $this->quote?->surgical_case_id,
         'staff_fee' => $data['staff_fee'],
         'hospital_cost' => $data['hospital_cost'],
         'hospital_cost_note' => $data['hospital_cost_note'] ?: null,

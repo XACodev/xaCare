@@ -119,6 +119,37 @@ test('attachToSurgicalCase vincula sin crear nueva version ni cambiar status', f
     expect($quote->fresh()->version)->toBe(1);
 });
 
+test('una nueva cotizacion sin surgical_case_id no hereda el de un episodio quirurgico anterior no relacionado', function () {
+    [$hospital, $patient, $creator] = makeQuoteContext();
+
+    $caseA = SurgicalCase::factory()->for($hospital, 'hospital')->create(['patient_id' => $patient->id]);
+
+    $quoteA = SurgeryQuote::saveDraftOrNewVersion([
+        'hospital_id' => $hospital->id,
+        'patient_id' => $patient->id,
+        'surgical_case_id' => $caseA->id,
+        'staff_fee' => 7000,
+        'hospital_cost' => 7000,
+        'created_by_id' => $creator->id,
+    ]);
+    $quoteA->markIssued();
+
+    // "Nueva cotizacion" (sin quote_id, sin relacion a la cirugia A): el
+    // llamador (manage.blade.php sin $this->quote) nunca pasa
+    // surgical_case_id.
+    $newUnrelated = SurgeryQuote::saveDraftOrNewVersion([
+        'hospital_id' => $hospital->id,
+        'patient_id' => $patient->id,
+        'staff_fee' => 3000,
+        'hospital_cost' => 3000,
+        'created_by_id' => $creator->id,
+    ]);
+
+    expect($newUnrelated->surgical_case_id)->toBeNull();
+    expect($newUnrelated->id)->not->toBe($quoteA->id);
+    expect($quoteA->fresh()->status)->toBe('issued');
+});
+
 test('latestFor devuelve la version mas reciente no superseded', function () {
     [$hospital, $patient, $creator] = makeQuoteContext();
 

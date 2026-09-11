@@ -14,14 +14,15 @@ mount(function (SurgeryQuote $quote) {
 
     $canTotal = (bool) $user->can('surgeries.budget.view_total');
     $canOwn = (bool) $user->can('surgeries.budget.view_own');
+    $canManage = (bool) $user->can('surgeries.budget.manage');
     $assigned = $quote->surgical_case_id
         && $quote->surgicalCase->assignments()->where('user_id', $user->id)->exists();
 
-    abort_unless($canTotal || ($canOwn && $assigned), 403);
+    abort_unless($canTotal || ($canOwn && $assigned) || $canManage, 403);
 
     $this->quote = $quote;
     $this->canViewTotal = $canTotal;
-    $this->canManage = (bool) $user->can('surgeries.budget.manage');
+    $this->canManage = $canManage;
     $this->canScheduleFromQuote = $this->canManage && (bool) $user->can('surgeries.schedule');
 });
 
@@ -58,7 +59,7 @@ $issue = function () {
             <flux:button :href="route('quotes.edit', $quote)" wire:navigate>{{ __('Editar') }}</flux:button>
         @endif
         @if($canManage && $quote->status === 'issued')
-            <flux:button :href="route('quotes.create').'?patient_id='.$quote->patient_id" wire:navigate>
+            <flux:button :href="route('quotes.edit', $quote)" wire:navigate>
                 {{ __('Nueva versión') }}
             </flux:button>
         @endif

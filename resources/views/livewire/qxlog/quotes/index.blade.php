@@ -12,10 +12,11 @@ mount(function () {
     $user = Auth::user();
     $canTotal = (bool) $user?->can('surgeries.budget.view_total');
     $canOwn = (bool) $user?->can('surgeries.budget.view_own');
-    abort_unless($canTotal || $canOwn, 403);
+    $canManage = (bool) $user?->can('surgeries.budget.manage');
+    abort_unless($canTotal || $canOwn || $canManage, 403);
 
     $this->canViewTotal = $canTotal;
-    $this->canManage = (bool) $user?->can('surgeries.budget.manage');
+    $this->canManage = $canManage;
 });
 
 $quotes = computed(function () {

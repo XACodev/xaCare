@@ -66,6 +66,16 @@ test('view_own solo ve cotizaciones de cirugias donde esta asignado, sin ver el 
         ->assertDontSee(number_format(100, 2));
 });
 
+test('con solo permiso manage (sin view_total ni view_own) accede al indice sin 403', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $admin->givePermissionTo('surgeries.budget.manage');
+
+    $this->actingAs($admin);
+
+    Volt::test('qxlog.quotes.index')->assertOk();
+});
+
 test('sin ningun permiso de presupuesto, el indice responde 403', function () {
     $hospital = Hospital::factory()->create();
     $staff = User::factory()->create(['hospital_id' => $hospital->id]);

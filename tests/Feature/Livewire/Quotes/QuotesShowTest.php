@@ -77,6 +77,21 @@ test('view_own sin asignacion a la cirugia recibe 403', function () {
     Volt::test('qxlog.quotes.show', ['quote' => $quote])->assertForbidden();
 });
 
+test('con solo permiso manage (sin view_total ni view_own) accede al detalle sin 403', function () {
+    $hospital = Hospital::factory()->create();
+    $patient = Patient::factory()->for($hospital, 'hospital')->create();
+    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $admin->givePermissionTo('surgeries.budget.manage');
+
+    $quote = SurgeryQuote::factory()->for($hospital, 'hospital')->create([
+        'patient_id' => $patient->id, 'staff_fee' => 7000, 'hospital_cost' => 7500,
+    ]);
+
+    $this->actingAs($admin);
+
+    Volt::test('qxlog.quotes.show', ['quote' => $quote])->assertOk();
+});
+
 test('manage puede marcar como emitida una cotizacion en draft', function () {
     $hospital = Hospital::factory()->create();
     $patient = Patient::factory()->for($hospital, 'hospital')->create();
