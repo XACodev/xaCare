@@ -1,6 +1,6 @@
-<x-layouts.auth>
+<x-layouts.auth.split>
     <div class="flex flex-col gap-6">
-        <x-auth-header :title="__('Login')" :description="__('Enter your username and password to access')" />
+        <x-auth-header :title="__('Iniciar sesión')" :description="__('Usa tu usuario institucional.')" />
 
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
@@ -41,4 +41,4 @@
             </div>
         @endif
     </div>
-</x-layouts.auth>
+</x-layouts.auth.split>
