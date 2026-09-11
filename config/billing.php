@@ -20,6 +20,7 @@ return [
                 'qxlog',
                 'patients',
                 'admissions',
+                'qxlog_quotes',
             ],
         ],
         'pro' => [
@@ -31,6 +32,7 @@ return [
                 'patients',
                 'admissions',
                 'insurance',
+                'qxlog_quotes',
             ],
         ],
     ],
