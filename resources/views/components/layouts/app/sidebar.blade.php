@@ -20,6 +20,7 @@
 
         @php($me = auth()->user())
         @php($hasQxlog = $me?->hospital?->hasFeature('qxlog') || $me?->is_platform_admin)
+        @php($hasQuotes = $hasQxlog && ($me?->hospital?->hasFeature('qxlog_quotes') || $me?->is_platform_admin))
 
         <flux:navlist variant="outline">
             @if($me && $me->is_platform_admin)
@@ -45,6 +46,14 @@
                         <flux:navlist.item icon="calendar-days" :href="route('surgeries.board')"
                             :current="request()->routeIs('surgeries.board')" wire:navigate>
                             {{ __('Surgery Schedule') }}
+                        </flux:navlist.item>
+                    </flux:navlist.group>
+                @endif
+                @if($hasQuotes && ($me->can('surgeries.budget.view_total') || $me->can('surgeries.budget.view_own')))
+                    <flux:navlist.group :heading="__('Quotes')" class="grid">
+                        <flux:navlist.item icon="document-text" :href="route('quotes.index')"
+                            :current="request()->routeIs('quotes.*')" wire:navigate>
+                            {{ __('Cotizaciones') }}
                         </flux:navlist.item>
                     </flux:navlist.group>
                 @endif
