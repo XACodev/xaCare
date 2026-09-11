@@ -88,7 +88,7 @@ $ruleLabel = function (?string $rule) {
 
 $ruleColor = function (?string $rule) {
     return match ($rule) {
-        'video_rate' => 'indigo',
+        'video_rate' => 'accent',
         'night_rate' => 'rose',
         'long_case_rate' => 'amber',
         default => 'zinc',
@@ -139,7 +139,7 @@ $delete = function () {
                     {{ __('Status') }}
                 </label>
                 <select wire:model.live="status"
-                    class="w-full rounded-lg border-zinc-200 bg-indigo-50 dark:border-zinc-600 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
+                    class="w-full rounded-lg border-zinc-200 bg-mist dark:border-zinc-600 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:ring-1 focus:ring-accent focus:border-accent p-2.5 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
                     <option value="pending">
                         {{ __('Pending') }}
                     </option>
@@ -157,7 +157,7 @@ $delete = function () {
                     {{ __('Instrumentist') }}
                 </label>
                 <select wire:model.change="instrumentist_id"
-                    class="w-full rounded-lg border-zinc-200 bg-indigo-50 dark:border-zinc-600 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
+                    class="w-full rounded-lg border-zinc-200 bg-mist dark:border-zinc-600 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:ring-1 focus:ring-accent focus:border-accent p-2.5 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
                     <option value="">-- {{ __('All') }} --</option>
                     @foreach($this->instrumentists as $i)
                         <option value="{{ $i->id }}">{{ $i->name }}</option>
@@ -170,7 +170,7 @@ $delete = function () {
                     {{ __('From') }}
                 </label>
                 <input type="date" wire:model.change="date_from"
-                    class="w-full rounded-lg border-zinc-200 bg-indigo-50 dark:border-zinc-600 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
+                    class="w-full rounded-lg border-zinc-200 bg-mist dark:border-zinc-600 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:ring-1 focus:ring-accent focus:border-accent p-2 text-sm hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
             </div>
 
             <div class="md:col-span-1 items-center">
@@ -178,7 +178,7 @@ $delete = function () {
                     {{ __('To') }}
                 </label>
                 <input type="date" wire:model.change="date_to"
-                    class="w-full rounded-lg border-zinc-200 bg-indigo-50 dark:border-zinc-600 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
+                    class="w-full rounded-lg border-zinc-200 bg-mist dark:border-zinc-600 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:ring-1 focus:ring-accent focus:border-accent p-2 text-sm hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
             </div>
         </div>
 
@@ -321,7 +321,7 @@ $delete = function () {
                                     </span>
                                 </div>
                                 <div>
-                                    <flux:badge size="sm" color="indigo">
+                                    <flux:badge size="sm" color="accent">
                                         {{ __('Rules') }}
                                     </flux:badge>
                                 </div>
@@ -403,7 +403,7 @@ $delete = function () {
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
                                     <div class="flex flex-row justify-center items-center gap-2">
                                         <a href="{{ route('procedures.edit', $p) }}"
-                                            class="inline-flex items-center gap-1.5 text-sm text-indigo-500 dark:text-indigo-500 hover:text-indigo-900 dark:hover:text-indigo-900 transition-colors">
+                                            class="inline-flex items-center gap-1.5 text-sm text-accent-content dark:text-accent hover:text-accent-content/80 dark:hover:text-accent/80 transition-colors">
                                             <flux:icon name="pencil" size="sm" />
                                         </a>
                                         <button type="button" wire:click="confirmDelete({{ $p->id }})"

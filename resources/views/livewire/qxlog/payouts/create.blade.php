@@ -230,7 +230,7 @@ $liquidate = function () {
                                         <flux:label>
                                             {{ __('Duration') }}
                                         </flux:label>
-                                        <flux:badge size="sm" color="indigo">
+                                        <flux:badge size="sm" color="accent">
                                             {{ __('Rules') }}
                                         </flux:badge>
                                     </div>

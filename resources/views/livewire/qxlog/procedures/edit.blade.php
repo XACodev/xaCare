@@ -342,10 +342,10 @@ $save = function () {
                     <flux:input type="text" wire:model.live.debounce.200ms="procedure_type_query" clearable
                         placeholder="{{ __('Procedure Name') }}" />
                     @if($this->procedureTypeSuggestions->isNotEmpty())
-                        <div class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-indigo-400 overflow-hidden">
+                        <div class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-accent overflow-hidden">
                             @foreach($this->procedureTypeSuggestions as $s)
                                 <button type="button"
-                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-indigo-400/50 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-indigo-400 last:border-0"
+                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-accent/40 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-accent last:border-0"
                                     wire:click="selectProcedureType({{ $s->id }})">
                                     {{ $s->name }}
                                 </button>
@@ -358,14 +358,14 @@ $save = function () {
             </flux:field>
         </div>
 
-        <hr class="border-indigo-300 dark:border-zinc-600">
+        <hr class="border-accent/30 dark:border-zinc-600">
 
         <div class="w-full flex flex-col md:flex-row justify-center md:justify-between gap-10 md:px-6 md:w-auto">
             <flux:checkbox wire:model.change="is_videosurgery" label="{{ __('Videosurgery') }}" class="cursor-pointer"
                 description="{{ __('Check if the procedure was by video.') }}" />
         </div>
 
-        <hr class="border-indigo-300 dark:border-zinc-600">
+        <hr class="border-accent/30 dark:border-zinc-600">
 
         <div class="space-y-4">
             <flux:heading size="lg">{{ __('Assignments') }}</flux:heading>
@@ -398,7 +398,7 @@ $save = function () {
 
                         <div class="text-right">
                             <span class="text-xs text-zinc-500 uppercase">{{ __('Amount') }}</span>
-                            <div class="text-lg font-bold text-indigo-600">
+                            <div class="text-lg font-bold text-accent-content">
                                 Q{{ number_format((float) $row['amount'], 2) }}
                             </div>
                         </div>
@@ -452,13 +452,13 @@ $save = function () {
         </div>
 
         <div
-            class="flex flex-col sm:flex-row items-center justify-between gap-6 bg-indigo-100 dark:bg-indigo-900/40 p-4 rounded-lg border border-indigo-100 dark:border-indigo-700/50">
+            class="flex flex-col sm:flex-row items-center justify-between gap-6 bg-mist dark:bg-accent/20 p-4 rounded-lg border border-mist dark:border-accent/30">
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 w-full sm:w-auto">
                 <div class="flex flex-col items-center sm:items-start">
                     <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                         {{ __('Amount') }}
                     </span>
-                    <span class="text-xl font-bold text-indigo-600 dark:text-zinc-100">
+                    <span class="text-xl font-bold text-accent-content dark:text-zinc-100">
                         @php($totalAmount = collect($assignments)->sum('amount'))
                         Q{{ number_format((float) $totalAmount, 2) }}
                     </span>
@@ -467,7 +467,7 @@ $save = function () {
 
             <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-1/3">
                 <flux:button wire:click="save" wire:target="save" wire:loading.class="opacity-50 cursor-not-allowed"
-                    wire:loading.class.remove="opacity-50 cursor-not-allowed" color="indigo" loading="save"
+                    wire:loading.class.remove="opacity-50 cursor-not-allowed" loading="save"
                     variant="primary" class="w-full sm:w-3/4 font-bold cursor-pointer uppercase">
                     {{ __('Update') }}
                 </flux:button>

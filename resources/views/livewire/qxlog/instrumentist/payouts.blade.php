@@ -71,7 +71,7 @@ $ruleLabel = function (?string $rule) {
 
 $ruleColor = function (?string $rule) {
     return match ($rule) {
-        'video_rate' => 'indigo',
+        'video_rate' => 'accent',
         'night_rate' => 'rose',
         'long_case_rate' => 'amber',
         default => 'zinc',
@@ -97,7 +97,7 @@ $ruleColor = function (?string $rule) {
             </div>
 
             <div
-                class="flex items-center gap-4 bg-indigo-50 dark:bg-indigo-500/10 px-6 py-3 rounded-full border border-indigo-100 dark:border-indigo-500/20">
+                class="flex items-center gap-4 bg-mist dark:bg-accent/10 px-6 py-3 rounded-full border border-mist dark:border-accent/20"
                 <div class="text-right flex flex-col items-center gap-1">
                     <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                         {{ __('Procedures') }}
@@ -107,13 +107,13 @@ $ruleColor = function (?string $rule) {
                     </div>
                 </div>
 
-                <div class="w-px h-8 bg-indigo-200 dark:bg-indigo-500/30"></div>
+                <div class="w-px h-8 bg-accent/20 dark:bg-accent/30"></div>
 
                 <div class="text-right flex flex-col items-center gap-1">
                     <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                         {{ __('Amount') }}
                     </div>
-                    <div class="text-xl font-bold text-indigo-600 dark:text-indigo-300 leading-none">
+                    <div class="text-xl font-bold text-accent-content dark:text-accent leading-none">
                         Q{{ number_format((float) $this->pending_total, 2) }}
                     </div>
                 </div>
@@ -154,7 +154,7 @@ $ruleColor = function (?string $rule) {
                                                 :videosurgery="$p->surgicalCase->is_videosurgery" />
                                         @else
                                             @if ($p->surgicalCase->is_videosurgery)
-                                                <flux:badge color="indigo" size="sm" icon="video-camera">{{ __('Video') }}
+                                                <flux:badge color="accent" size="sm" icon="video-camera">{{ __('Video') }}
                                                 </flux:badge>
                                             @endif
                                         @endif

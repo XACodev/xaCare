@@ -120,7 +120,7 @@ $restoreUser = function (int $id) {
 
 $roleColor = function (?string $role) {
     return match ($role) {
-        'admin' => 'indigo',
+        'admin' => 'accent',
         'doctor' => 'emerald',
         'instrumentist' => 'violet',
         'circulating' => 'amber',
@@ -164,7 +164,7 @@ $roleColor = function (?string $role) {
             <button type="button" wire:click="$set('role', '')"
                 class="px-3 py-1.5 rounded-full text-sm font-medium transition border
                     {{ $role === ''
-                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        ? 'bg-accent text-white border-accent'
                         : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
                     }}">
                 {{ __('All') }}
@@ -175,7 +175,9 @@ $roleColor = function (?string $role) {
                 <button type="button" wire:click="$set('role', '{{ $roleName }}')"
                     class="px-3 py-1.5 rounded-full text-sm font-medium transition border capitalize
                         {{ $role === $roleName
-                            ? 'bg-' . $this->roleColor($roleName) . '-600 text-white border-' . $this->roleColor($roleName) . '-600'
+                            ? ($this->roleColor($roleName) === 'accent'
+                                ? 'bg-accent text-white border-accent'
+                                : 'bg-' . $this->roleColor($roleName) . '-600 text-white border-' . $this->roleColor($roleName) . '-600')
                             : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
                         }}">
                     {{ ucfirst(__($roleName)) }}

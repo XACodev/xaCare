@@ -199,7 +199,7 @@ $restoreStaff = function (int $id) {
         <div>
             <flux:heading size="lg">{{ __('Suscripción') }}</flux:heading>
             <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
-                <flux:badge size="sm" color="indigo">{{ config("billing.plans.{$hospital->plan}.name", $hospital->plan) }}</flux:badge>
+                <flux:badge size="sm" color="accent">{{ config("billing.plans.{$hospital->plan}.name", $hospital->plan) }}</flux:badge>
                 <flux:badge size="sm" color="{{ $hospital->subscription_status->allowsAccess() ? 'green' : 'red' }}">
                     {{ $hospital->subscription_status->value }}
                 </flux:badge>
@@ -221,7 +221,7 @@ $restoreStaff = function (int $id) {
 
         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Plan') }}</label>
         <select wire:model.live="plan"
-            class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
+            class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-mist dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
             @foreach(config('billing.plans') as $planKey => $plan)
                 <option value="{{ $planKey }}">{{ $plan['name'] }}</option>
             @endforeach
@@ -229,7 +229,7 @@ $restoreStaff = function (int $id) {
 
         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Subscription') }}</label>
         <select wire:model.live="subscription_status"
-            class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-indigo-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
+            class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-mist dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-500 p-2.5">
             @foreach(\App\Enums\SubscriptionStatus::cases() as $status)
                 <option value="{{ $status->value }}">{{ $status->value }}</option>
             @endforeach

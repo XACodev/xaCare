@@ -518,7 +518,7 @@ $dismissMatchedSurgery = function () {
                 </flux:label>
                 <input type="date" max="{{ now()->format('Y-m-d') }}" min="{{ now()->subWeeks(2)->format('Y-m-d') }}"
                     wire:model.live="procedure_date"
-                    class="mt-2 block w-full min-w-0 max-w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm text-zinc-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
+                    class="mt-2 block w-full min-w-0 max-w-full rounded-lg border-zinc-200 bg-mist py-2.5 px-3 text-sm text-zinc-900 focus:border-mist0 focus:ring-1 focus:ring-accent focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-accent hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
 
                 @error('procedure_date') <p class="text-sm text-red-600 dark:text-red-400 mt-1">
                         {{ $message }}
@@ -531,7 +531,7 @@ $dismissMatchedSurgery = function () {
                     {{ __('Start Time') }}
                 </flux:label>
                 <input type="time" wire:model.live="start_time"
-                    class="mt-2 block w-full min-w-0 max-w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm text-zinc-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
+                    class="mt-2 block w-full min-w-0 max-w-full rounded-lg border-zinc-200 bg-mist py-2.5 px-3 text-sm text-zinc-900 focus:border-mist0 focus:ring-1 focus:ring-accent focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-accent hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
                 @error('start_time') <p class="text-sm text-red-600 dark:text-red-400 mt-1">
                         {{ $message }}
                     </p>
@@ -543,7 +543,7 @@ $dismissMatchedSurgery = function () {
                     {{ __('End Time') }}
                 </flux:label>
                 <input type="time" wire:model.live="end_time"
-                    class="mt-2 block w-full min-w-0 max-w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm text-zinc-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
+                    class="mt-2 block w-full min-w-0 max-w-full rounded-lg border-zinc-200 bg-mist py-2.5 px-3 text-sm text-zinc-900 focus:border-mist0 focus:ring-1 focus:ring-accent focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-accent hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
                 @error('end_time') <p class="text-sm text-red-600 dark:text-red-400 mt-1">
                         {{ $message }}
                     </p>
@@ -563,14 +563,14 @@ $dismissMatchedSurgery = function () {
                     </div>
                     <input type="text" wire:model.live.debounce.200ms="patient_query"
                         placeholder="{{ __('Search admitted patient or type name for emergency cases...') }}"
-                        class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 pl-10 pr-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 dark:placeholder-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
+                        class="mt-2 block w-full rounded-lg border-zinc-200 bg-mist py-2.5 pl-10 pr-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-mist0 focus:ring-1 focus:ring-accent focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-accent dark:placeholder-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
 
                     @if(!empty($this->patient_suggestions))
                         <div
-                            class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-indigo-400 overflow-hidden">
+                            class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-accent overflow-hidden">
                             @foreach($this->patient_suggestions as $s)
                                 <button type="button"
-                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-indigo-400/50 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-indigo-400 last:border-0"
+                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-accent/40 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-accent last:border-0"
                                     wire:click="selectPatient({{ $s['id'] }})">
                                     {{ $s['name'] }}
                                 </button>
@@ -585,8 +585,8 @@ $dismissMatchedSurgery = function () {
                 @enderror
 
                 @if($this->matching_surgery)
-                    <div class="rounded-lg border border-indigo-200 bg-indigo-50 dark:bg-indigo-900/30 dark:border-indigo-800 px-4 py-3 flex items-center justify-between gap-3">
-                        <div class="text-sm text-indigo-800 dark:text-indigo-200">
+                    <div class="rounded-lg border border-accent/30 bg-mist dark:bg-accent/20 dark:border-accent/40 px-4 py-3 flex items-center justify-between gap-3">
+                        <div class="text-sm text-accent-content dark:text-accent">
                             {{ __('A scheduled surgery was found for this patient') }}
                             ({{ $this->matching_surgery->procedureType?->name }},
                             {{ $this->matching_surgery->procedure_date?->format('d/m/Y') }}).
@@ -610,12 +610,12 @@ $dismissMatchedSurgery = function () {
                 <div class="relative">
                     <input type="text" wire:model.live.debounce.200ms="procedure_type_query"
                         placeholder="{{ __('Procedure Name') }}"
-                        class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-indigo-400 dark:placeholder-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
+                        class="mt-2 block w-full rounded-lg border-zinc-200 bg-mist py-2.5 px-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-mist0 focus:ring-1 focus:ring-accent focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-100 dark:focus:border-accent dark:placeholder-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors" />
                     @if($this->procedureTypeSuggestions->isNotEmpty())
-                        <div class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-indigo-400 overflow-hidden">
+                        <div class="absolute z-20 mt-1 w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:bg-zinc-700 dark:border-accent overflow-hidden">
                             @foreach($this->procedureTypeSuggestions as $s)
                                 <button type="button"
-                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-indigo-400/50 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-indigo-400 last:border-0"
+                                    class="block w-full text-left px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-accent/40 text-zinc-700 dark:text-zinc-200 transition-colors border-b border-zinc-100 dark:border-accent last:border-0"
                                     wire:click="selectProcedureType({{ $s->id }})">
                                     {{ $s->name }}
                                 </button>
@@ -630,14 +630,14 @@ $dismissMatchedSurgery = function () {
             </div>
         </div>
 
-        <hr class="border-indigo-300 dark:border-zinc-600">
+        <hr class="border-accent/30 dark:border-zinc-600">
 
         <div class="w-full flex flex-col md:flex-row justify-center md:justify-between sm:px-6 gap-10 md:w-auto">
             <flux:checkbox wire:model.change="is_videosurgery" label="{{ __('Videosurgery') }}"
                 description="{{ __('Check if the procedure was by video.') }}" />
         </div>
 
-        <hr class="border-indigo-300 dark:border-zinc-600">
+        <hr class="border-accent/30 dark:border-zinc-600">
 
         <div class="space-y-4">
             <div class="flex items-center justify-between">
@@ -669,11 +669,11 @@ $dismissMatchedSurgery = function () {
                             <flux:label>{{ __('Person') }}</flux:label>
                             <input type="text" wire:model.live.debounce.200ms="assignments.{{ $index }}.user_query"
                                 placeholder="{{ __('Search person...') }}"
-                                class="mt-2 block w-full rounded-lg border-zinc-200 bg-indigo-50 py-2.5 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-700" />
+                                class="mt-2 block w-full rounded-lg border-zinc-200 bg-mist py-2.5 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-700" />
                             @if(!empty($row['user_query']))
                                 <div class="absolute z-20 mt-1 w-full rounded-lg border bg-white shadow-lg dark:bg-zinc-700">
                                     @foreach(($this->userSuggestions)($row['user_query']) as $s)
-                                        <button type="button" class="block w-full text-left px-4 py-2 hover:bg-zinc-50 dark:hover:bg-indigo-400/50"
+                                        <button type="button" class="block w-full text-left px-4 py-2 hover:bg-zinc-50 dark:hover:bg-accent/40"
                                             wire:click="selectAssignmentUser({{ $index }}, {{ $s['id'] }})">
                                             {{ $s['name'] }}
                                         </button>
@@ -685,7 +685,7 @@ $dismissMatchedSurgery = function () {
                         <div class="flex items-end gap-4">
                             <div class="text-right flex-1">
                                 <span class="text-xs text-zinc-500 uppercase">{{ __('Amount') }}</span>
-                                <div class="text-lg font-bold text-indigo-600">
+                                <div class="text-lg font-bold text-accent-content">
                                     @php($preview = $this->previewAmount($index))
                                     Q{{ is_numeric($preview) ? number_format($preview, 2) : '0.00' }}
                                 </div>
@@ -715,7 +715,7 @@ $dismissMatchedSurgery = function () {
         </div>
 
         <div
-            class="flex flex-col sm:flex-row items-center justify-between gap-6 bg-indigo-100 dark:bg-indigo-900/40 p-4 rounded-lg border border-indigo-100 dark:border-indigo-700/50">
+            class="flex flex-col sm:flex-row items-center justify-between gap-6 bg-mist dark:bg-accent/20 p-4 rounded-lg border border-mist dark:border-accent/30">
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 w-full sm:w-auto">
                 @if (Auth::user()->use_pay_scheme)
                     <div class="flex flex-col items-start">
@@ -726,14 +726,14 @@ $dismissMatchedSurgery = function () {
                             {{ is_int($this->duration_minutes) ? $this->duration_minutes . ' min' : '--' }}
                         </span>
                     </div>
-                    <div class="w-full h-px sm:w-px sm:h-12 bg-indigo-300 dark:bg-indigo-600"></div>
+                    <div class="w-full h-px sm:w-px sm:h-12 bg-accent/30 dark:bg-accent/40"></div>
                 @endif
 
                 <div class="flex flex-col items-center sm:items-start">
                     <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                         {{ __('Amount') }}
                     </span>
-                    <span class="text-xl font-bold text-indigo-600 dark:text-zinc-100">
+                    <span class="text-xl font-bold text-accent-content dark:text-zinc-100">
                         @php($totalPreview = collect($assignments)->keys()->sum(fn ($i) => (float) ($this->previewAmount($i) ?? 0)))
                         Q{{ number_format($totalPreview, 2) }}
                     </span>
@@ -741,7 +741,7 @@ $dismissMatchedSurgery = function () {
             </div>
 
             <flux:button wire:click="save" wire:target="save" wire:loading.class="opacity-50 cursor-not-allowed"
-                wire:loading.class.remove="opacity-50 cursor-not-allowed" color="indigo" loading="save"
+                wire:loading.class.remove="opacity-50 cursor-not-allowed" loading="save"
                 variant="primary" class="w-full font-bold sm:w-1/3 cursor-pointer uppercase">
                 {{ __('Save') }}
             </flux:button>
@@ -755,11 +755,11 @@ $dismissMatchedSurgery = function () {
             </h2>
 
             <div
-                class="flex items-center gap-2 text-md bg-indigo-100 dark:bg-indigo-500/60 px-4 py-2 rounded-full border border-indigo-50 dark:border-indigo-800 shadow-sm">
-                <span class="text-indigo-500 dark:text-zinc-400">
+                class="flex items-center gap-2 text-md bg-mist dark:bg-mist0/60 px-4 py-2 rounded-full border border-mist dark:border-accent/40 shadow-sm">
+                <span class="text-accent-content dark:text-zinc-400">
                     {{ __('Total') }}:
                 </span>
-                <span class="text-xl font-bold text-indigo-600 dark:text-zinc-200">
+                <span class="text-xl font-bold text-accent-content dark:text-zinc-200">
                     Q{{ number_format($this->pending_total ?? 0, 2) }}
                 </span>
             </div>
@@ -771,7 +771,7 @@ $dismissMatchedSurgery = function () {
             <div class="hidden md:block overflow-x-auto">
                 <table class="min-w-full overflow-auto table-auto text-sm whitespace-nowrap">
                     <thead
-                        class="bg-indigo-100 dark:bg-indigo-900/40 text-zinc-500 dark:text-zinc-300 transition-colors">
+                        class="bg-mist dark:bg-accent/20 text-zinc-500 dark:text-zinc-300 transition-colors">
                         <tr>
                             <th class="px-6 py-4 font-medium text-left">
                                 <flux:label for="procedure_date">
@@ -808,10 +808,10 @@ $dismissMatchedSurgery = function () {
                         </tr>
                     </thead>
                     <tbody
-                        class="divide-y divide-indigo-200 dark:divide-zinc-700 whitespace-nowrap text-zinc-600 dark:text-zinc-400 transition-colors">
+                        class="divide-y divide-mist dark:divide-zinc-700 whitespace-nowrap text-zinc-600 dark:text-zinc-400 transition-colors">
                         @forelse($this->pending_procedures as $p)
                             @php($case = $p->surgicalCase)
-                            <tr class=" hover:bg-indigo-50 dark:hover:bg-indigo-800/30 transition-colors">
+                            <tr class=" hover:bg-mist dark:hover:bg-accent/20 transition-colors">
                                 <td class="px-6 py-3 font-medium text-left">
                                     {{ $case?->procedure_date?->format('d/m/Y') }}
                                 </td>
@@ -843,7 +843,7 @@ $dismissMatchedSurgery = function () {
                                             :videosurgery="$case?->is_videosurgery" />
                                     @else
                                         @if ($case?->is_videosurgery)
-                                            <flux:badge color="indigo" size="sm">{{ __('Video') }}</flux:badge>
+                                            <flux:badge color="accent" size="sm">{{ __('Video') }}</flux:badge>
                                         @endif
                                         @if ($p->is_courtesy)
                                             <flux:badge color="lime" size="sm">{{ __('Courtesy') }}</flux:badge>
