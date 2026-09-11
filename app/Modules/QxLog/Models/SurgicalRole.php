@@ -55,6 +55,11 @@ class SurgicalRole extends Model implements HasHospital
         }
     }
 
+    public static function allowsPlatformAdminWrites(): bool
+    {
+        return true;
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $role) {
