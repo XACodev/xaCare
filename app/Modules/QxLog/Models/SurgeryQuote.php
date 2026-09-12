@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[UseFactory(\Database\Factories\SurgeryQuoteFactory::class)]
@@ -37,6 +38,7 @@ class SurgeryQuote extends Model implements HasHospital
         'hospital_cost' => 'decimal:2',
         'total' => 'decimal:2',
         'version' => 'integer',
+        'specialties' => 'array',
     ];
 
     public static function booted(): void
@@ -54,6 +56,37 @@ class SurgeryQuote extends Model implements HasHospital
     public function surgicalCase(): BelongsTo
     {
         return $this->belongsTo(SurgicalCase::class);
+    }
+
+    public function lineItems(): HasMany
+    {
+        return $this->hasMany(SurgeryQuoteLineItem::class)->orderBy('sort_order');
+    }
+
+    public function procedureType(): BelongsTo
+    {
+        return $this->belongsTo(ProcedureType::class);
+    }
+
+    /**
+     * Reemplaza todos los renglones de honorarios de la cotización y
+     * recalcula staff_fee/total. $items: list<array{surgical_role_id: ?int, label: string, amount: float}>.
+     */
+    public function syncLineItems(array $items): void
+    {
+        $this->lineItems()->delete();
+
+        foreach (array_values($items) as $index => $item) {
+            $this->lineItems()->create([
+                'surgical_role_id' => $item['surgical_role_id'] ?? null,
+                'label' => $item['label'],
+                'amount' => $item['amount'],
+                'sort_order' => $index,
+            ]);
+        }
+
+        $this->staff_fee = $this->lineItems()->sum('amount');
+        $this->save();
     }
 
     public function createdBy(): BelongsTo
