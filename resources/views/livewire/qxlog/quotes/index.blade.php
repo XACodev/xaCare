@@ -66,11 +66,14 @@ $deleteQuote = function (int $id) {
     <div class="flex items-center justify-between gap-4">
         <flux:heading size="lg">{{ __('Cotizaciones') }}</flux:heading>
         <flux:input wire:model.live.debounce.300ms="search" placeholder="{{ __('Buscar por paciente, folio o procedimiento') }}" class="max-w-xs" />
-        @if($canManage)
-            <flux:button variant="primary" :href="route('quotes.create')" wire:navigate>
-                {{ __('Nueva cotización') }}
-            </flux:button>
-        @endif
+        <div class="flex items-center gap-2">
+            <x-qr-scanner-button />
+            @if($canManage)
+                <flux:button variant="primary" :href="route('quotes.create')" wire:navigate>
+                    {{ __('Nueva cotización') }}
+                </flux:button>
+            @endif
+        </div>
     </div>
 
     <div class="overflow-auto rounded-xl border border-zinc-200 dark:border-zinc-700">

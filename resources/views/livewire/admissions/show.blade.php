@@ -134,6 +134,7 @@ mount(function (Admission $admission) {
             @endif
 
             <div class="flex justify-end gap-3 no-print">
+                <x-qr-scanner-button />
                 <flux:button onclick="window.print()" variant="primary" icon="printer">
                     {{ __('Imprimir') }}
                 </flux:button>

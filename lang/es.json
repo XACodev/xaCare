@@ -393,5 +393,8 @@
     "paid": "Pagado",
     "Confirm Schedule": "Confirmar Horario",
     "Surgeries": "Cirugías",
-    "Reports": "Reportes"
+    "Reports": "Reportes",
+    "Escanear": "Escanear",
+    "QR no reconocido por xaCare": "QR no reconocido por xaCare",
+    "Cerrar": "Cerrar"
 }
