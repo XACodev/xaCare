@@ -21,7 +21,6 @@ class SurgeryQuoteFactory extends Factory
             'hospital_id' => $hospital,
             'patient_id' => Patient::factory()->for($hospital, 'hospital'),
             'surgical_case_id' => null,
-            'staff_fee' => $this->faker->randomFloat(2, 500, 10000),
             'hospital_cost' => $this->faker->randomFloat(2, 500, 10000),
             'hospital_cost_note' => null,
             'version' => 1,

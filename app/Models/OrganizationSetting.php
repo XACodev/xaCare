@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class OrganizationSetting extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     const CACHE_KEY = 'organization_settings.current';
 
@@ -20,6 +21,8 @@ class OrganizationSetting extends Model
         'org_name',
         'voucher_legend',
         'logo_path',
+        'phone',
+        'website',
     ];
 
     public function hospital(): BelongsTo

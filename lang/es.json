@@ -249,6 +249,16 @@
     "Settled Procedures": "Procedimientos Liquidado",
     "Total Pending": "Total Pendiente",
     "Total Paid": "Total Pagado",
+    "Copia interna": "Copia interna",
+    "Copia paciente": "Copia paciente",
+    "Carta": "Carta",
+    "Térmica 80mm": "Térmica 80mm",
+    "Térmica 58mm": "Térmica 58mm",
+    "Copiar imagen": "Copiar imagen",
+    "Verificación": "Verificación",
+    "Sin lector, use el folio": "Sin lector, use el folio",
+    "Concepto": "Concepto",
+    "Monto": "Monto",
     "Total Settled": "Total Liquidado",
     "Total Procedures": "Total de Procedimientos",
     "Total Amount": "Monto Total",
@@ -383,5 +393,8 @@
     "paid": "Pagado",
     "Confirm Schedule": "Confirmar Horario",
     "Surgeries": "Cirugías",
-    "Reports": "Reportes"
+    "Reports": "Reportes",
+    "Escanear": "Escanear",
+    "QR no reconocido por xaCare": "QR no reconocido por xaCare",
+    "Cerrar": "Cerrar"
 }

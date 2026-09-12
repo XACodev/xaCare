@@ -19,6 +19,7 @@ Route::middleware(['web', 'auth', 'hospital.subscribed', 'hospital.feature:qxlog
         Volt::route('quotes/{quote}/edit', 'qxlog.quotes.manage')->name('quotes.edit');
         Volt::route('quotes/{quote}', 'qxlog.quotes.show')->name('quotes.show');
         Volt::route('quotes/{quote}/print', 'qxlog.quotes.print')->name('quotes.print');
+        Volt::route('quotes/{quote}/verify', 'qxlog.quotes.verify')->name('quotes.verify');
     });
 });
 

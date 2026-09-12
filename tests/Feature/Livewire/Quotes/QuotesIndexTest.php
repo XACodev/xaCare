@@ -88,3 +88,64 @@ test('sin ningun permiso de presupuesto, el indice responde 403', function () {
 
     Volt::test('qxlog.quotes.index')->assertForbidden();
 });
+
+test('el buscador encuentra por nombre de paciente sin importar tildes', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = manageAdmin($hospital);
+    $patient = Patient::factory()->for($hospital, 'hospital')->create(['primer_nombre' => 'María', 'primer_apellido' => 'Xitumul']);
+    SurgeryQuote::factory()->for($hospital, 'hospital')->create(['patient_id' => $patient->id]);
+    $this->actingAs($admin);
+
+    Volt::test('qxlog.quotes.index')
+        ->set('search', 'maria')
+        ->assertSee('María Xitumul');
+});
+
+test('el buscador encuentra por folio', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = manageAdmin($hospital);
+    $quote = SurgeryQuote::factory()->for($hospital, 'hospital')->create();
+    $this->actingAs($admin);
+
+    Volt::test('qxlog.quotes.index')
+        ->set('search', $quote->slug)
+        ->assertSee($quote->slug);
+});
+
+test('cotizaciones con 30 o mas dias muestran badge de antiguedad', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = manageAdmin($hospital);
+    $old = SurgeryQuote::factory()->for($hospital, 'hospital')->create(['created_at' => now()->subDays(31)]);
+    $recent = SurgeryQuote::factory()->for($hospital, 'hospital')->create(['created_at' => now()->subDays(2)]);
+    $this->actingAs($admin);
+
+    $component = Volt::test('qxlog.quotes.index');
+    $component->assertSeeHtml('data-stale="'.$old->id.'"');
+    $component->assertDontSeeHtml('data-stale="'.$recent->id.'"');
+});
+
+test('eliminar una cotizacion la quita del indice (soft delete)', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = manageAdmin($hospital);
+    $quote = SurgeryQuote::factory()->for($hospital, 'hospital')->create();
+    $this->actingAs($admin);
+
+    Volt::test('qxlog.quotes.index')
+        ->call('deleteQuote', $quote->id)
+        ->assertDontSee($quote->slug);
+
+    expect(SurgeryQuote::find($quote->id))->toBeNull();
+    expect(SurgeryQuote::withTrashed()->find($quote->id))->not->toBeNull();
+});
+
+test('eliminar sin permiso manage falla', function () {
+    $hospital = Hospital::factory()->create();
+    $quote = SurgeryQuote::factory()->for($hospital, 'hospital')->create();
+    $viewer = User::factory()->create(['hospital_id' => $hospital->id]);
+    $viewer->givePermissionTo('surgeries.budget.view_total');
+    $this->actingAs($viewer);
+
+    Volt::test('qxlog.quotes.index')->call('deleteQuote', $quote->id);
+
+    expect(SurgeryQuote::find($quote->id))->not->toBeNull();
+});

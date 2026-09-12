@@ -14,6 +14,8 @@ uses(WithFileUploads::class);
 state([
     'org_name' => '',
     'voucher_legend' => '',
+    'phone' => '',
+    'website' => '',
     'logo' => null,
     'logo_url' => null,
     'success' => null,
@@ -29,6 +31,8 @@ mount(function () {
 
     $this->org_name = $s->org_name;
     $this->voucher_legend = $s->voucher_legend;
+    $this->phone = $s->phone;
+    $this->website = $s->website;
     $this->logo_url = $s->logoUrl();
 
     // Solo lectura: el plan/estado de suscripción lo asigna el administrador de plataforma
@@ -40,6 +44,8 @@ mount(function () {
 rules([
     'org_name' => ['required', 'string', 'max:255'],
     'voucher_legend' => ['required', 'string', 'max:1000'],
+    'phone' => ['nullable', 'string', 'max:255'],
+    'website' => ['nullable', 'string', 'max:255'],
     'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,bmp,webp', 'max:5120'],
 ]);
 
@@ -106,6 +112,9 @@ $removeLogo = function () {
         <flux:input label="{{ __('Organization Name') }}" wire:model.live="org_name" clearable />
 
         <flux:textarea label="{{ __('Voucher Legend') }}" wire:model.live="voucher_legend" rows="3" />
+
+        <flux:input label="{{ __('Teléfono') }}" wire:model.live="phone" clearable />
+        <flux:input label="{{ __('Sitio web') }}" wire:model.live="website" clearable />
 
         <div class="space-y-2">
             <flux:label>{{ __('Organization Logo') }}</flux:label>
