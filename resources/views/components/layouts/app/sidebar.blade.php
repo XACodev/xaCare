@@ -214,8 +214,15 @@
                             </flux:menu.item>
                             <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>{{ __('Settings') }}
                             </flux:menu.item>
-                            <flux:menu.item :href="route('appearance.edit')" icon="sun" wire:navigate>{{ __('Appearance') }}
-                            </flux:menu.item>
+                        </flux:menu.radio.group>
+
+                        <flux:menu.separator />
+
+                        <flux:menu.radio.group>
+                            <div class="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Theme') }}</div>
+                            <flux:menu.item x-on:click="$flux.appearance = 'light'" icon="sun">{{ __('Light') }}</flux:menu.item>
+                            <flux:menu.item x-on:click="$flux.appearance = 'dark'" icon="moon">{{ __('Dark') }}</flux:menu.item>
+                            <flux:menu.item x-on:click="$flux.appearance = 'system'" icon="computer-desktop">{{ __('System') }}</flux:menu.item>
                         </flux:menu.radio.group>
 
                         <flux:menu.separator />
@@ -284,8 +291,15 @@
                     </flux:menu.item>
                     <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>{{ __('Settings') }}
                     </flux:menu.item>
-                    <flux:menu.item :href="route('appearance.edit')" icon="sun" wire:navigate>{{ __('Appearance') }}
-                    </flux:menu.item>
+                </flux:menu.radio.group>
+
+                <flux:menu.separator />
+
+                <flux:menu.radio.group>
+                    <div class="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Theme') }}</div>
+                    <flux:menu.item x-on:click="$flux.appearance = 'light'" icon="sun">{{ __('Light') }}</flux:menu.item>
+                    <flux:menu.item x-on:click="$flux.appearance = 'dark'" icon="moon">{{ __('Dark') }}</flux:menu.item>
+                    <flux:menu.item x-on:click="$flux.appearance = 'system'" icon="computer-desktop">{{ __('System') }}</flux:menu.item>
                 </flux:menu.radio.group>
 
                 <flux:menu.separator />
