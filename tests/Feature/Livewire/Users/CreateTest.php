@@ -139,6 +139,23 @@ test('role list only shows roles from the target hospital', function () {
         ->and(array_count_values($roleNames)['cirujano'] ?? 0)->toBe(1);
 });
 
+test('role list deduplicates roles that exist both globally and for the hospital', function () {
+    $superAdmin = User::factory()->create(['is_platform_admin' => true, 'hospital_id' => null]);
+    $hospital = Hospital::factory()->create(['enabled_roles' => ['admin']]);
+
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web', 'team_id' => $hospital->id]);
+
+    $this->actingAs($superAdmin);
+    Livewire::withQueryParams(['hospital_id' => $hospital->id]);
+
+    $roles = Volt::test('users.create')->get('availableRoles');
+    $roleNames = array_values($roles);
+
+    expect($roleNames)->toContain('admin')
+        ->and(array_count_values($roleNames)['admin'] ?? 0)->toBe(1);
+});
+
 test('hospital admin without hospital_id gets a clear 422 error', function () {
     $admin = User::withoutEvents(fn () => User::factory()->create([
         'is_platform_admin' => false,

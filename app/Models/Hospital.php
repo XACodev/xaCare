@@ -97,8 +97,11 @@ class Hospital extends Model
                   ->orWhere('team_id', $this->id);
             })
             ->where('guard_name', 'web')
+            ->orderByRaw('CASE WHEN team_id = ? THEN 0 ELSE 1 END', [$this->id])
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'team_id'])
+            ->keyBy('name')
+            ->values();
     }
 
     public function subscriptionAllowsAccess(): bool
