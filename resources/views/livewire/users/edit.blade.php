@@ -5,7 +5,6 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Spatie\Permission\Models\Role;
 
 use function Livewire\Volt\{state, mount, rules};
 
@@ -56,10 +55,7 @@ mount(function (string|int $user) {
         $visibleRoleNames[] = $currentRoleName;
     }
 
-    $this->availableRoles = Role::whereIn('name', $visibleRoleNames)
-        ->orderBy('name')
-        ->pluck('name', 'id')
-        ->toArray();
+    $this->availableRoles = $u->hospital?->visibleRoles([$currentRoleName])->pluck('name', 'id')->toArray();
 
     $this->user = $u;
     $this->name = $u->name;

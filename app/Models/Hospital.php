@@ -78,6 +78,29 @@ class Hospital extends Model
         ]));
     }
 
+    /**
+     * Roles que este hospital puede ver/asignar, ya como modelos de Spatie.
+     * Incluye roles globales (team_id null) y roles propios del hospital,
+     * evitando que aparezcan roles de otros tenants con el mismo nombre.
+     *
+     * @param list<string> $includeNames
+     * @return \Illuminate\Support\Collection<int, Role>
+     */
+    public function visibleRoles(array $includeNames = []): \Illuminate\Support\Collection
+    {
+        $names = array_values(array_unique([...$this->visibleRoleNames(), ...$includeNames]));
+
+        return Role::query()
+            ->whereIn('name', $names)
+            ->where(function ($q) {
+                $q->whereNull('team_id')
+                  ->orWhere('team_id', $this->id);
+            })
+            ->where('guard_name', 'web')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
     public function subscriptionAllowsAccess(): bool
     {
         if (! $this->is_active) {

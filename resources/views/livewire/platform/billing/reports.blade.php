@@ -60,7 +60,7 @@ $exportCsv = function () {
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6">
             <flux:subheading>{{ __('MRR estimado') }}</flux:subheading>
-            <p class="text-2xl font-semibold">${{ number_format($this->mrr, 2) }}</p>
+            <p class="text-2xl font-semibold">Q{{ number_format($this->mrr, 2) }}</p>
         </div>
 
         <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6">
