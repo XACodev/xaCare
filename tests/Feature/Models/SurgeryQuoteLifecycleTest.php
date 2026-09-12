@@ -21,7 +21,6 @@ test('crear la primera cotizacion de un paciente queda en version 1, draft', fun
     $quote = SurgeryQuote::saveDraftOrNewVersion([
         'hospital_id' => $hospital->id,
         'patient_id' => $patient->id,
-        'staff_fee' => 7000,
         'hospital_cost' => 7000,
         'hospital_cost_note' => 'Incluye material de osteosíntesis.',
         'created_by_id' => $creator->id,
@@ -37,17 +36,19 @@ test('editar una cotizacion en draft actualiza la misma fila, sin nueva version'
     $quote = SurgeryQuote::saveDraftOrNewVersion([
         'hospital_id' => $hospital->id,
         'patient_id' => $patient->id,
-        'staff_fee' => 7000,
         'hospital_cost' => 7000,
         'created_by_id' => $creator->id,
+    ], [
+        ['surgical_role_id' => null, 'label' => 'Cirujano', 'amount' => 7000],
     ]);
 
     $edited = SurgeryQuote::saveDraftOrNewVersion([
         'hospital_id' => $hospital->id,
         'patient_id' => $patient->id,
-        'staff_fee' => 7500,
         'hospital_cost' => 7000,
         'created_by_id' => $creator->id,
+    ], [
+        ['surgical_role_id' => null, 'label' => 'Cirujano', 'amount' => 7500],
     ]);
 
     expect($edited->id)->toBe($quote->id);
@@ -62,7 +63,6 @@ test('editar una cotizacion ya emitida crea una nueva version y supersede la ant
     $quote = SurgeryQuote::saveDraftOrNewVersion([
         'hospital_id' => $hospital->id,
         'patient_id' => $patient->id,
-        'staff_fee' => 7000,
         'hospital_cost' => 7000,
         'created_by_id' => $creator->id,
     ]);
@@ -71,7 +71,6 @@ test('editar una cotizacion ya emitida crea una nueva version y supersede la ant
     $revised = SurgeryQuote::saveDraftOrNewVersion([
         'hospital_id' => $hospital->id,
         'patient_id' => $patient->id,
-        'staff_fee' => 8000,
         'hospital_cost' => 7000,
         'created_by_id' => $creator->id,
     ]);
@@ -88,7 +87,6 @@ test('markIssued cambia el status sin tocar la version', function () {
     $quote = SurgeryQuote::saveDraftOrNewVersion([
         'hospital_id' => $hospital->id,
         'patient_id' => $patient->id,
-        'staff_fee' => 7000,
         'hospital_cost' => 7000,
         'created_by_id' => $creator->id,
     ]);
@@ -105,7 +103,6 @@ test('attachToSurgicalCase vincula sin crear nueva version ni cambiar status', f
     $quote = SurgeryQuote::saveDraftOrNewVersion([
         'hospital_id' => $hospital->id,
         'patient_id' => $patient->id,
-        'staff_fee' => 7000,
         'hospital_cost' => 7000,
         'created_by_id' => $creator->id,
     ]);
@@ -128,7 +125,6 @@ test('una nueva cotizacion sin surgical_case_id no hereda el de un episodio quir
         'hospital_id' => $hospital->id,
         'patient_id' => $patient->id,
         'surgical_case_id' => $caseA->id,
-        'staff_fee' => 7000,
         'hospital_cost' => 7000,
         'created_by_id' => $creator->id,
     ]);
@@ -140,7 +136,6 @@ test('una nueva cotizacion sin surgical_case_id no hereda el de un episodio quir
     $newUnrelated = SurgeryQuote::saveDraftOrNewVersion([
         'hospital_id' => $hospital->id,
         'patient_id' => $patient->id,
-        'staff_fee' => 3000,
         'hospital_cost' => 3000,
         'created_by_id' => $creator->id,
     ]);
@@ -155,13 +150,13 @@ test('latestFor devuelve la version mas reciente no superseded', function () {
 
     $first = SurgeryQuote::saveDraftOrNewVersion([
         'hospital_id' => $hospital->id, 'patient_id' => $patient->id,
-        'staff_fee' => 1, 'hospital_cost' => 1, 'created_by_id' => $creator->id,
+        'hospital_cost' => 1, 'created_by_id' => $creator->id,
     ]);
     $first->markIssued();
 
     $second = SurgeryQuote::saveDraftOrNewVersion([
         'hospital_id' => $hospital->id, 'patient_id' => $patient->id,
-        'staff_fee' => 2, 'hospital_cost' => 2, 'created_by_id' => $creator->id,
+        'hospital_cost' => 2, 'created_by_id' => $creator->id,
     ]);
 
     $latest = SurgeryQuote::latestFor($hospital->id, $patient->id);

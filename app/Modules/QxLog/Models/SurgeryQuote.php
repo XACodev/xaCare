@@ -24,9 +24,11 @@ class SurgeryQuote extends Model implements HasHospital
         'hospital_id',
         'patient_id',
         'surgical_case_id',
-        'staff_fee',
+        'procedure_type_id',
         'hospital_cost',
         'hospital_cost_note',
+        'specialties',
+        'internal_note',
         'total',
         'version',
         'status',
@@ -122,7 +124,7 @@ class SurgeryQuote extends Model implements HasHospital
      * (p.ej. al revisar/crear una nueva version de una cotizacion ya
      * conocida).
      */
-    public static function saveDraftOrNewVersion(array $attributes): self
+    public static function saveDraftOrNewVersion(array $attributes, array $lineItems = []): self
     {
         $previous = static::latestFor($attributes['hospital_id'], $attributes['patient_id']);
         $surgicalCaseId = $attributes['surgical_case_id'] ?? null;
@@ -131,6 +133,7 @@ class SurgeryQuote extends Model implements HasHospital
         if ($sameEpisode && $previous->status === 'draft') {
             $previous->fill($attributes);
             $previous->save();
+            $previous->syncLineItems($lineItems);
 
             return $previous;
         }
@@ -140,6 +143,7 @@ class SurgeryQuote extends Model implements HasHospital
         $attributes['surgical_case_id'] = $surgicalCaseId;
 
         $new = static::create($attributes);
+        $new->syncLineItems($lineItems);
 
         if ($sameEpisode) {
             $previous->update(['status' => 'superseded']);

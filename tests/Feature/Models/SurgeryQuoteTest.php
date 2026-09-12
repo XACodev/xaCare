@@ -50,3 +50,29 @@ test('status por defecto es draft', function () {
 
     expect($quote->status)->toBe('draft');
 });
+
+test('saveDraftOrNewVersion crea la cotizacion con line items y recalcula total', function () {
+    $hospital = Hospital::factory()->create();
+    $patient = Patient::factory()->for($hospital, 'hospital')->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id]);
+
+    $quote = SurgeryQuote::saveDraftOrNewVersion([
+        'hospital_id' => $hospital->id,
+        'patient_id' => $patient->id,
+        'surgical_case_id' => null,
+        'hospital_cost' => 1200,
+        'hospital_cost_note' => null,
+        'internal_note' => 'Pendiente confirmar quirófano.',
+        'procedure_type_id' => null,
+        'specialties' => ['Traumatología'],
+        'created_by_id' => $user->id,
+    ], [
+        ['surgical_role_id' => null, 'label' => 'Cirujano', 'amount' => 3000],
+    ]);
+
+    expect((float) $quote->staff_fee)->toBe(3000.0);
+    expect((float) $quote->total)->toBe(4200.0);
+    expect($quote->specialties)->toBe(['Traumatología']);
+    expect($quote->internal_note)->toBe('Pendiente confirmar quirófano.');
+    expect($quote->lineItems)->toHaveCount(1);
+});
