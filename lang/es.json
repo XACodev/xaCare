@@ -328,6 +328,8 @@
     "Configure the default rate per role": "Configura la tarifa por defecto por rol",
     "Dismiss": "Descartar",
     "Draft": "Borrador",
+    "Issued": "Emitida",
+    "Superseded": "Reemplazada",
     "Duration threshold": "Umbral de duración",
     "Hospital Pricing Defaults": "Tarifas por defecto del hospital",
     "Kanban": "Kanban",

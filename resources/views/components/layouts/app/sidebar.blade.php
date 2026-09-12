@@ -50,7 +50,7 @@
                     </flux:navlist.group>
                 @endif
                 @if($hasQuotes && ($me->can('surgeries.budget.view_total') || $me->can('surgeries.budget.view_own')))
-                    <flux:navlist.group :heading="__('Quotes')" class="grid">
+                    <flux:navlist.group :heading="__('Cotizaciones')" class="grid">
                         <flux:navlist.item icon="document-text" :href="route('quotes.index')"
                             :current="request()->routeIs('quotes.*')" wire:navigate>
                             {{ __('Cotizaciones') }}
