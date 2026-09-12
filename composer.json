@@ -11,6 +11,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "endroid/qr-code": "^6.1",
         "intervention/image": "^4.3",
         "laravel/fortify": "^1.30",
         "laravel/framework": "^12.0",
