@@ -127,4 +127,53 @@ select:focus[data-flux-control] {
         max-width: 100% !important;
         height: auto !important;
     }
+
+    /* Compacta la ficha de ingreso para que quepa en una sola hoja carta. */
+    .print-area {
+        font-size: 12px !important;
+    }
+
+    .print-area .text-2xl {
+        font-size: 16px !important;
+    }
+
+    .print-area .text-lg,
+    .print-area .text-sm {
+        font-size: 12px !important;
+    }
+
+    .print-area .text-xs {
+        font-size: 10px !important;
+    }
+
+    .print-area .size-14 {
+        width: 2.25rem !important;
+        height: 2.25rem !important;
+    }
+
+    .print-area .space-y-6 > * + * {
+        margin-top: 0.6rem !important;
+    }
+
+    .print-area .space-y-4 > * + *,
+    .print-area .space-y-3 > * + *,
+    .print-area .space-y-2 > * + * {
+        margin-top: 0.35rem !important;
+    }
+
+    .print-area .p-6,
+    .print-area .p-5,
+    .print-area .p-4,
+    .print-area .p-3 {
+        padding: 0.4rem !important;
+    }
+
+    .print-area .pt-6 {
+        padding-top: 0.5rem !important;
+    }
+
+    .print-area .gap-4,
+    .print-area .gap-6 {
+        gap: 0.5rem !important;
+    }
 }

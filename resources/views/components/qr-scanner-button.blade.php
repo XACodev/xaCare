@@ -18,14 +18,14 @@
     },
     handleDecoded(text) {
         this.stop();
-        try {
-            const url = new URL(text);
-            if (url.origin === window.location.origin) {
-                window.location.href = text;
-                return;
-            }
-        } catch (e) {}
-        this.result = 'not-recognized';
+        // El QR solo trae un token opaco (nunca una URL): esta app es quien
+        // decide a donde va, resolviendolo en /qr/{token}.
+        const token = text.trim();
+        if (! token || /[:\/\s]/.test(token)) {
+            this.result = 'not-recognized';
+            return;
+        }
+        window.location.href = window.location.origin + '/qr/' + encodeURIComponent(token);
     },
 }">
     <flux:button type="button" data-qr-scanner-trigger @click="start" icon="qr-code">{{ __('Escanear') }}</flux:button>

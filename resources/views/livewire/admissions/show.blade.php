@@ -32,36 +32,28 @@ mount(function (Admission $admission) {
     @if ($admission)
         <div class="print-area rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6 print:shadow-none print:border-none print:p-0">
             {{-- Cabecera imprimible --}}
-            <div class="flex flex-col md:flex-row gap-6 items-start">
-                <div class="flex-1 space-y-2">
-                    <div class="flex items-center gap-3">
-                        <div class="size-14 rounded-full bg-accent text-white grid place-items-center text-xl font-semibold">
-                            {{ collect([$admission->patient->primer_nombre, $admission->patient->primer_apellido])->filter()->map(fn($w) => mb_substr($w, 0, 1))->implode('') ?: '?' }}
-                        </div>
-                        <div>
-                            <p class="text-2xl font-semibold">{{ $admission->patient->nombreCompleto() ?: __('Recién nacido/a') }}</p>
-                            <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                                {{ App\Enums\AdmissionType::from($admission->tipo_atencion)->label() }}
-                                · {{ $admission->completo ? __('Completo') : __('Pendiente de completar') }}
-                            </p>
-                        </div>
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="size-14 print:size-10 rounded-full bg-accent text-white grid place-items-center text-xl print:text-base font-semibold">
+                        {{ collect([$admission->patient->primer_nombre, $admission->patient->primer_apellido])->filter()->map(fn($w) => mb_substr($w, 0, 1))->implode('') ?: '?' }}
                     </div>
-
-                    @if ($admission->patient->expediente_no)
-                        <p class="text-lg">
-                            <span class="text-zinc-500">{{ __('Expediente No.') }}</span>
-                            <span class="font-bold text-accent">{{ $admission->patient->expediente_no }}</span>
+                    <div>
+                        <p class="text-2xl print:text-base font-semibold">{{ $admission->patient->nombreCompleto() ?: __('Recién nacido/a') }}</p>
+                        <p class="text-sm print:text-xs text-zinc-500 dark:text-zinc-400">
+                            {{ App\Enums\AdmissionType::from($admission->tipo_atencion)->label() }}
+                            · {{ $admission->completo ? __('Completo') : __('Pendiente de completar') }}
                         </p>
-                    @endif
+                        @if ($admission->patient->expediente_no)
+                            <p class="text-sm print:text-xs">
+                                <span class="text-zinc-500">{{ __('Expediente No.') }}</span>
+                                <span class="font-bold text-accent">{{ $admission->patient->expediente_no }}</span>
+                            </p>
+                        @endif
+                    </div>
                 </div>
 
-                <div class="flex flex-col items-center gap-3">
-                    <div class="p-3 bg-white rounded-xl border border-zinc-200 shadow-sm print:shadow-none print:border print:p-2">
-                        {!! \App\Support\AdmissionQr::svg($admission, 160) !!}
-                    </div>
-                    <p class="text-xs text-zinc-500 text-center max-w-[160px] break-words hidden print:block">
-                        {{ $admission->qrUrl() }}
-                    </p>
+                <div class="p-2 bg-white rounded-xl border border-zinc-200 shadow-sm print:shadow-none print:border print:p-1 shrink-0">
+                    {!! \App\Support\AdmissionQr::svg($admission, 96) !!}
                 </div>
             </div>
 

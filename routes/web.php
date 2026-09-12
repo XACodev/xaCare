@@ -61,8 +61,19 @@ Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
     Volt::route('patients/create', 'patients.create')->name('patients.create');
     Volt::route('patients/{patient}', 'patients.show')->name('patients.show');
     Volt::route('patients/{patient}/edit', 'patients.edit')->name('patients.edit');
+    Volt::route('admissions', 'admissions.index')->name('admissions.index');
     Volt::route('admissions/create', 'admissions.create')->name('admissions.create');
     Volt::route('admissions/{admission}', 'admissions.show')->name('admissions.show');
+
+    // El QR impreso solo trae el token, nunca la URL: quien lo escanea es
+    // siempre esta app, que resuelve el token aqui y redirige. Asi el QR
+    // sigue funcionando aunque cambiemos rutas despues, y nadie ve a que
+    // apunta con solo mirarlo.
+    Route::get('qr/{token}', function (string $token) {
+        $admission = \App\Models\Admission::where('qr_token', $token)->firstOrFail();
+
+        return redirect()->route('admissions.show', ['admission' => $admission, 'token' => $admission->qr_token]);
+    })->name('qr.resolve');
 
     Volt::route('settings/organization', 'settings.organization')->name('settings.organization');
     Volt::route('settings/roles', 'settings.roles.index')->name('settings.roles.index');

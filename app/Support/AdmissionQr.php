@@ -25,6 +25,8 @@ final class AdmissionQr
 
         $writer = new Writer($renderer);
 
-        return $writer->writeString($admission->qrUrl());
+        // Solo el token, nunca la URL: la app es quien lo resuelve al escanear
+        // (ver ruta qr.resolve), asi el QR no revela la estructura de rutas.
+        return $writer->writeString((string) $admission->qr_token);
     }
 }
