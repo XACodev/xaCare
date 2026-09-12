@@ -13,6 +13,7 @@ uses(CatalogManagerState::class);
 state([
     'modelClass' => HospitalWard::class,
     'title' => __('Salas'),
+    'description' => __('Pabellones o salas de hospitalización para clasificar a los pacientes ingresados. Son distintas de los quirófanos.'),
     'form' => ['name' => ''],
     'extraFieldsSlot' => null,
 ]);

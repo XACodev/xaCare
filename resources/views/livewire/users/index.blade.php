@@ -3,7 +3,6 @@
 use App\Models\Hospital;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Spatie\Permission\Models\Role;
 
 use function Livewire\Volt\{state, computed, mount};
 
@@ -20,10 +19,8 @@ mount(function () {
     // evita mezclar el personal de todos los hospitales en una sola tabla.
     $u = Auth::user();
     abort_unless($u && ! $u->is_platform_admin && $u->hasRole('admin'), 403);
-    $this->rolesAvailable = Role::whereIn('name', $u->hospital?->visibleRoleNames() ?? Hospital::CORE_ROLES)
-        ->orderBy('name')
-        ->pluck('name', 'id')
-        ->toArray();
+    $this->rolesAvailable = $u->hospital?->visibleRoles()->pluck('name', 'id')->toArray()
+        ?: Hospital::CORE_ROLES;
 });
 
 $users = computed(function () {

@@ -12,6 +12,7 @@ uses(CatalogManagerState::class);
 state([
     'modelClass' => HospitalRoom::class,
     'title' => __('Habitaciones'),
+    'description' => __('Habitaciones físicas de hospitalización asignadas a cada sala. Se usan para ubicar al paciente durante su ingreso.'),
     'form' => ['name' => ''],
     'extraFieldsSlot' => null,
 ]);

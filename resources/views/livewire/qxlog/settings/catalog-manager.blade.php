@@ -5,8 +5,11 @@
 // $extraFieldsSlot es opcional: HTML crudo (ya escapado por el consumidor) para campos extra.
 ?>
 <div class="max-w-3xl mx-auto p-4 space-y-6">
-    <div class="mb-4">
+    <div class="mb-4 space-y-1">
         <flux:heading size="xl">{{ $title }}</flux:heading>
+        @if(! empty($description))
+            <flux:subheading>{{ $description }}</flux:subheading>
+        @endif
         <x-back-link :fallback="route('pricing.instrumentists')" />
     </div>
 

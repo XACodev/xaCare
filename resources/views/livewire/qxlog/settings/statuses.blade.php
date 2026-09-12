@@ -15,6 +15,7 @@ uses(CatalogManagerState::class);
 state([
     'modelClass' => SurgeryStatus::class,
     'title' => __('Surgery Statuses'),
+    'description' => __('Estados por los que puede pasar una cirugía (ej. Programada, Confirmada, Cancelada). Define el flujo de trabajo del quirófano.'),
     'form' => ['name' => '', 'color' => '#6366f1'],
     'extraFieldsSlot' => null,
 ]);

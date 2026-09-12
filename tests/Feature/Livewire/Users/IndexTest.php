@@ -2,6 +2,7 @@
 
 use App\Models\Hospital;
 use App\Models\User;
+use Livewire\Volt\Volt;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -40,6 +41,29 @@ test('staff index groups users by their actual role instead of "unknown"', funct
         ->assertOk()
         ->assertDontSee('Unknown')
         ->assertSeeInOrder(['Instrumentist', $instrumentist->name], false);
+});
+
+test('role filter only shows roles from current hospital', function () {
+    $hospitalA = Hospital::factory()->create(['enabled_roles' => ['cirujano']]);
+    $hospitalB = Hospital::factory()->create(['enabled_roles' => ['cirujano']]);
+
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'cirujano', 'guard_name' => 'web', 'team_id' => $hospitalA->id]);
+    Role::firstOrCreate(['name' => 'cirujano', 'guard_name' => 'web', 'team_id' => $hospitalB->id]);
+    Role::firstOrCreate(['name' => 'enfermera', 'guard_name' => 'web', 'team_id' => $hospitalB->id]);
+
+    $admin = User::factory()->create(['hospital_id' => $hospitalA->id, 'role' => 'admin']);
+    $admin->assignRole('admin');
+
+    $this->actingAs($admin);
+
+    $roles = Volt::test('users.index')->get('rolesAvailable');
+    $roleNames = array_values($roles);
+
+    expect($roleNames)->toContain('admin')
+        ->toContain('cirujano')
+        ->not->toContain('enfermera')
+        ->and(array_count_values($roleNames)['cirujano'] ?? 0)->toBe(1);
 });
 
 test('staff index links do not expose the numeric user id in the url', function () {

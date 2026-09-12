@@ -13,6 +13,7 @@ uses(CatalogManagerState::class);
 state([
     'modelClass' => OperatingRoom::class,
     'title' => __('Operating Rooms'),
+    'description' => __('Quirófanos disponibles para programar cirugías. Puedes activar, desactivar y ordenar cuáles aparecen en el selector de agendamiento.'),
     'form' => ['name' => ''],
     'extraFieldsSlot' => null,
 ]);

@@ -14,6 +14,7 @@ uses(CatalogManagerState::class);
 state([
     'modelClass' => SurgicalRole::class,
     'title' => __('Surgical Roles'),
+    'description' => __('Roles quirúrgicos que participan en una cirugía (ej. Cirujano, Instrumentista, Circulante). Marca "Pagable" para roles que reciben pago.'),
     'form' => ['name' => '', 'is_payable' => true],
     'extraFieldsSlot' => null,
 ]);
