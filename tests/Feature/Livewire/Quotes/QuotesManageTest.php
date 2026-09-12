@@ -23,7 +23,7 @@ function manageAdmin(Hospital $hospital): User
     return $admin;
 }
 
-test('crea una cotizacion nueva en draft', function () {
+test('crea una cotizacion nueva en draft con renglones de honorarios', function () {
     $hospital = Hospital::factory()->create();
     $patient = Patient::factory()->for($hospital, 'hospital')->create();
     $admin = manageAdmin($hospital);
@@ -31,9 +31,11 @@ test('crea una cotizacion nueva en draft', function () {
 
     Volt::test('qxlog.quotes.manage')
         ->set('patient_id', $patient->id)
-        ->set('staff_fee', 7000)
+        ->set('line_items', [
+            ['surgical_role_id' => null, 'label' => 'Cirujano', 'amount' => 3500],
+            ['surgical_role_id' => null, 'label' => 'Instrumentista', 'amount' => 800],
+        ])
         ->set('hospital_cost', 7000)
-        ->set('hospital_cost_note', 'Incluye material.')
         ->call('save')
         ->assertHasNoErrors()
         ->assertRedirect();
@@ -41,7 +43,23 @@ test('crea una cotizacion nueva en draft', function () {
     $quote = SurgeryQuote::where('patient_id', $patient->id)->first();
     expect($quote)->not->toBeNull();
     expect($quote->status)->toBe('draft');
-    expect((float) $quote->total)->toBe(14000.0);
+    expect((float) $quote->staff_fee)->toBe(4300.0);
+    expect((float) $quote->total)->toBe(11300.0);
+    expect($quote->lineItems)->toHaveCount(2);
+});
+
+test('guardar sin ningun renglon de honorarios falla validacion', function () {
+    $hospital = Hospital::factory()->create();
+    $patient = Patient::factory()->for($hospital, 'hospital')->create();
+    $admin = manageAdmin($hospital);
+    $this->actingAs($admin);
+
+    Volt::test('qxlog.quotes.manage')
+        ->set('patient_id', $patient->id)
+        ->set('line_items', [])
+        ->set('hospital_cost', 500)
+        ->call('save')
+        ->assertHasErrors(['line_items']);
 });
 
 test('editar una cotizacion en draft actualiza la misma fila', function () {
@@ -49,18 +67,19 @@ test('editar una cotizacion en draft actualiza la misma fila', function () {
     $patient = Patient::factory()->for($hospital, 'hospital')->create();
     $admin = manageAdmin($hospital);
     $quote = SurgeryQuote::factory()->for($hospital, 'hospital')->create([
-        'patient_id' => $patient->id, 'staff_fee' => 100, 'hospital_cost' => 100,
+        'patient_id' => $patient->id, 'hospital_cost' => 100,
     ]);
+    $quote->syncLineItems([['surgical_role_id' => null, 'label' => 'Cirujano', 'amount' => 100]]);
 
     $this->actingAs($admin);
 
     Volt::test('qxlog.quotes.manage', ['quote' => $quote])
         ->assertSet('patient_id', $patient->id)
-        ->set('staff_fee', 500)
+        ->set('line_items.0.amount', 500)
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($quote->fresh()->staff_fee)->toEqual(500);
+    expect((float) $quote->fresh()->staff_fee)->toBe(500.0);
     expect(SurgeryQuote::withoutGlobalScopes()->where('patient_id', $patient->id)->count())->toBe(1);
 });
 
@@ -98,35 +117,22 @@ test('crear nueva version de una cotizacion emitida incrementa version y marca o
     $patient = Patient::factory()->for($hospital, 'hospital')->create();
     $admin = manageAdmin($hospital);
 
-    // Crear una cotización inicial en draft
     $originalQuote = SurgeryQuote::factory()->for($hospital, 'hospital')->create([
-        'patient_id' => $patient->id,
-        'status' => 'draft',
-        'version' => 1,
-        'staff_fee' => 5000,
-        'hospital_cost' => 5000,
+        'patient_id' => $patient->id, 'status' => 'draft', 'version' => 1, 'hospital_cost' => 5000,
     ]);
-
-    // Marcarla como issued
+    $originalQuote->syncLineItems([['surgical_role_id' => null, 'label' => 'Cirujano', 'amount' => 5000]]);
     $originalQuote->markIssued();
 
     $this->actingAs($admin);
 
-    // Montar el componente con la cotización emitida (simula el flujo "Nueva versión")
     Volt::test('qxlog.quotes.manage', ['quote' => $originalQuote])
         ->assertSet('patient_id', $patient->id)
-        ->assertSet('staff_fee', 5000.0)
-        ->assertSet('hospital_cost', 5000.0)
-        ->set('staff_fee', 6000)
+        ->set('line_items.0.amount', 6000)
         ->set('hospital_cost', 6500)
         ->call('save')
         ->assertHasNoErrors();
 
-    // Verificar que se creó una nueva versión
-    $newQuote = SurgeryQuote::where('patient_id', $patient->id)
-        ->where('status', 'draft')
-        ->latest('version')
-        ->first();
+    $newQuote = SurgeryQuote::where('patient_id', $patient->id)->where('status', 'draft')->latest('version')->first();
 
     expect($newQuote)->not->toBeNull();
     expect($newQuote->version)->toBe(2);
@@ -134,11 +140,8 @@ test('crear nueva version de una cotizacion emitida incrementa version y marca o
     expect((float) $newQuote->hospital_cost)->toBe(6500.0);
     expect((float) $newQuote->total)->toBe(12500.0);
 
-    // Verificar que la cotización original está marcada como superseded
     $originalQuote->refresh();
     expect($originalQuote->status)->toBe('superseded');
-
-    // Verificar que hay exactamente 2 cotizaciones (no se eliminó la original)
     expect(SurgeryQuote::withoutGlobalScopes()->where('patient_id', $patient->id)->count())->toBe(2);
 });
 
@@ -147,44 +150,39 @@ test('nueva version preserva surgical_case_id de la cotizacion original', functi
     $patient = Patient::factory()->for($hospital, 'hospital')->create();
     $admin = manageAdmin($hospital);
 
-    // Crear un caso quirúrgico
-    $surgicalCase = SurgicalCase::factory()->for($hospital, 'hospital')->create([
-        'patient_id' => $patient->id,
-    ]);
+    $surgicalCase = SurgicalCase::factory()->for($hospital, 'hospital')->create(['patient_id' => $patient->id]);
 
-    // Crear una cotización con surgical_case_id
     $originalQuote = SurgeryQuote::factory()->for($hospital, 'hospital')->create([
-        'patient_id' => $patient->id,
-        'surgical_case_id' => $surgicalCase->id,
-        'status' => 'draft',
-        'version' => 1,
-        'staff_fee' => 5000,
-        'hospital_cost' => 5000,
+        'patient_id' => $patient->id, 'surgical_case_id' => $surgicalCase->id, 'status' => 'draft', 'version' => 1, 'hospital_cost' => 5000,
     ]);
-
-    // Marcarla como issued
+    $originalQuote->syncLineItems([['surgical_role_id' => null, 'label' => 'Cirujano', 'amount' => 5000]]);
     $originalQuote->markIssued();
 
     $this->actingAs($admin);
 
-    // Montar el componente con la cotización emitida
     Volt::test('qxlog.quotes.manage', ['quote' => $originalQuote])
-        ->set('staff_fee', 7000)
+        ->set('line_items.0.amount', 7000)
         ->set('hospital_cost', 7500)
         ->call('save')
         ->assertHasNoErrors();
 
-    // Verificar que la nueva versión preservó el surgical_case_id
-    $newQuote = SurgeryQuote::where('patient_id', $patient->id)
-        ->where('status', 'draft')
-        ->latest('version')
-        ->first();
+    $newQuote = SurgeryQuote::where('patient_id', $patient->id)->where('status', 'draft')->latest('version')->first();
 
     expect($newQuote->surgical_case_id)->toBe($surgicalCase->id);
     expect($newQuote->version)->toBe(2);
-
-    // Verificar que la original sigue teniendo el mismo surgical_case_id
     $originalQuote->refresh();
     expect($originalQuote->surgical_case_id)->toBe($surgicalCase->id);
     expect($originalQuote->status)->toBe('superseded');
+});
+
+test('el paciente que no existe se guarda como texto libre', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = manageAdmin($hospital);
+    $this->actingAs($admin);
+
+    Volt::test('qxlog.quotes.manage')
+        ->set('patient_query', 'Elena Xitumul')
+        ->call('useFreeTextPatient')
+        ->assertSet('patient_id', null)
+        ->assertSet('patient_free_text', 'Elena Xitumul');
 });
