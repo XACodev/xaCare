@@ -30,7 +30,8 @@ test('reports show mrr, status counts and expiring trials', function () {
     expect($component->get('mrr'))->toBe((float) $expectedMrr)
         ->and($component->get('byStatus')['active'])->toBe(2)
         ->and($component->get('byStatus')['trialing'])->toBe(1)
-        ->and($component->get('expiringTrials')[7])->toBe(1);
+        ->and($component->get('expiringTrials')[7])->toBe(1)
+        ->and($component->html())->toContain('Q'.number_format($expectedMrr, 2));
 });
 
 test('reports can be filtered by status and plan', function () {
