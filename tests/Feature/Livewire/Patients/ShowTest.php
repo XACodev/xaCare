@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Admission;
 use App\Models\Hospital;
 use App\Models\Patient;
 use App\Models\User;
@@ -65,4 +66,37 @@ test('user without admin role cannot view patient details', function () {
 
     Volt::test('patients.show', ['patient' => $patient->slug])
         ->assertForbidden();
+});
+
+test('a patient with several admissions shows historial de ingresos with a sequential numero', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $this->actingAs($user);
+
+    $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
+
+    Admission::factory()->create([
+        'hospital_id' => $hospital->id,
+        'patient_id' => $patient->id,
+        'fecha_ingreso' => now()->subMonths(2),
+    ]);
+    Admission::factory()->create([
+        'hospital_id' => $hospital->id,
+        'patient_id' => $patient->id,
+        'fecha_ingreso' => now()->subMonth(),
+    ]);
+    Admission::factory()->create([
+        'hospital_id' => $hospital->id,
+        'patient_id' => $patient->id,
+        'fecha_ingreso' => now(),
+    ]);
+
+    Volt::test('patients.show', ['patient' => $patient->slug])
+        ->assertSee(__('Historial de ingresos'))
+        ->assertSeeInOrder([
+            __('Ingreso No.').' 3',
+            __('Ingreso No.').' 2',
+            __('Ingreso No.').' 1',
+        ]);
 });

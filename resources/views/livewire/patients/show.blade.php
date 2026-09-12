@@ -1,9 +1,10 @@
 <?php
 
+use App\Enums\AdmissionType;
 use App\Models\Patient;
 use Illuminate\Support\Facades\Auth;
 
-use function Livewire\Volt\{state, mount};
+use function Livewire\Volt\{state, mount, computed};
 
 state(['patient' => null]);
 
@@ -14,6 +15,16 @@ mount(function (string $patient) {
     // Se busca por `slug` con withTrashed(): el binding implicito por defecto excluye
     // pacientes con soft delete y devolvia 404 al ver el detalle de uno ya eliminado.
     $this->patient = Patient::withTrashed()->where('slug', $patient)->firstOrFail();
+});
+
+// Historial de ingresos del paciente, del mas antiguo al mas reciente, numerado
+// por orden cronologico (No. de ingreso) -- distingue reingresos del mismo
+// expediente sin necesitar una columna nueva en `admissions`.
+$admissions = computed(function () {
+    return $this->patient->admissions()->orderBy('fecha_ingreso')->orderBy('id')->get()
+        ->values()
+        ->map(fn ($admission, $index) => ['admission' => $admission, 'numero' => $index + 1])
+        ->reverse();
 });
 
 $estadoCivilLabel = function (?string $codigo) {
@@ -100,5 +111,32 @@ $estadoCivilLabel = function (?string $codigo) {
             <flux:label>{{ __('Contacto de Emergencia') }}</flux:label>
             <p class="text-sm text-zinc-900 dark:text-zinc-100">{{ $patient->contacto_emergencia ?: '—' }}</p>
         </div>
+    </div>
+
+    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <flux:heading size="lg">{{ __('Historial de ingresos') }}</flux:heading>
+            <flux:badge>{{ $this->admissions->count() }}</flux:badge>
+        </div>
+
+        @forelse ($this->admissions as $row)
+            <flux:link href="{{ route('admissions.show', ['admission' => $row['admission'], 'token' => $row['admission']->qr_token]) }}"
+                class="block px-4 py-3 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <span class="text-sm font-semibold">{{ __('Ingreso No.') }} {{ $row['numero'] }}</span>
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">
+                            · {{ $row['admission']->fecha_ingreso?->format('d/m/Y') }}
+                            · {{ AdmissionType::from($row['admission']->tipo_atencion)->label() }}
+                        </span>
+                    </div>
+                    <flux:badge :variant="$row['admission']->completo ? 'success' : 'warning'">
+                        {{ $row['admission']->completo ? __('Completo') : __('Pendiente') }}
+                    </flux:badge>
+                </div>
+            </flux:link>
+        @empty
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 italic">{{ __('Sin ingresos registrados.') }}</p>
+        @endforelse
     </div>
 </div>

@@ -15,6 +15,7 @@ test('non admin authenticated user cannot reach patients or admissions routes di
 
     $this->get(route('patients.index'))->assertUnauthorized();
     $this->get(route('patients.create'))->assertUnauthorized();
+    $this->get(route('admissions.index'))->assertUnauthorized();
     $this->get(route('admissions.create'))->assertUnauthorized();
 });
 
@@ -25,5 +26,6 @@ test('admin can reach patients and admissions routes directly', function () {
 
     $this->get(route('patients.index'))->assertSuccessful();
     $this->get(route('patients.create'))->assertSuccessful();
+    $this->get(route('admissions.index'))->assertSuccessful();
     $this->get(route('admissions.create'))->assertSuccessful();
 });

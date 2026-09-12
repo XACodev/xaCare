@@ -39,8 +39,12 @@
                             :current="request()->routeIs('patients.*')" wire:navigate>
                             {{ __('Pacientes') }}
                         </flux:navlist.item>
+                        <flux:navlist.item icon="calendar-days" :href="route('admissions.index')"
+                            :current="request()->routeIs('admissions.index')" wire:navigate>
+                            {{ __('Listado de ingresos') }}
+                        </flux:navlist.item>
                         <flux:navlist.item icon="inbox-arrow-down" :href="route('admissions.create')"
-                            :current="request()->routeIs('admissions.*')" wire:navigate>
+                            :current="request()->routeIs('admissions.create')" wire:navigate>
                             {{ __('Nuevo Ingreso') }}
                         </flux:navlist.item>
                     </flux:navlist.group>
