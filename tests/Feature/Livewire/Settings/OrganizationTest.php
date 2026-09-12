@@ -97,3 +97,25 @@ test('admin can remove the organization logo', function () {
     expect(OrganizationSetting::current()->logo_path)->toBeNull();
     Storage::disk(OrganizationSetting::logoDisk())->assertMissing($existingPath);
 });
+
+test('admin puede guardar telefono y sitio web de la organizacion', function () {
+    $hospital = Hospital::factory()->create();
+    OrganizationSetting::updateOrCreate(
+        ['hospital_id' => $hospital->id],
+        ['org_name' => 'Test Hospital', 'voucher_legend' => 'Test Legend', 'phone' => null, 'website' => null]
+    );
+    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $admin->assignRole('admin');
+    $admin->givePermissionTo('settings.manage');
+    $this->actingAs($admin);
+
+    Volt::test('settings.organization')
+        ->set('phone', '+502 7952 0000')
+        ->set('website', 'https://hospitalcarmen.gt')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $setting = OrganizationSetting::forHospital($hospital->id);
+    expect($setting->phone)->toBe('+502 7952 0000');
+    expect($setting->website)->toBe('https://hospitalcarmen.gt');
+});
