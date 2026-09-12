@@ -161,4 +161,17 @@ class SurgeryQuote extends Model implements HasHospital
     {
         $this->update(['surgical_case_id' => $case->id]);
     }
+
+    /**
+     * Resumen publico de verificacion: nunca incluye montos/precios.
+     */
+    public function verificationSummary(): array
+    {
+        return [
+            'folio' => $this->slug,
+            'status' => $this->status,
+            'generated_by' => $this->createdBy?->name ?? '—',
+            'generated_at' => $this->created_at->format('d/m/Y'),
+        ];
+    }
 }
