@@ -27,7 +27,8 @@ state([
     'p_fecha_nacimiento' => '',
     'p_sexo' => '',
     'p_lugar_nacimiento' => '',
-    'p_nacionalidad' => '',
+    'p_es_extranjero' => false,
+    'p_nacionalidad' => 'Guatemalteco/a',
     'p_estado_civil' => '',
     'p_direccion_habitual' => '',
     'p_calle_o_lugar' => '',
@@ -52,10 +53,21 @@ state([
     'a_poliza' => '',
     'a_certificado' => '',
     'a_impresion_clinica' => '',
+    'a_diagnostico_final' => '',
+    'a_complicaciones' => '',
+    'a_operaciones' => '',
     'a_referido_por' => '',
     'a_otras_hospitalizaciones' => '',
     'a_muestra_patologia' => false,
     'a_medico_responsable' => '',
+    'a_medico_colegiado' => '',
+
+    // Maternidad
+    'a_maternidad_no_hijo' => '',
+    'a_maternidad_fecha_nacimiento' => '',
+    'a_maternidad_hora' => '',
+    'a_maternidad_sexo' => '',
+    'a_maternidad_condiciones_egreso' => '',
 
     'savedAdmission' => null,
     'lastAdmissionPatientId' => null,
@@ -125,7 +137,8 @@ $selectPatient = function (int $id) {
     $this->p_fecha_nacimiento = $p->fecha_nacimiento?->format('Y-m-d') ?? '';
     $this->p_sexo = $p->sexo ?? '';
     $this->p_lugar_nacimiento = $p->lugar_nacimiento ?? '';
-    $this->p_nacionalidad = $p->nacionalidad ?? '';
+    $this->p_es_extranjero = $p->nacionalidad !== null && $p->nacionalidad !== 'Guatemalteco/a' && $p->nacionalidad !== '';
+    $this->p_nacionalidad = $p->nacionalidad ?: 'Guatemalteco/a';
     $this->p_estado_civil = $p->estado_civil ?? '';
     $this->p_direccion_habitual = $p->direccion_habitual ?? '';
     $this->p_calle_o_lugar = $p->calle_o_lugar ?? '';
@@ -137,7 +150,8 @@ $selectPatient = function (int $id) {
     $this->p_nombre_conyuge = $p->nombre_conyuge ?? '';
     $this->p_contacto_emergencia = $p->contacto_emergencia ?? '';
 
-    $this->currentStep = 4;
+    // Permitir revisar/editar los datos personales antes del ingreso clínico.
+    $this->currentStep = 2;
 };
 
 $clearPatient = function () {
@@ -152,7 +166,8 @@ $clearPatient = function () {
     $this->p_fecha_nacimiento = '';
     $this->p_sexo = '';
     $this->p_lugar_nacimiento = '';
-    $this->p_nacionalidad = '';
+    $this->p_es_extranjero = false;
+    $this->p_nacionalidad = 'Guatemalteco/a';
     $this->p_estado_civil = '';
     $this->p_direccion_habitual = '';
     $this->p_calle_o_lugar = '';
@@ -227,9 +242,18 @@ $rules = function () {
             'a_sala_ingreso' => ['nullable', 'string', 'max:255'],
             'a_habitacion' => ['nullable', 'string', 'max:255'],
             'a_medico_responsable' => ['nullable', 'string', 'max:255'],
+            'a_medico_colegiado' => ['nullable', 'string', 'max:255'],
             'a_referido_por' => ['nullable', 'string', 'max:255'],
             'a_otras_hospitalizaciones' => ['nullable', 'string'],
             'a_impresion_clinica' => ['nullable', 'string'],
+            'a_diagnostico_final' => ['nullable', 'string'],
+            'a_complicaciones' => ['nullable', 'string'],
+            'a_operaciones' => ['nullable', 'string'],
+            'a_maternidad_no_hijo' => ['nullable', 'string', 'max:255'],
+            'a_maternidad_fecha_nacimiento' => ['nullable', 'date'],
+            'a_maternidad_hora' => ['nullable', 'date_format:H:i'],
+            'a_maternidad_sexo' => ['nullable', 'in:M,F'],
+            'a_maternidad_condiciones_egreso' => ['nullable', 'string'],
         ],
         default => [],
     };
@@ -258,6 +282,9 @@ $save = function () {
 
     $admission = DB::transaction(function () {
         $hospitalId = Auth::user()->hospital_id;
+        $hospital = \App\Models\Hospital::find($hospitalId);
+
+        $nacionalidad = $this->p_es_extranjero ? ($this->p_nacionalidad ?: null) : 'Guatemalteco/a';
 
         if ($this->patientId) {
             $patient = Patient::withoutGlobalScopes()->find($this->patientId);
@@ -267,10 +294,9 @@ $save = function () {
 
                 return null;
             }
-        } else {
-            $patient = Patient::create([
-                'hospital_id' => $hospitalId,
-                'expediente_no' => $this->p_expediente_no ?: null,
+
+            $patient->update([
+                'expediente_no' => $patient->expediente_no ?: $this->p_expediente_no ?: null,
                 'primer_apellido' => $this->p_primer_apellido,
                 'segundo_apellido' => $this->p_segundo_apellido ?: null,
                 'primer_nombre' => $this->p_primer_nombre,
@@ -279,7 +305,31 @@ $save = function () {
                 'fecha_nacimiento' => $this->p_fecha_nacimiento ?: null,
                 'sexo' => $this->p_sexo ?: null,
                 'lugar_nacimiento' => $this->p_lugar_nacimiento ?: null,
-                'nacionalidad' => $this->p_nacionalidad ?: null,
+                'nacionalidad' => $nacionalidad,
+                'estado_civil' => $this->p_estado_civil ?: null,
+                'direccion_habitual' => $this->p_direccion_habitual ?: null,
+                'calle_o_lugar' => $this->p_calle_o_lugar ?: null,
+                'municipio' => $this->p_municipio ?: null,
+                'departamento' => $this->p_departamento ?: null,
+                'telefono' => $this->p_telefono ?: null,
+                'nombre_padre' => $this->p_nombre_padre ?: null,
+                'nombre_madre' => $this->p_nombre_madre ?: null,
+                'nombre_conyuge' => $this->p_nombre_conyuge ?: null,
+                'contacto_emergencia' => $this->p_contacto_emergencia ?: null,
+            ]);
+        } else {
+            $patient = Patient::create([
+                'hospital_id' => $hospitalId,
+                'expediente_no' => \App\Support\PatientExpediente::siguiente($hospital),
+                'primer_apellido' => $this->p_primer_apellido,
+                'segundo_apellido' => $this->p_segundo_apellido ?: null,
+                'primer_nombre' => $this->p_primer_nombre,
+                'segundo_nombre' => $this->p_segundo_nombre ?: null,
+                'dpi' => $this->p_dpi ?: null,
+                'fecha_nacimiento' => $this->p_fecha_nacimiento ?: null,
+                'sexo' => $this->p_sexo ?: null,
+                'lugar_nacimiento' => $this->p_lugar_nacimiento ?: null,
+                'nacionalidad' => $nacionalidad,
                 'estado_civil' => $this->p_estado_civil ?: null,
                 'direccion_habitual' => $this->p_direccion_habitual ?: null,
                 'calle_o_lugar' => $this->p_calle_o_lugar ?: null,
@@ -308,10 +358,19 @@ $save = function () {
             'poliza' => $this->isRapidMode ? null : ($this->a_poliza ?: null),
             'certificado' => $this->isRapidMode ? null : ($this->a_certificado ?: null),
             'impresion_clinica' => $this->isRapidMode ? null : ($this->a_impresion_clinica ?: null),
+            'diagnostico_final' => $this->isRapidMode ? null : ($this->a_diagnostico_final ?: null),
+            'complicaciones' => $this->isRapidMode ? null : ($this->a_complicaciones ?: null),
+            'operaciones' => $this->isRapidMode ? null : ($this->a_operaciones ?: null),
             'referido_por' => $this->isRapidMode ? null : ($this->a_referido_por ?: null),
             'otras_hospitalizaciones' => $this->isRapidMode ? null : ($this->a_otras_hospitalizaciones ?: null),
             'muestra_patologia' => false,
             'medico_responsable' => $this->a_medico_responsable ?: null,
+            'medico_colegiado' => $this->isRapidMode ? null : ($this->a_medico_colegiado ?: null),
+            'maternidad_no_hijo' => $this->isRapidMode ? null : ($this->a_maternidad_no_hijo ?: null),
+            'maternidad_fecha_nacimiento' => $this->isRapidMode ? null : ($this->a_maternidad_fecha_nacimiento ?: null),
+            'maternidad_hora' => $this->isRapidMode ? null : ($this->a_maternidad_hora ?: null),
+            'maternidad_sexo' => $this->isRapidMode ? null : ($this->a_maternidad_sexo ?: null),
+            'maternidad_condiciones_egreso' => $this->isRapidMode ? null : ($this->a_maternidad_condiciones_egreso ?: null),
             'qr_token' => AdmissionQr::generateToken(),
             'completo' => ! $this->isRapidMode,
         ]);
@@ -323,6 +382,8 @@ $save = function () {
 
     $this->savedAdmission = $admission;
     $this->lastAdmissionPatientId = $admission->va_a_quirofano ? $admission->patient_id : null;
+
+    $this->dispatch('admission-saved');
 };
 
 ?>
@@ -350,6 +411,47 @@ $save = function () {
             <flux:link href="{{ route('patients.index') }}" class="text-sm">{{ __('Volver') }}</flux:link>
         </div>
     </div>
+
+    {{-- Confirmación + QR (sticky para que siempre sea visible tras guardar) --}}
+    @if ($savedAdmission)
+        <div x-data x-init="window.scrollTo({ top: 0, behavior: 'smooth' })" class="sticky top-4 z-20 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6 shadow-lg">
+            <flux:callout variant="success" icon="check-circle" heading="{{ __('Ingreso registrado correctamente') }}" />
+
+            @if (! $savedAdmission->completo)
+                <flux:callout variant="warning" icon="exclamation-triangle" heading="{{ __('Ingreso rápido pendiente de completar') }}" />
+            @endif
+
+            <div class="flex flex-col md:flex-row items-center gap-6">
+                <div class="p-4 bg-white rounded-xl border border-zinc-200 shadow-sm print:shadow-none">
+                    {!! App\Support\AdmissionQr::svg($savedAdmission, 180) !!}
+                </div>
+
+                <div class="flex-1 text-center md:text-left space-y-1">
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Paciente') }}</p>
+                    <p class="text-lg font-semibold">{{ $savedAdmission->patient->nombreCompleto() }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                        {{ App\Enums\AdmissionType::from($savedAdmission->tipo_atencion)->label() }}
+                        · {{ $savedAdmission->completo ? __('Completo') : __('Pendiente de completar') }}
+                    </p>
+                    @if ($savedAdmission->patient->expediente_no)
+                        <p class="text-sm">
+                            <span class="text-zinc-500">{{ __('Expediente') }}:</span>
+                            <span class="font-semibold text-accent">{{ $savedAdmission->patient->expediente_no }}</span>
+                        </p>
+                    @endif
+                </div>
+
+                <div class="flex flex-col gap-3 no-print">
+                    <flux:button href="{{ $savedAdmission->qrUrl() }}" target="_blank" variant="outline" icon="arrow-top-right-on-square">
+                        {{ __('Ver expediente') }}
+                    </flux:button>
+                    <flux:button onclick="window.print()" variant="primary" icon="printer">
+                        {{ __('Imprimir QR') }}
+                    </flux:button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     {{-- MODO RÁPIDO --}}
     @if ($isRapidMode)
@@ -538,18 +640,32 @@ $save = function () {
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <flux:input wire:model="p_nacionalidad" label="{{ __('Nacionalidad') }}" />
-                            <flux:input wire:model="p_dpi" label="{{ __('DPI / CUI') }}" />
                             <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Estado civil') }}</label>
-                                <div class="flex flex-wrap gap-2">
-                                    @foreach (['S' => 'Soltero/a', 'C' => 'Casado/a', 'U' => 'Unido/a', 'D' => 'Divorciado/a', 'V' => 'Viudo/a'] as $value => $label)
-                                        <button type="button" wire:click="$set('p_estado_civil', '{{ $value }}')"
-                                            class="px-3 h-9 rounded-lg text-sm border {{ $p_estado_civil === $value ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
-                                            {{ $label }}
-                                        </button>
-                                    @endforeach
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Nacionalidad') }}</label>
+                                <div class="flex items-center gap-3 h-11">
+                                    <button type="button" wire:click="$set('p_es_extranjero', false); $set('p_nacionalidad', 'Guatemalteco/a')"
+                                        class="px-3 h-9 rounded-lg text-sm border {{ ! $p_es_extranjero ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
+                                        {{ __('Guatemalteco/a') }}
+                                    </button>
+                                    <button type="button" wire:click="$set('p_es_extranjero', true); $set('p_nacionalidad', '')"
+                                        class="px-3 h-9 rounded-lg text-sm border {{ $p_es_extranjero ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
+                                        {{ __('Extranjero/a') }}
+                                    </button>
                                 </div>
+                            </div>
+                            <flux:input wire:model="p_nacionalidad" label="{{ __('Especificar nacionalidad') }}" :disabled="! $p_es_extranjero" />
+                            <flux:input wire:model="p_dpi" label="{{ __('DPI / CUI') }}" />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Estado civil') }}</label>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach (['S' => 'Soltero/a', 'C' => 'Casado/a', 'U' => 'Unido/a', 'D' => 'Divorciado/a', 'V' => 'Viudo/a'] as $value => $label)
+                                    <button type="button" wire:click="$set('p_estado_civil', '{{ $value }}')"
+                                        class="px-3 h-9 rounded-lg text-sm border {{ $p_estado_civil === $value ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
+                                        {{ $label }}
+                                    </button>
+                                @endforeach
                             </div>
                         </div>
 
@@ -621,8 +737,9 @@ $save = function () {
                             <flux:input wire:model="a_habitacion" label="{{ __('Habitación') }}" />
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <flux:input wire:model="a_medico_responsable" label="{{ __('Médico responsable') }}" />
+                            <flux:input wire:model="a_medico_colegiado" label="{{ __('No. de colegiado') }}" />
                             <flux:input wire:model="a_referido_por" label="{{ __('Referido por') }}" />
                         </div>
 
@@ -635,7 +752,34 @@ $save = function () {
                         </div>
 
                         <flux:textarea wire:model="a_impresion_clinica" label="{{ __('Impresión clínica de ingreso') }}" />
+                        <flux:textarea wire:model="a_diagnostico_final" label="{{ __('Diagnóstico final') }}" />
+                        <flux:textarea wire:model="a_complicaciones" label="{{ __('Complicaciones') }}" />
+                        <flux:textarea wire:model="a_operaciones" label="{{ __('Operaciones') }}" />
                         <flux:textarea wire:model="a_otras_hospitalizaciones" label="{{ __('Otras hospitalizaciones') }}" />
+
+                        {{-- Maternidad: solo si el paciente es femenino --}}
+                        @if ($p_sexo === 'F')
+                            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-mist/30 dark:bg-zinc-800/30 p-5 space-y-4">
+                                <flux:heading size="sm">{{ __('Maternidad') }}</flux:heading>
+
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <flux:input wire:model="a_maternidad_no_hijo" label="{{ __('No. de hijo') }}" />
+                                    <flux:input type="date" wire:model="a_maternidad_fecha_nacimiento" label="{{ __('Fecha de nacimiento') }}" />
+                                    <flux:input type="time" wire:model="a_maternidad_hora" label="{{ __('Hora') }}" />
+                                    <div>
+                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Sexo del recién nacido') }}</label>
+                                        <div class="grid grid-cols-2 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 h-11">
+                                            <button type="button" wire:click="$set('a_maternidad_sexo', 'M')"
+                                                class="text-sm font-medium {{ $a_maternidad_sexo === 'M' ? 'bg-mist text-accent-content dark:bg-accent/20 dark:text-accent' : 'bg-white dark:bg-zinc-900 text-zinc-500' }}">M</button>
+                                            <button type="button" wire:click="$set('a_maternidad_sexo', 'F')"
+                                                class="text-sm font-medium {{ $a_maternidad_sexo === 'F' ? 'bg-mist text-accent-content dark:bg-accent/20 dark:text-accent' : 'bg-white dark:bg-zinc-900 text-zinc-500' }}">F</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <flux:textarea wire:model="a_maternidad_condiciones_egreso" label="{{ __('Condiciones del egreso') }}" />
+                            </div>
+                        @endif
 
                         <div class="flex justify-between pt-2">
                             <flux:button variant="ghost" wire:click="previousStep">← {{ __('Atrás') }}</flux:button>
@@ -667,7 +811,11 @@ $save = function () {
 
                         <div class="space-y-2 text-sm">
                             <div class="flex justify-between"><span class="text-zinc-500">DPI</span><span>{{ $p_dpi ?: '—' }}</span></div>
-                            <div class="flex justify-between"><span class="text-zinc-500">{{ __('Expediente') }}</span><span class="text-accent font-semibold">{{ __('Se asigna al guardar') }}</span></div>
+                            <div class="flex justify-between"><span class="text-zinc-500">{{ __('Expediente') }}</span>
+                                <span class="{{ $p_expediente_no ? 'text-accent font-semibold' : 'text-zinc-400' }}">
+                                    {{ $p_expediente_no ?: __('Se asigna al guardar') }}
+                                </span>
+                            </div>
                             <div class="flex justify-between"><span class="text-zinc-500">{{ __('Teléfono') }}</span><span>{{ $p_telefono ?: '—' }}</span></div>
                             <div class="flex justify-between"><span class="text-zinc-500">{{ __('Emergencia') }}</span><span>{{ $p_contacto_emergencia ?: '—' }}</span></div>
                             <div class="flex justify-between"><span class="text-zinc-500">{{ __('Seguro') }}</span><span>{{ $a_tiene_seguro ? ($a_compania_seguros ?: 'Sí') : 'No' }}</span></div>
@@ -695,41 +843,6 @@ $save = function () {
                     </div>
                 </aside>
             @endif
-        </div>
-    @endif
-
-    {{-- Confirmación + QR --}}
-    @if ($savedAdmission)
-        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
-            <flux:callout variant="success" icon="check-circle" heading="{{ __('Ingreso registrado correctamente') }}" />
-
-            @if (! $savedAdmission->completo)
-                <flux:callout variant="warning" icon="exclamation-triangle" heading="{{ __('Ingreso rápido pendiente de completar') }}" />
-            @endif
-
-            <div class="flex flex-col items-center gap-4">
-                <div class="p-4 bg-white rounded-xl border border-zinc-200 shadow-sm">
-                    {!! App\Support\AdmissionQr::svg($savedAdmission, 240) !!}
-                </div>
-
-                <div class="text-center space-y-1">
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Paciente') }}</p>
-                    <p class="text-lg font-semibold">{{ $savedAdmission->patient->nombreCompleto() }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        {{ App\Enums\AdmissionType::from($savedAdmission->tipo_atencion)->label() }}
-                        · {{ $savedAdmission->completo ? __('Completo') : __('Pendiente de completar') }}
-                    </p>
-                </div>
-
-                <div class="flex gap-3">
-                    <flux:button href="{{ $savedAdmission->qrUrl() }}" target="_blank" variant="outline" icon="arrow-top-right-on-square">
-                        {{ __('Ver expediente') }}
-                    </flux:button>
-                    <flux:button onclick="window.print()" variant="primary" icon="printer">
-                        {{ __('Imprimir QR') }}
-                    </flux:button>
-                </div>
-            </div>
         </div>
     @endif
 </div>

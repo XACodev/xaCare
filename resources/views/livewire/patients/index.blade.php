@@ -89,6 +89,9 @@ $patients = computed(function () {
                                     <flux:menu.item href="{{ route('patients.show', $patient) }}" icon="eye">
                                         {{ __('Ver') }}
                                     </flux:menu.item>
+                                    <flux:menu.item href="{{ route('patients.edit', $patient) }}" icon="pencil">
+                                        {{ __('Editar') }}
+                                    </flux:menu.item>
                                 </flux:menu>
                             </flux:dropdown>
                         </td>

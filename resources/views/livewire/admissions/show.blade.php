@@ -22,63 +22,121 @@ mount(function (Admission $admission) {
 
 ?>
 
-<div class="max-w-3xl mx-auto p-4 space-y-6">
-    <div class="flex items-center justify-between">
+<div class="max-w-4xl mx-auto p-4 space-y-6">
+    <div class="flex items-center justify-between no-print">
         <flux:heading size="xl">{{ __('Expediente de ingreso') }}</flux:heading>
         <flux:link href="{{ route('patients.index') }}" class="text-sm">{{ __('Volver') }}</flux:link>
     </div>
 
     @if ($admission)
-        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
-            <div class="flex flex-col md:flex-row gap-6">
-                <div class="flex-1 space-y-4">
-                    <div>
-                        <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Paciente') }}</p>
-                        <p class="text-xl font-semibold">{{ $admission->patient->nombreCompleto() }}</p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <p class="text-zinc-500 dark:text-zinc-400">{{ __('Tipo de atención') }}</p>
-                            <p class="font-medium">{{ \App\Enums\AdmissionType::from($admission->tipo_atencion)->label() }}</p>
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6 print:shadow-none print:border-none print:p-0">
+            {{-- Cabecera imprimible --}}
+            <div class="flex flex-col md:flex-row gap-6 items-start">
+                <div class="flex-1 space-y-2">
+                    <div class="flex items-center gap-3">
+                        <div class="size-14 rounded-full bg-accent text-white grid place-items-center text-xl font-semibold">
+                            {{ collect([$admission->patient->primer_nombre, $admission->patient->primer_apellido])->filter()->map(fn($w) => mb_substr($w, 0, 1))->implode('') ?: '?' }}
                         </div>
                         <div>
-                            <p class="text-zinc-500 dark:text-zinc-400">{{ __('Fecha de ingreso') }}</p>
-                            <p class="font-medium">{{ $admission->fecha_ingreso?->format('d/m/Y') }}</p>
-                        </div>
-                        <div>
-                            <p class="text-zinc-500 dark:text-zinc-400">{{ __('Hora') }}</p>
-                            <p class="font-medium">{{ $admission->hora_ingreso }}</p>
-                        </div>
-                        <div>
-                            <p class="text-zinc-500 dark:text-zinc-400">{{ __('Sala') }}</p>
-                            <p class="font-medium">{{ $admission->sala_ingreso ?: '—' }}</p>
+                            <p class="text-2xl font-semibold">{{ $admission->patient->nombreCompleto() }}</p>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                                {{ App\Enums\AdmissionType::from($admission->tipo_atencion)->label() }}
+                                · {{ $admission->completo ? __('Completo') : __('Pendiente de completar') }}
+                            </p>
                         </div>
                     </div>
 
-                    @if ($admission->impresion_clinica)
-                        <div>
-                            <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Impresión clínica') }}</p>
-                            <p class="text-sm whitespace-pre-line">{{ $admission->impresion_clinica }}</p>
-                        </div>
-                    @endif
-
-                    @if ($admission->medico_responsable)
-                        <div>
-                            <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Médico responsable') }}</p>
-                            <p class="font-medium">{{ $admission->medico_responsable }}</p>
-                        </div>
+                    @if ($admission->patient->expediente_no)
+                        <p class="text-lg">
+                            <span class="text-zinc-500">{{ __('Expediente No.') }}</span>
+                            <span class="font-bold text-accent">{{ $admission->patient->expediente_no }}</span>
+                        </p>
                     @endif
                 </div>
 
-                <div class="flex flex-col items-center gap-4">
-                    <div class="p-4 bg-white rounded-xl border border-zinc-200 shadow-sm">
-                        {!! \App\Support\AdmissionQr::svg($admission, 200) !!}
+                <div class="flex flex-col items-center gap-3">
+                    <div class="p-3 bg-white rounded-xl border border-zinc-200 shadow-sm print:shadow-none print:border print:p-2">
+                        {!! \App\Support\AdmissionQr::svg($admission, 160) !!}
                     </div>
-                    <flux:button onclick="window.print()" variant="outline" icon="printer">
-                        {{ __('Imprimir QR') }}
-                    </flux:button>
+                    <p class="text-xs text-zinc-500 text-center max-w-[160px] break-words hidden print:block">
+                        {{ $admission->qrUrl() }}
+                    </p>
                 </div>
+            </div>
+
+            {{-- Datos del paciente --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                <x-admissions.info label="{{ __('DPI') }}" :value="$admission->patient->dpi" />
+                <x-admissions.info label="{{ __('Fecha de nacimiento') }}" :value="$admission->patient->fecha_nacimiento?->format('d/m/Y')" />
+                <x-admissions.info label="{{ __('Edad') }}" :value="$admission->patient->fecha_nacimiento ? $admission->patient->fecha_nacimiento->age . ' años' : null" />
+                <x-admissions.info label="{{ __('Sexo') }}" :value="$admission->patient->sexo" />
+                <x-admissions.info label="{{ __('Lugar de nacimiento') }}" :value="$admission->patient->lugar_nacimiento" />
+                <x-admissions.info label="{{ __('Nacionalidad') }}" :value="$admission->patient->nacionalidad" />
+                <x-admissions.info label="{{ __('Estado civil') }}" :value="match ($admission->patient->estado_civil) { 'S' => 'Soltero/a', 'C' => 'Casado/a', 'U' => 'Unido/a', 'D' => 'Divorciado/a', 'V' => 'Viudo/a', default => null }" />
+                <x-admissions.info label="{{ __('Teléfono') }}" :value="$admission->patient->telefono" />
+                <x-admissions.info label="{{ __('Contacto de emergencia') }}" :value="$admission->patient->contacto_emergencia" />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <x-admissions.info label="{{ __('Dirección habitual') }}" :value="$admission->patient->direccion_habitual" />
+                <x-admissions.info label="{{ __('Calle o lugar') }}" :value="$admission->patient->calle_o_lugar" />
+                <x-admissions.info label="{{ __('Municipio') }}" :value="$admission->patient->municipio" />
+                <x-admissions.info label="{{ __('Departamento') }}" :value="$admission->patient->departamento" />
+                <x-admissions.info label="{{ __('Nombre del padre') }}" :value="$admission->patient->nombre_padre" />
+                <x-admissions.info label="{{ __('Nombre de la madre') }}" :value="$admission->patient->nombre_madre" />
+                <x-admissions.info label="{{ __('Nombre del cónyuge') }}" :value="$admission->patient->nombre_conyuge" />
+            </div>
+
+            {{-- Datos del ingreso --}}
+            <div class="border-t border-zinc-200 dark:border-zinc-700 pt-6 space-y-4">
+                <flux:heading size="lg">{{ __('Datos del ingreso') }}</flux:heading>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <x-admissions.info label="{{ __('Fecha de ingreso') }}" :value="$admission->fecha_ingreso?->format('d/m/Y')" />
+                    <x-admissions.info label="{{ __('Hora') }}" :value="$admission->hora_ingreso" />
+                    <x-admissions.info label="{{ __('Sala') }}" :value="$admission->sala_ingreso" />
+                    <x-admissions.info label="{{ __('Habitación') }}" :value="$admission->habitacion" />
+                    <x-admissions.info label="{{ __('Va a quirófano') }}" :value="$admission->va_a_quirofano ? 'Sí' : 'No'" />
+                    <x-admissions.info label="{{ __('Muestra patología') }}" :value="$admission->muestra_patologia ? 'Sí' : 'No'" />
+                    <x-admissions.info label="{{ __('Seguro') }}" :value="$admission->tiene_seguro ? ($admission->compania_seguros ?: 'Sí') : 'No'" />
+                    <x-admissions.info label="IGSS" :value="$admission->tiene_igss ? 'Sí' : 'No'" />
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <x-admissions.info label="{{ __('Médico responsable') }}" :value="$admission->medico_responsable" />
+                    <x-admissions.info label="{{ __('No. de colegiado') }}" :value="$admission->medico_colegiado" />
+                    <x-admissions.info label="{{ __('Póliza') }}" :value="$admission->poliza" />
+                    <x-admissions.info label="{{ __('Certificado') }}" :value="$admission->certificado" />
+                    <x-admissions.info label="{{ __('Referido por') }}" :value="$admission->referido_por" />
+                </div>
+
+                <x-admissions.text label="{{ __('Impresión clínica de ingreso') }}" :value="$admission->impresion_clinica" />
+                <x-admissions.text label="{{ __('Diagnóstico final') }}" :value="$admission->diagnostico_final" />
+                <x-admissions.text label="{{ __('Complicaciones') }}" :value="$admission->complicaciones" />
+                <x-admissions.text label="{{ __('Operaciones') }}" :value="$admission->operaciones" />
+                <x-admissions.text label="{{ __('Otras hospitalizaciones') }}" :value="$admission->otras_hospitalizaciones" />
+            </div>
+
+            {{-- Maternidad --}}
+            @if ($admission->patient->sexo === 'F' && ($admission->maternidad_no_hijo || $admission->maternidad_fecha_nacimiento || $admission->maternidad_condiciones_egreso))
+                <div class="border-t border-zinc-200 dark:border-zinc-700 pt-6 space-y-4">
+                    <flux:heading size="lg">{{ __('Maternidad') }}</flux:heading>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <x-admissions.info label="{{ __('No. de hijo') }}" :value="$admission->maternidad_no_hijo" />
+                        <x-admissions.info label="{{ __('Fecha de nacimiento') }}" :value="$admission->maternidad_fecha_nacimiento?->format('d/m/Y')" />
+                        <x-admissions.info label="{{ __('Hora') }}" :value="$admission->maternidad_hora" />
+                        <x-admissions.info label="{{ __('Sexo del recién nacido') }}" :value="$admission->maternidad_sexo" />
+                    </div>
+
+                    <x-admissions.text label="{{ __('Condiciones del egreso') }}" :value="$admission->maternidad_condiciones_egreso" />
+                </div>
+            @endif
+
+            <div class="flex justify-end gap-3 no-print">
+                <flux:button onclick="window.print()" variant="primary" icon="printer">
+                    {{ __('Imprimir') }}
+                </flux:button>
             </div>
         </div>
     @endif

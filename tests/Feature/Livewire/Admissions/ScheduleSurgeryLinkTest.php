@@ -22,6 +22,8 @@ test('tras registrar un ingreso marcado va_a_quirofano, expone el paciente para 
 
     $component = Volt::test('admissions.create')
         ->call('selectPatient', $patient->id)
+        ->call('nextStep')
+        ->call('nextStep')
         ->set('a_tipo_atencion', 'hospitalizacion')
         ->set('a_va_a_quirofano', true)
         ->set('a_fecha_ingreso', now()->toDateString())

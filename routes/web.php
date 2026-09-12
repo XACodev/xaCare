@@ -60,6 +60,7 @@ Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
     Volt::route('patients', 'patients.index')->name('patients.index');
     Volt::route('patients/create', 'patients.create')->name('patients.create');
     Volt::route('patients/{patient}', 'patients.show')->name('patients.show');
+    Volt::route('patients/{patient}/edit', 'patients.edit')->name('patients.edit');
     Volt::route('admissions/create', 'admissions.create')->name('admissions.create');
     Volt::route('admissions/{admission}', 'admissions.show')->name('admissions.show');
 
