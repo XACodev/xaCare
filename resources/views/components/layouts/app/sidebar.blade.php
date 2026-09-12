@@ -117,6 +117,14 @@
                             :current="request()->routeIs('settings.organization')" wire:navigate>
                             {{ __('General Settings') }}
                         </flux:navlist.item>
+                        <flux:navlist.item icon="rectangle-group" :href="route('settings.wards')"
+                            :current="request()->routeIs('settings.wards')" wire:navigate>
+                            {{ __('Salas') }}
+                        </flux:navlist.item>
+                        <flux:navlist.item icon="squares-2x2" :href="route('settings.hospital-rooms')"
+                            :current="request()->routeIs('settings.hospital-rooms')" wire:navigate>
+                            {{ __('Habitaciones') }}
+                        </flux:navlist.item>
                     @endcan
                     <flux:navlist.item icon="shield-check" :href="route('settings.roles.index')"
                         :current="request()->routeIs('settings.roles.index')" wire:navigate>

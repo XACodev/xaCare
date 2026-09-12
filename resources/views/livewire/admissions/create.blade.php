@@ -2,7 +2,10 @@
 
 use App\Enums\AdmissionType;
 use App\Models\Admission;
+use App\Models\HospitalRoom;
+use App\Models\HospitalWard;
 use App\Models\Patient;
+use App\Models\User;
 use App\Support\AdmissionQr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -112,6 +115,48 @@ $edadCalculada = computed(function () {
 });
 
 $tipoOptions = computed(fn () => AdmissionType::options());
+
+// Sala/Habitacion: catalogos por hospital (Configuracion > Salas / Habitaciones), no
+// obligatorios -- si el hospital aun no cargo el catalogo o se necesita algo puntual que
+// no esta en la lista, el campo sigue siendo texto libre.
+$salaSuggestions = computed(function () {
+    $q = trim((string) $this->a_sala_ingreso);
+    if ($q === '') {
+        return [];
+    }
+    $normalizedQ = Str::ascii(Str::lower($q));
+
+    return HospitalWard::query()->where('active', true)->orderBy('sort_order')->get(['id', 'name'])
+        ->filter(fn ($w) => str_contains(Str::ascii(Str::lower($w->name)), $normalizedQ) && Str::lower($w->name) !== Str::lower($q))
+        ->take(6)->values()->all();
+});
+
+$habitacionSuggestions = computed(function () {
+    $q = trim((string) $this->a_habitacion);
+    if ($q === '') {
+        return [];
+    }
+    $normalizedQ = Str::ascii(Str::lower($q));
+
+    return HospitalRoom::query()->where('active', true)->orderBy('sort_order')->get(['id', 'name'])
+        ->filter(fn ($r) => str_contains(Str::ascii(Str::lower($r->name)), $normalizedQ) && Str::lower($r->name) !== Str::lower($q))
+        ->take(6)->values()->all();
+});
+
+// Medico responsable: busca en el staff que el hospital ya marco como "aparece en
+// buscadores" (mismo permiso search.appear_as_suggestion que usan procedimientos/cirugias
+// para elegir personal). Si no aparece nadie, se escribe el nombre libre igual.
+$medicoSuggestions = computed(function () {
+    $q = trim((string) $this->a_medico_responsable);
+    if ($q === '') {
+        return [];
+    }
+    $normalizedQ = Str::ascii(Str::lower($q));
+
+    return User::query()->appearsAsSuggestion()->get(['id', 'name'])
+        ->filter(fn ($u) => str_contains(Str::ascii(Str::lower($u->name)), $normalizedQ) && Str::lower($u->name) !== Str::lower($q))
+        ->take(6)->values()->all();
+});
 
 $stepLabels = computed(fn () => [
     1 => ['title' => 'Identificación', 'subtitle' => 'Busca o registra al paciente'],
@@ -733,12 +778,48 @@ $save = function () {
                                     <button type="button" wire:click="setNow" class="text-xs font-semibold text-accent px-2">{{ __('Ahora') }}</button>
                                 </x-slot>
                             </flux:input>
-                            <flux:input wire:model="a_sala_ingreso" label="{{ __('Sala') }}" />
-                            <flux:input wire:model="a_habitacion" label="{{ __('Habitación') }}" />
+                            <div class="relative">
+                                <flux:input wire:model.live.debounce.300ms="a_sala_ingreso" label="{{ __('Sala') }}" placeholder="{{ __('Escribe o elige del catálogo') }}" autocomplete="off" />
+                                @if (count($this->salaSuggestions))
+                                    <div class="absolute z-10 mt-1 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+                                        @foreach ($this->salaSuggestions as $w)
+                                            <button type="button" wire:click="$set('a_sala_ingreso', '{{ $w['name'] }}')"
+                                                class="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                                                {{ $w['name'] }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="relative">
+                                <flux:input wire:model.live.debounce.300ms="a_habitacion" label="{{ __('Habitación') }}" placeholder="{{ __('Escribe o elige del catálogo') }}" autocomplete="off" />
+                                @if (count($this->habitacionSuggestions))
+                                    <div class="absolute z-10 mt-1 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+                                        @foreach ($this->habitacionSuggestions as $r)
+                                            <button type="button" wire:click="$set('a_habitacion', '{{ $r['name'] }}')"
+                                                class="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                                                {{ $r['name'] }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <flux:input wire:model="a_medico_responsable" label="{{ __('Médico responsable') }}" />
+                            <div class="relative">
+                                <flux:input wire:model.live.debounce.300ms="a_medico_responsable" label="{{ __('Médico responsable') }}" placeholder="{{ __('Busca en el staff o escribe libre') }}" autocomplete="off" />
+                                @if (count($this->medicoSuggestions))
+                                    <div class="absolute z-10 mt-1 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
+                                        @foreach ($this->medicoSuggestions as $doc)
+                                            <button type="button" wire:click="$set('a_medico_responsable', '{{ $doc['name'] }}')"
+                                                class="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                                                {{ $doc['name'] }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
                             <flux:input wire:model="a_medico_colegiado" label="{{ __('No. de colegiado') }}" />
                             <flux:input wire:model="a_referido_por" label="{{ __('Referido por') }}" />
                         </div>

@@ -6,6 +6,7 @@ use App\Models\Hospital;
 use App\Models\Patient;
 use App\Models\User;
 use Livewire\Volt\Volt;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -227,4 +228,60 @@ test('clinical and maternity fields are stored on admission', function () {
     expect($admission->operaciones)->toBe('Cesárea');
     expect($admission->maternidad_no_hijo)->toBe('1');
     expect($admission->maternidad_sexo)->toBe('M');
+});
+
+test('sala y habitacion sugieren coincidencias del catalogo del hospital', function () {
+    $hospital = Hospital::factory()->create();
+    $otherHospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
+    $this->actingAs($user);
+
+    \App\Models\HospitalWard::factory()->for($hospital, 'hospital')->create(['name' => 'Sala 3']);
+    \App\Models\HospitalWard::factory()->for($hospital, 'hospital')->create(['name' => 'Emergencia']);
+    \App\Models\HospitalWard::factory()->for($otherHospital, 'hospital')->create(['name' => 'Sala 3']);
+
+    \App\Models\HospitalRoom::factory()->for($hospital, 'hospital')->create(['name' => '101']);
+    \App\Models\HospitalRoom::factory()->for($hospital, 'hospital')->create(['name' => '102']);
+
+    $component = Volt::test('admissions.create')
+        ->call('selectPatient', $patient->id)
+        ->call('nextStep')
+        ->call('nextStep')
+        ->set('a_sala_ingreso', 'sala');
+
+    expect($component->instance()->salaSuggestions)->toHaveCount(1);
+    expect($component->instance()->salaSuggestions[0]['name'])->toBe('Sala 3');
+
+    $component->set('a_habitacion', '10');
+    expect($component->instance()->habitacionSuggestions)->toHaveCount(2);
+});
+
+test('medico responsable sugiere solo staff marcado como appears_as_suggestion del mismo hospital', function () {
+    Permission::firstOrCreate(['name' => 'search.appear_as_suggestion', 'guard_name' => 'web']);
+
+    $hospital = Hospital::factory()->create();
+    $otherHospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
+    $this->actingAs($user);
+
+    $doctor = User::factory()->create(['hospital_id' => $hospital->id, 'name' => 'Dr. Fernando Lopez', 'role' => 'doctor']);
+
+    // Rol 'admin' es global y no recibe 'search.appear_as_suggestion' por defecto
+    // (a diferencia de los roles core doctor/instrumentist/circulating).
+    User::factory()->create(['hospital_id' => $hospital->id, 'name' => 'Dr. Fernando NoSugerido', 'role' => 'admin']);
+
+    $foreignDoctor = User::factory()->create(['hospital_id' => $otherHospital->id, 'name' => 'Dr. Fernando Otro', 'role' => 'doctor']);
+
+    $component = Volt::test('admissions.create')
+        ->call('selectPatient', $patient->id)
+        ->call('nextStep')
+        ->call('nextStep')
+        ->set('a_medico_responsable', 'Fernando');
+
+    expect($component->instance()->medicoSuggestions)->toHaveCount(1);
+    expect($component->instance()->medicoSuggestions[0]['name'])->toBe('Dr. Fernando Lopez');
 });
