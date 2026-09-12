@@ -10,7 +10,7 @@
     @php($hasQxlog = $me?->hospital?->hasFeature('qxlog') || $me?->is_platform_admin)
     @php($hasQuotes = $hasQxlog && ($me?->hospital?->hasFeature('qxlog_quotes') || $me?->is_platform_admin))
 
-    <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-white dark:border-zinc-800 dark:bg-night flex flex-col w-72">
+    <flux:sidebar sticky stashable class="no-print border-e border-zinc-200 bg-white dark:border-zinc-800 dark:bg-night flex flex-col w-72">
         <div class="shrink-0">
             <flux:sidebar.toggle
                 class="lg:hidden ml-2 bg-accent dark:bg-accent border border-accent-content dark:border-accent-content rounded-lg"
@@ -127,6 +127,10 @@
                             <flux:navlist.item icon="squares-2x2" :href="route('settings.hospital-rooms')"
                                 :current="request()->routeIs('settings.hospital-rooms')" wire:navigate>
                                 {{ __('Habitaciones') }}
+                            </flux:navlist.item>
+                            <flux:navlist.item icon="tag" :href="route('settings.patient-categories')"
+                                :current="request()->routeIs('settings.patient-categories')" wire:navigate>
+                                {{ __('Categorías de paciente') }}
                             </flux:navlist.item>
                         @endcan
                         <flux:navlist.item icon="shield-check" :href="route('settings.roles.index')"
@@ -249,7 +253,7 @@
     </flux:sidebar>
 
     <!-- Mobile User Menu -->
-    <flux:header class="lg:hidden">
+    <flux:header class="no-print lg:hidden">
         <flux:sidebar.toggle
             class="lg:hidden ml-2 bg-accent dark:bg-accent border border-accent-content dark:border-accent-content rounded-lg"
             icon="bars-3" inset="left" />

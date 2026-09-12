@@ -104,6 +104,11 @@ class Hospital extends Model
             ->values();
     }
 
+    public function patientCategories(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PatientCategory::class);
+    }
+
     public function subscriptionAllowsAccess(): bool
     {
         if (! $this->is_active) {

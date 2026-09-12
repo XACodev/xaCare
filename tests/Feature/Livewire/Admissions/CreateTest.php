@@ -197,7 +197,7 @@ test('nationality defaults to guatemalan unless foreign is selected', function (
     expect($patient->nacionalidad)->toBe('Guatemalteco/a');
 });
 
-test('clinical and maternity fields are stored on admission', function () {
+test('maternity fields and other hospitalizations are stored on admission', function () {
     $hospital = Hospital::factory()->create();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
@@ -212,20 +212,14 @@ test('clinical and maternity fields are stored on admission', function () {
         ->call('nextStep')
         ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
         ->set('a_fecha_ingreso', now()->toDateString())
-        ->set('a_medico_colegiado', '12345')
-        ->set('a_diagnostico_final', 'Diagnóstico final')
-        ->set('a_complicaciones', 'Ninguna')
-        ->set('a_operaciones', 'Cesárea')
+        ->set('a_otras_hospitalizaciones', 'Apendicitis 2020')
         ->set('a_maternidad_no_hijo', '1')
         ->set('a_maternidad_sexo', 'M')
         ->call('save')
         ->assertHasNoErrors();
 
     $admission = Admission::first();
-    expect($admission->medico_colegiado)->toBe('12345');
-    expect($admission->diagnostico_final)->toBe('Diagnóstico final');
-    expect($admission->complicaciones)->toBe('Ninguna');
-    expect($admission->operaciones)->toBe('Cesárea');
+    expect($admission->otras_hospitalizaciones)->toBe('Apendicitis 2020');
     expect($admission->maternidad_no_hijo)->toBe('1');
     expect($admission->maternidad_sexo)->toBe('M');
 });
@@ -256,6 +250,125 @@ test('sala y habitacion sugieren coincidencias del catalogo del hospital', funct
 
     $component->set('a_habitacion', '10');
     expect($component->instance()->habitacionSuggestions)->toHaveCount(2);
+});
+
+test('foreign patient stores country document type and passport', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $this->actingAs($user);
+
+    Volt::test('admissions.create')
+        ->call('newPatient')
+        ->set('p_es_extranjero', true)
+        ->set('p_id_country', 'SV')
+        ->set('p_id_type', 'Pasaporte')
+        ->set('p_dpi', 'A1234567')
+        ->set('p_nacionalidad', 'Salvadoreño/a')
+        ->set('p_pais_nacimiento', 'El Salvador')
+        ->set('p_primer_apellido', 'Lopez')
+        ->set('p_primer_nombre', 'Carlos')
+        ->set('p_fecha_nacimiento', '1990-05-10')
+        ->call('nextStep')
+        ->call('nextStep')
+        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('a_fecha_ingreso', now()->toDateString())
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $patient = Patient::where('primer_nombre', 'Carlos')->first();
+    expect($patient)->not->toBeNull();
+    expect($patient->id_country)->toBe('SV');
+    expect($patient->id_type)->toBe('Pasaporte');
+    expect($patient->dpi)->toBe('A1234567');
+    expect($patient->nacionalidad)->toBe('Salvadoreño/a');
+    expect($patient->lugar_nacimiento)->toContain('El Salvador');
+});
+
+test('age is calculated in months and days for infants', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $this->actingAs($user);
+
+    $birthDate = now()->subMonths(2)->subDays(5);
+
+    $component = Volt::test('admissions.create')
+        ->call('newPatient')
+        ->set('p_primer_apellido', 'Perez')
+        ->set('p_primer_nombre', 'Bebe')
+        ->set('p_fecha_nacimiento', $birthDate->toDateString());
+
+    $age = $component->instance()->edadCalculada;
+    expect($age->years)->toBe(0);
+    expect($age->months)->toBeGreaterThanOrEqual(2);
+    expect($age->formatted())->toContain('meses');
+});
+
+test('multiple emergency contacts are stored as json', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $this->actingAs($user);
+
+    Volt::test('admissions.create')
+        ->call('newPatient')
+        ->set('p_primer_apellido', 'Garcia')
+        ->set('p_primer_nombre', 'Maria')
+        ->set('p_emergency_contacts', [
+            ['nombre' => 'Juan Garcia', 'telefono' => '55551111', 'municipio' => 'Guatemala', 'departamento' => 'Guatemala'],
+            ['nombre' => 'Ana Garcia', 'telefono' => '55552222', 'municipio' => 'Mixco', 'departamento' => 'Guatemala'],
+        ])
+        ->call('nextStep')
+        ->call('nextStep')
+        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('a_fecha_ingreso', now()->toDateString())
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $patient = Patient::where('primer_nombre', 'Maria')->first();
+    expect($patient->emergency_contacts)->toHaveCount(2);
+    expect($patient->emergency_contacts[0]['nombre'])->toBe('Juan Garcia');
+});
+
+test('newborn patient can be registered without a name and linked to mother', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $mother = Patient::factory()->create(['hospital_id' => $hospital->id, 'sexo' => 'F', 'primer_nombre' => 'Mama']);
+    $this->actingAs($user);
+
+    Volt::test('admissions.create')
+        ->call('newPatient')
+        ->set('p_es_recien_nacido', true)
+        ->set('p_madre_paciente_id', $mother->id)
+        ->set('p_sexo', 'M')
+        ->set('p_fecha_nacimiento', now()->toDateString())
+        ->call('nextStep')
+        ->call('nextStep')
+        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('a_fecha_ingreso', now()->toDateString())
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $newborn = Patient::where('es_recien_nacido', true)->first();
+    expect($newborn)->not->toBeNull();
+    expect($newborn->madre_paciente_id)->toBe($mother->id);
+});
+
+test('guatemalan cui dpi validates 13 digits', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $this->actingAs($user);
+
+    Volt::test('admissions.create')
+        ->call('newPatient')
+        ->set('p_primer_apellido', 'Test')
+        ->set('p_primer_nombre', 'Corto')
+        ->set('p_dpi', '123')
+        ->call('nextStep')
+        ->assertHasErrors(['p_dpi']);
 });
 
 test('medico responsable sugiere solo staff marcado como appears_as_suggestion del mismo hospital', function () {

@@ -17,13 +17,18 @@ class Patient extends Model
     protected $fillable = [
         'hospital_id', 'expediente_no',
         'primer_apellido', 'segundo_apellido', 'primer_nombre', 'segundo_nombre',
-        'dpi', 'fecha_nacimiento', 'sexo', 'lugar_nacimiento', 'nacionalidad', 'estado_civil',
-        'direccion_habitual', 'calle_o_lugar', 'municipio', 'departamento', 'telefono',
+        'dpi', 'id_type', 'id_country',
+        'fecha_nacimiento', 'sexo', 'lugar_nacimiento', 'nacionalidad', 'estado_civil',
+        'es_recien_nacido', 'madre_paciente_id',
+        'direccion_habitual', 'calle_o_lugar', 'municipio', 'departamento',
+        'telefono', 'telefono_casa', 'emergency_contacts',
         'nombre_padre', 'nombre_madre', 'nombre_conyuge', 'contacto_emergencia',
     ];
 
     protected $casts = [
         'fecha_nacimiento' => 'date',
+        'es_recien_nacido' => 'boolean',
+        'emergency_contacts' => 'array',
     ];
 
     protected function primerApellido(): Attribute
@@ -57,5 +62,15 @@ class Patient extends Model
     public function admissions(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Admission::class);
+    }
+
+    public function madrePaciente(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(self::class, 'madre_paciente_id');
+    }
+
+    public function hijosRecienNacidos(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(self::class, 'madre_paciente_id');
     }
 }
