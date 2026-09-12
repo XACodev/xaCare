@@ -5,7 +5,6 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Spatie\Permission\Models\Role;
 
 use function Livewire\Volt\{state, mount, rules};
 
@@ -45,10 +44,7 @@ mount(function () {
     // Solo los roles habilitados para ESTE hospital (los "core" siempre, más los que el
     // administrador de plataforma haya habilitado específicamente) — un rol nuevo del
     // catálogo global no aparece hasta que se habilita hospital por hospital.
-    $this->availableRoles = Role::whereIn('name', $hospital->visibleRoleNames())
-        ->orderBy('name')
-        ->pluck('name', 'id')
-        ->toArray();
+    $this->availableRoles = $hospital->visibleRoles()->pluck('name', 'id')->toArray();
 });
 
 rules(fn () => [

@@ -176,6 +176,30 @@ test('cannot delete self', function () {
         ->assertForbidden();
 });
 
+test('role list only shows roles from the users hospital', function () {
+    $superAdmin = User::factory()->create(['is_platform_admin' => true, 'hospital_id' => null]);
+    $hospitalA = Hospital::factory()->create(['enabled_roles' => ['cirujano']]);
+    $hospitalB = Hospital::factory()->create(['enabled_roles' => ['cirujano']]);
+
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+    Role::firstOrCreate(['name' => 'cirujano', 'guard_name' => 'web', 'team_id' => $hospitalA->id]);
+    Role::firstOrCreate(['name' => 'cirujano', 'guard_name' => 'web', 'team_id' => $hospitalB->id]);
+    Role::firstOrCreate(['name' => 'enfermera', 'guard_name' => 'web', 'team_id' => $hospitalB->id]);
+
+    $userToEdit = User::factory()->create(['role' => 'cirujano', 'hospital_id' => $hospitalA->id]);
+    $userToEdit->assignRole('cirujano');
+
+    $this->actingAs($superAdmin);
+
+    $roles = Volt::test('users.edit', ['user' => $userToEdit->slug])->get('availableRoles');
+    $roleNames = array_values($roles);
+
+    expect($roleNames)->toContain('admin')
+        ->toContain('cirujano')
+        ->not->toContain('enfermera')
+        ->and(array_count_values($roleNames)['cirujano'] ?? 0)->toBe(1);
+});
+
 test('hospital admin without hospital_id gets a clear 422 error', function () {
     $admin = User::withoutEvents(fn () => User::factory()->create([
         'is_platform_admin' => false,
