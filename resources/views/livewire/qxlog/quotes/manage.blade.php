@@ -5,6 +5,7 @@ use App\Models\Patient;
 use App\Modules\QxLog\Models\ProcedureType;
 use App\Modules\QxLog\Models\SurgeryQuote;
 use App\Modules\QxLog\Models\SurgicalRole;
+use App\Support\NameFormatter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
@@ -117,6 +118,16 @@ $lineItemsTotal = computed(fn () => collect($this->line_items)->sum(fn ($item) =
 $save = function () {
     $user = Auth::user();
 
+    // Si eligieron un rol del catálogo pero dejaron la descripción vacía,
+    // se rellena con el nombre del rol en vez de exigir que lo escriban
+    // también (respeta el "rol O texto libre" del formulario).
+    foreach ($this->line_items as $index => $item) {
+        $roleId = $item['surgical_role_id'] ?? null;
+        if ($roleId && trim((string) ($item['label'] ?? '')) === '') {
+            $this->line_items[$index]['label'] = SurgicalRole::find($roleId)?->name ?? '';
+        }
+    }
+
     $data = $this->validate([
         'line_items' => ['required', 'array', 'min:1'],
         'line_items.*.label' => ['required', 'string', 'max:255'],
@@ -138,9 +149,25 @@ $save = function () {
 
     $patientId = $this->patient_id;
     if (! $patientId && $this->patient_free_text) {
-        $patientId = Patient::query()->firstOrCreate(
-            ['hospital_id' => $user->hospital_id, 'primer_nombre' => $this->patient_free_text, 'primer_apellido' => ''],
-        )->id;
+        // "Texto libre" solo trae un nombre completo suelto: se parte en
+        // nombre/apellido para poblar los dos campos obligatorios de
+        // Patient. Si no hay segundo token, se usa un placeholder no vacío
+        // ("-") porque primer_apellido es NOT NULL y su mutator normaliza
+        // '' a null (NameFormatter::titleCase('') === null).
+        [$freeFirstName, $freeLastName] = array_pad(
+            preg_split('/\s+/', trim($this->patient_free_text), 2),
+            2,
+            '-',
+        );
+
+        $patientId = Patient::query()->firstOrCreate([
+            'hospital_id' => $user->hospital_id,
+            // Normalizado con el mismo formatter que el mutator del modelo
+            // aplica al guardar, para que firstOrCreate compare como iguales
+            // "elena xitumul" y "Elena Xitumul" (SQLite es case-sensitive).
+            'primer_nombre' => NameFormatter::titleCase($freeFirstName),
+            'primer_apellido' => NameFormatter::titleCase($freeLastName),
+        ])->id;
     }
 
     $procedureTypeId = null;
@@ -184,6 +211,7 @@ $save = function () {
                 </button>
             </div>
         @endif
+        @error('patient_id') <flux:error>{{ $message }}</flux:error> @enderror
     </flux:field>
 
     <flux:field>
@@ -221,9 +249,11 @@ $save = function () {
                 </flux:field>
                 <flux:field class="flex-1">
                     <flux:input wire:model="line_items.{{ $index }}.label" placeholder="{{ __('Descripción') }}" />
+                    @error("line_items.{$index}.label") <flux:error>{{ $message }}</flux:error> @enderror
                 </flux:field>
                 <flux:field class="w-32">
                     <flux:input type="number" step="0.01" wire:model="line_items.{{ $index }}.amount" />
+                    @error("line_items.{$index}.amount") <flux:error>{{ $message }}</flux:error> @enderror
                 </flux:field>
                 <flux:button type="button" variant="ghost" wire:click="removeLineItem({{ $index }})">&times;</flux:button>
             </div>

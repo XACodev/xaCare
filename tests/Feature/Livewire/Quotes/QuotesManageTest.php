@@ -186,3 +186,54 @@ test('el paciente que no existe se guarda como texto libre', function () {
         ->assertSet('patient_id', null)
         ->assertSet('patient_free_text', 'Elena Xitumul');
 });
+
+test('guardar con paciente de texto libre crea el paciente y la cotizacion sin error', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = manageAdmin($hospital);
+    $this->actingAs($admin);
+
+    Volt::test('qxlog.quotes.manage')
+        ->set('patient_query', 'Elena Xitumul')
+        ->call('useFreeTextPatient')
+        ->set('line_items', [
+            ['surgical_role_id' => null, 'label' => 'Cirujano', 'amount' => 1000],
+        ])
+        ->set('hospital_cost', 500)
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertRedirect();
+
+    $patient = Patient::where('hospital_id', $hospital->id)
+        ->where('primer_nombre', 'Elena')
+        ->first();
+    expect($patient)->not->toBeNull();
+    expect($patient->primer_apellido)->toBe('Xitumul');
+
+    $quote = SurgeryQuote::where('patient_id', $patient->id)->first();
+    expect($quote)->not->toBeNull();
+    expect((float) $quote->total)->toBe(1500.0);
+});
+
+test('guardar con paciente de texto libre de una sola palabra no falla por apellido vacio', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = manageAdmin($hospital);
+    $this->actingAs($admin);
+
+    Volt::test('qxlog.quotes.manage')
+        ->set('patient_query', 'Elena')
+        ->call('useFreeTextPatient')
+        ->set('line_items', [
+            ['surgical_role_id' => null, 'label' => 'Cirujano', 'amount' => 1000],
+        ])
+        ->set('hospital_cost', 500)
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertRedirect();
+
+    $patient = Patient::where('hospital_id', $hospital->id)
+        ->where('primer_nombre', 'Elena')
+        ->first();
+    expect($patient)->not->toBeNull();
+    expect($patient->primer_apellido)->not->toBeNull();
+    expect($patient->primer_apellido)->not->toBe('');
+});
