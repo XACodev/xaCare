@@ -214,6 +214,8 @@
                             </flux:menu.item>
                             <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>{{ __('Settings') }}
                             </flux:menu.item>
+                            <flux:menu.item :href="route('appearance.edit')" icon="sun" wire:navigate>{{ __('Appearance') }}
+                            </flux:menu.item>
                         </flux:menu.radio.group>
 
                         <flux:menu.separator />
@@ -281,6 +283,8 @@
                     <flux:menu.item :href="route('profile.edit')" icon="user" wire:navigate>{{ __('Profile') }}
                     </flux:menu.item>
                     <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>{{ __('Settings') }}
+                    </flux:menu.item>
+                    <flux:menu.item :href="route('appearance.edit')" icon="sun" wire:navigate>{{ __('Appearance') }}
                     </flux:menu.item>
                 </flux:menu.radio.group>
 
