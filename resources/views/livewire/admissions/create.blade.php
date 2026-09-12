@@ -49,7 +49,7 @@ state([
     'p_nombre_padre' => '',
     'p_nombre_madre' => '',
     'p_nombre_conyuge' => '',
-    'p_emergency_contacts' => [['nombre' => '', 'telefono' => '', 'municipio' => '', 'departamento' => '']],
+    'p_emergency_contacts' => [['nombre' => '', 'telefono' => '']],
 
     // Ingreso
     'a_tipo_atencion' => 'hospitalizacion',
@@ -272,7 +272,7 @@ $selectPatient = function (int $id) {
     $this->p_nombre_conyuge = $p->nombre_conyuge ?? '';
     $this->p_emergency_contacts = is_array($p->emergency_contacts) && count($p->emergency_contacts) > 0
         ? $p->emergency_contacts
-        : [['nombre' => $p->contacto_emergencia ?? '', 'telefono' => '', 'municipio' => '', 'departamento' => '']];
+        : [['nombre' => $p->contacto_emergencia ?? '', 'telefono' => '']];
 
     // Permitir revisar/editar los datos personales antes del ingreso clínico.
     $this->sugerirEstadoCivil();
@@ -309,7 +309,7 @@ $clearPatient = function () {
     $this->p_nombre_padre = '';
     $this->p_nombre_madre = '';
     $this->p_nombre_conyuge = '';
-    $this->p_emergency_contacts = [['nombre' => '', 'telefono' => '', 'municipio' => '', 'departamento' => '']];
+    $this->p_emergency_contacts = [['nombre' => '', 'telefono' => '']];
     $this->currentStep = 1;
 };
 
@@ -329,12 +329,12 @@ $clearMadre = function () {
 };
 
 $addEmergencyContact = function () {
-    $this->p_emergency_contacts[] = ['nombre' => '', 'telefono' => '', 'municipio' => '', 'departamento' => ''];
+    $this->p_emergency_contacts[] = ['nombre' => '', 'telefono' => ''];
 };
 
 $removeEmergencyContact = function (int $index) {
     if (count($this->p_emergency_contacts) <= 1) {
-        $this->p_emergency_contacts = [['nombre' => '', 'telefono' => '', 'municipio' => '', 'departamento' => '']];
+        $this->p_emergency_contacts = [['nombre' => '', 'telefono' => '']];
         return;
     }
 
@@ -399,16 +399,14 @@ $rules = function () {
             'p_nombre_padre' => ['nullable', 'string', 'max:255'],
             'p_nombre_madre' => ['nullable', 'string', 'max:255'],
             'p_nombre_conyuge' => ['nullable', 'string', 'max:255'],
+            'p_direccion_habitual' => ['nullable', 'string', 'max:255'],
         ],
         3 => [
-            'p_direccion_habitual' => ['nullable', 'string', 'max:255'],
             'p_telefono' => ['nullable', 'string', 'max:20'],
             'p_telefono_casa' => ['nullable', 'string', 'max:20'],
             'p_emergency_contacts' => ['nullable', 'array'],
             'p_emergency_contacts.*.nombre' => ['nullable', 'string', 'max:255'],
             'p_emergency_contacts.*.telefono' => ['nullable', 'string', 'max:20'],
-            'p_emergency_contacts.*.municipio' => ['nullable', 'string', 'max:255'],
-            'p_emergency_contacts.*.departamento' => ['nullable', 'string', 'max:255'],
             'a_tiene_seguro' => ['boolean'],
             'a_tiene_igss' => ['boolean'],
             'a_compania_seguros' => ['nullable', 'required_if:a_tiene_seguro,true', 'string', 'max:255'],
@@ -493,7 +491,7 @@ $save = function () {
             'emergency_contacts' => ! empty($emergencyContacts) ? $emergencyContacts : null,
             'nombre_padre' => $this->p_nombre_padre ?: null,
             'nombre_madre' => $this->p_nombre_madre ?: null,
-            'nombre_conyuge' => $this->p_nombre_conyuge ?: null,
+            'nombre_conyuge' => in_array($this->p_estado_civil, ['C', 'U'], true) ? ($this->p_nombre_conyuge ?: null) : null,
             'contacto_emergencia' => $emergencyContacts[0]['nombre'] ?? null,
         ];
 
@@ -592,10 +590,6 @@ $save = function () {
             @endif
 
             <div class="flex flex-col md:flex-row items-center gap-6">
-                <div class="p-4 bg-white rounded-xl border border-zinc-200 shadow-sm print:shadow-none">
-                    {!! App\Support\AdmissionQr::svg($savedAdmission, 180) !!}
-                </div>
-
                 <div class="flex-1 text-center md:text-left space-y-1">
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Paciente') }}</p>
                     <p class="text-lg font-semibold">{{ $savedAdmission->patient->nombreCompleto() ?: __('Recién nacido/a') }}</p>
@@ -609,6 +603,10 @@ $save = function () {
                             <span class="font-semibold text-accent">{{ $savedAdmission->patient->expediente_no }}</span>
                         </p>
                     @endif
+                </div>
+
+                <div class="p-4 bg-white rounded-xl border border-zinc-200 shadow-sm print:shadow-none shrink-0">
+                    {!! App\Support\AdmissionQr::svg($savedAdmission, 140) !!}
                 </div>
 
                 <div class="flex flex-col gap-3 no-print">
@@ -659,7 +657,7 @@ $save = function () {
                     </flux:input>
                 </div>
 
-                <flux:input wire:model="a_sala_ingreso" label="{{ __('Sala') }}" />
+                <flux:input wire:model="a_sala_ingreso" label="{{ __('Sala / Servicio (ej. Medicina Interna, Pediatría)') }}" />
                 <flux:input wire:model="a_habitacion" label="{{ __('Habitación') }}" />
             </div>
 
@@ -786,62 +784,6 @@ $save = function () {
                     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
                         <flux:heading size="lg">{{ __('Datos personales') }}</flux:heading>
 
-                        {{-- Nacionalidad primero --}}
-                        <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-mist/20 dark:bg-zinc-800/20 space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{{ __('¿Es guatemalteco/a?') }}</label>
-                                <div class="flex flex-wrap gap-2">
-                                    <button type="button" wire:click="$set('p_es_extranjero', false); $set('p_id_country', 'GT'); $set('p_id_type', 'CUI / DPI'); $set('p_nacionalidad', 'Guatemalteco/a')"
-                                        class="px-4 h-10 rounded-lg text-sm border {{ ! $p_es_extranjero ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
-                                        {{ __('Sí, guatemalteco/a') }}
-                                    </button>
-                                    <button type="button" wire:click="$set('p_es_extranjero', true); $set('p_id_country', 'OTHER'); $set('p_id_type', 'Pasaporte'); $set('p_nacionalidad', '')"
-                                        class="px-4 h-10 rounded-lg text-sm border {{ $p_es_extranjero ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
-                                        {{ __('No, es extranjero/a') }}
-                                    </button>
-                                </div>
-                            </div>
-
-                            @if ($p_es_extranjero)
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('País de origen') }}</label>
-                                        <select wire:model.live="p_id_country"
-                                            class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-2.5">
-                                            @foreach ($this->paises as $code => $country)
-                                                <option value="{{ $code }}">{{ $country['name'] }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <flux:input wire:model.live="p_nacionalidad" label="{{ __('Nacionalidad') }}" placeholder="{{ __('Ej. Salvadoreño/a') }}" />
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Tipo de documento') }}</label>
-                                        <select wire:model.live="p_id_type"
-                                            class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-2.5">
-                                            @foreach ($this->tiposDocumento as $doc)
-                                                <option value="{{ $doc['type'] }}">{{ $doc['type'] }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-                            @else
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <flux:input wire:model="p_nacionalidad" label="{{ __('Nacionalidad') }}" />
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Tipo de documento') }}</label>
-                                        <select wire:model.live="p_id_type"
-                                            class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-2.5">
-                                            @foreach ($this->tiposDocumento as $doc)
-                                                <option value="{{ $doc['type'] }}">{{ $doc['type'] }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-                            @endif
-
-                            <flux:input wire:model="p_dpi" label="{{ $p_es_extranjero ? __('Número de documento') : __('Número de CUI / DPI') }}" />
-                        </div>
-
                         {{-- Nombres --}}
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <flux:input wire:model="p_primer_apellido" label="{{ __('1er. apellido') }} {{ $p_es_recien_nacido ? '' : '*' }}" />
@@ -912,47 +854,106 @@ $save = function () {
                             </div>
                         </div>
 
-                        {{-- Lugar de nacimiento --}}
-                        <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 space-y-4">
-                            <div class="font-medium text-sm">{{ __('Lugar de nacimiento') }}</div>
+                        {{-- Nacionalidad, documento, lugar de nacimiento y dirección --}}
+                        <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-mist/20 dark:bg-zinc-800/20 space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{{ __('¿Es guatemalteco/a?') }}</label>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" wire:click="$set('p_es_extranjero', false); $set('p_id_country', 'GT'); $set('p_id_type', 'CUI / DPI'); $set('p_nacionalidad', 'Guatemalteco/a')"
+                                        class="px-4 h-10 rounded-lg text-sm border {{ ! $p_es_extranjero ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
+                                        {{ __('Sí, guatemalteco/a') }}
+                                    </button>
+                                    <button type="button" wire:click="$set('p_es_extranjero', true); $set('p_id_country', 'OTHER'); $set('p_id_type', 'Pasaporte'); $set('p_nacionalidad', '')"
+                                        class="px-4 h-10 rounded-lg text-sm border {{ $p_es_extranjero ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
+                                        {{ __('No, es extranjero/a') }}
+                                    </button>
+                                </div>
+                            </div>
 
                             @if ($p_es_extranjero)
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <flux:input wire:model="p_pais_nacimiento" label="{{ __('País') }}" />
-                                    <flux:input wire:model="p_estado_nacimiento" label="{{ __('Estado / Provincia / Departamento') }}" />
-                                    <flux:input wire:model="p_ciudad_nacimiento" label="{{ __('Ciudad') }}" />
-                                </div>
-                            @else
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Departamento') }}</label>
-                                        <select wire:model.live="p_departamento"
+                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('País de origen') }}</label>
+                                        <select wire:model.live="p_id_country"
                                             class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-2.5">
-                                            <option value="">-- {{ __('Seleccionar') }} --</option>
-                                            @foreach ($this->departamentos as $depto)
-                                                <option value="{{ $depto }}">{{ $depto }}</option>
+                                            @foreach ($this->paises as $code => $country)
+                                                <option value="{{ $code }}">{{ $country['name'] }}</option>
                                             @endforeach
                                         </select>
                                     </div>
+                                    <flux:input wire:model.live="p_nacionalidad" label="{{ __('Nacionalidad') }}" placeholder="{{ __('Ej. Salvadoreño/a') }}" />
                                     <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Municipio') }}</label>
-                                        <select wire:model="p_municipio"
+                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Tipo de documento') }}</label>
+                                        <select wire:model.live="p_id_type"
                                             class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-2.5">
-                                            <option value="">-- {{ __('Seleccionar') }} --</option>
-                                            @foreach ($this->municipiosDelDepartamento as $muni)
-                                                <option value="{{ $muni }}">{{ $muni }}</option>
+                                            @foreach ($this->tiposDocumento as $doc)
+                                                <option value="{{ $doc['type'] }}">{{ $doc['type'] }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <flux:input wire:model="p_nacionalidad" label="{{ __('Nacionalidad') }}" />
+                                    <div>
+                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Tipo de documento') }}</label>
+                                        <select wire:model.live="p_id_type"
+                                            class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-2.5">
+                                            @foreach ($this->tiposDocumento as $doc)
+                                                <option value="{{ $doc['type'] }}">{{ $doc['type'] }}</option>
                                             @endforeach
                                         </select>
                                     </div>
                                 </div>
                             @endif
+
+                            <flux:input wire:model="p_dpi" label="{{ $p_es_extranjero ? __('Número de documento') : __('Número de CUI / DPI') }}" />
+
+                            <div class="border-t border-zinc-200 dark:border-zinc-700 pt-4 space-y-4">
+                                <div class="font-medium text-sm">{{ __('Lugar de nacimiento') }}</div>
+
+                                @if ($p_es_extranjero)
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <flux:input wire:model="p_pais_nacimiento" label="{{ __('País') }}" />
+                                        <flux:input wire:model="p_estado_nacimiento" label="{{ __('Estado / Provincia / Departamento') }}" />
+                                        <flux:input wire:model="p_ciudad_nacimiento" label="{{ __('Ciudad') }}" />
+                                    </div>
+                                @else
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Departamento') }}</label>
+                                            <select wire:model.live="p_departamento"
+                                                class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-2.5">
+                                                <option value="">-- {{ __('Seleccionar') }} --</option>
+                                                @foreach ($this->departamentos as $depto)
+                                                    <option value="{{ $depto }}">{{ $depto }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Municipio') }}</label>
+                                            <select wire:model="p_municipio"
+                                                class="w-full rounded-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-2.5">
+                                                <option value="">-- {{ __('Seleccionar') }} --</option>
+                                                @foreach ($this->municipiosDelDepartamento as $muni)
+                                                    <option value="{{ $muni }}">{{ $muni }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <flux:input wire:model="p_direccion_habitual" label="{{ __('Dirección habitual') }}" />
                         </div>
 
                         {{-- Familiares --}}
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <flux:input wire:model="p_nombre_padre" label="{{ __('Nombre del padre') }}" />
                             <flux:input wire:model="p_nombre_madre" label="{{ __('Nombre de la madre') }}" />
-                            <flux:input wire:model="p_nombre_conyuge" label="{{ __('Nombre del cónyuge') }}" />
+                            @if (in_array($p_estado_civil, ['C', 'U'], true))
+                                <flux:input wire:model="p_nombre_conyuge" label="{{ __('Nombre del cónyuge') }}" />
+                            @endif
                         </div>
 
                         <div class="flex justify-end pt-2">
@@ -967,31 +968,26 @@ $save = function () {
                         <flux:heading size="lg">{{ __('Contactos y seguro') }}</flux:heading>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <flux:input wire:model="p_direccion_habitual" label="{{ __('Dirección habitual') }}" />
                             <flux:input wire:model="p_telefono" label="{{ __('Teléfono del paciente') }}" />
                             <flux:input wire:model="p_telefono_casa" label="{{ __('Teléfono de casa u otro contacto del paciente') }}" />
                         </div>
 
-                        <div class="space-y-3">
+                        <div class="space-y-2">
                             <div class="flex items-center justify-between">
                                 <flux:heading size="sm">{{ __('Contactos de emergencia') }}</flux:heading>
                                 <flux:button size="sm" variant="outline" wire:click="addEmergencyContact">+ {{ __('Agregar otro') }}</flux:button>
                             </div>
 
                             @foreach ($p_emergency_contacts as $index => $contact)
-                                <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 space-y-3">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ __('Contacto') }} {{ $index + 1 }}</span>
-                                        <button type="button" wire:click="removeEmergencyContact({{ $index }})" class="text-xs text-red-600 hover:text-red-700 underline">
-                                            {{ __('Eliminar') }}
-                                        </button>
+                                <div class="flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                    <span class="text-xs font-medium text-zinc-500 shrink-0">{{ $index + 1 }}</span>
+                                    <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <flux:input size="sm" wire:model="p_emergency_contacts.{{ $index }}.nombre" placeholder="{{ __('Nombre') }}" />
+                                        <flux:input size="sm" wire:model="p_emergency_contacts.{{ $index }}.telefono" placeholder="{{ __('Teléfono') }}" />
                                     </div>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <flux:input wire:model="p_emergency_contacts.{{ $index }}.nombre" label="{{ __('Nombre') }}" />
-                                        <flux:input wire:model="p_emergency_contacts.{{ $index }}.telefono" label="{{ __('Teléfono') }}" />
-                                        <flux:input wire:model="p_emergency_contacts.{{ $index }}.departamento" label="{{ __('Departamento') }}" />
-                                        <flux:input wire:model="p_emergency_contacts.{{ $index }}.municipio" label="{{ __('Municipio') }}" />
-                                    </div>
+                                    <button type="button" wire:click="removeEmergencyContact({{ $index }})" class="text-xs text-red-600 hover:text-red-700 underline shrink-0">
+                                        {{ __('Eliminar') }}
+                                    </button>
                                 </div>
                             @endforeach
                         </div>
@@ -1041,7 +1037,7 @@ $save = function () {
                                 </x-slot>
                             </flux:input>
                             <div class="relative">
-                                <flux:input wire:model.live.debounce.300ms="a_sala_ingreso" label="{{ __('Sala') }}" placeholder="{{ __('Escribe o elige del catálogo') }}" autocomplete="off" />
+                                <flux:input wire:model.live.debounce.300ms="a_sala_ingreso" label="{{ __('Sala / Servicio (ej. Medicina Interna, Pediatría)') }}" placeholder="{{ __('Escribe o elige del catálogo') }}" autocomplete="off" />
                                 @if (count($this->salaSuggestions))
                                     <div class="absolute z-10 mt-1 w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden">
                                         @foreach ($this->salaSuggestions as $w)

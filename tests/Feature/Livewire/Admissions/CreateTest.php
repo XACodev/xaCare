@@ -316,8 +316,8 @@ test('multiple emergency contacts are stored as json', function () {
         ->set('p_primer_apellido', 'Garcia')
         ->set('p_primer_nombre', 'Maria')
         ->set('p_emergency_contacts', [
-            ['nombre' => 'Juan Garcia', 'telefono' => '55551111', 'municipio' => 'Guatemala', 'departamento' => 'Guatemala'],
-            ['nombre' => 'Ana Garcia', 'telefono' => '55552222', 'municipio' => 'Mixco', 'departamento' => 'Guatemala'],
+            ['nombre' => 'Juan Garcia', 'telefono' => '55551111'],
+            ['nombre' => 'Ana Garcia', 'telefono' => '55552222'],
         ])
         ->call('nextStep')
         ->call('nextStep')
@@ -397,4 +397,45 @@ test('medico responsable sugiere solo staff marcado como appears_as_suggestion d
 
     expect($component->instance()->medicoSuggestions)->toHaveCount(1);
     expect($component->instance()->medicoSuggestions[0]['name'])->toBe('Dr. Fernando Lopez');
+});
+
+test('el campo nombre del conyuge solo aparece si el estado civil es casado o union de hecho', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $this->actingAs($user);
+
+    Volt::test('admissions.create')
+        ->call('newPatient')
+        ->set('p_estado_civil', 'S')
+        ->assertDontSee(__('Nombre del cónyuge'))
+        ->set('p_estado_civil', 'C')
+        ->assertSee(__('Nombre del cónyuge'))
+        ->set('p_estado_civil', 'U')
+        ->assertSee(__('Nombre del cónyuge'))
+        ->set('p_estado_civil', 'D')
+        ->assertDontSee(__('Nombre del cónyuge'));
+});
+
+test('el nombre del conyuge solo se persiste cuando el estado civil lo amerita', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $this->actingAs($user);
+
+    Volt::test('admissions.create')
+        ->call('newPatient')
+        ->set('p_primer_apellido', 'Lopez')
+        ->set('p_primer_nombre', 'Maria')
+        ->set('p_estado_civil', 'S')
+        ->set('p_nombre_conyuge', 'Nombre Fantasma')
+        ->call('nextStep')
+        ->call('nextStep')
+        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('a_fecha_ingreso', now()->toDateString())
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $patient = Patient::where('primer_nombre', 'Maria')->first();
+    expect($patient->nombre_conyuge)->toBeNull();
 });
