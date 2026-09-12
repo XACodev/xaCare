@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Hospital;
+use App\Models\HospitalWard;
 use App\Services\HospitalPlanService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -46,6 +47,17 @@ $save = function () {
     ]);
 
     app(HospitalPlanService::class)->startTrial($hospital, $data['plan']);
+
+    // Catalogo minimo de Salas para que el ingreso de pacientes tenga
+    // sugerencias desde el primer dia (editable luego en Configuracion > Salas).
+    foreach (['Emergencia', 'Medicina Interna', 'Pediatría', 'Maternidad', 'Cirugía'] as $index => $wardName) {
+        HospitalWard::create([
+            'hospital_id' => $hospital->id,
+            'name' => $wardName,
+            'active' => true,
+            'sort_order' => $index,
+        ]);
+    }
 
     $this->success_message = __('Hospital created.');
     $this->reset(['name', 'plan']);
