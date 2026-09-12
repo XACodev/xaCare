@@ -16,7 +16,7 @@
             </a> -->
             <flux:brand href="{{ route('home') }}" name="xaCare" class="justify-center">
                 <x-slot name="logo" class="bg-accent text-accent-foreground">
-                    <x-app-logo-icon class="size-4 fill-none" />
+                    <x-app-logo-icon class="size-6 fill-none" />
                     <span class="sr-only">{{ config('app.name', 'xaCare') }}</span>
                 </x-slot>
             </flux:brand>

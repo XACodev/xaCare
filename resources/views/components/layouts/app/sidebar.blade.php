@@ -14,7 +14,7 @@
         <flux:sidebar.brand href="{{ route('dashboard') }}" name="{{ config('app.name') }}"
             class="flex items-center rtl:space-x-reverse" wire:navigate>
             <x-slot name="logo" class="border-accent-content dark:border-accent-content">
-                <x-app-logo-icon class="size-4 fill-none" />
+                <x-app-logo-icon class="size-6 fill-none" />
             </x-slot>
         </flux:sidebar.brand>
 
