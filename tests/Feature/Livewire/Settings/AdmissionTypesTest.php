@@ -52,6 +52,21 @@ test('lista solo tipos de ingreso del hospital del usuario, crea, activa/desacti
     expect($tipoA->fresh()->sort_order)->toBeGreaterThan($tipoB->fresh()->sort_order);
 });
 
+test('rechaza como error de formulario un nombre que colisiona en slug con otro existente', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = admissionTypesCatalogAdmin($hospital);
+    $this->actingAs($admin);
+
+    AdmissionType::factory()->for($hospital)->create(['name' => 'Hospitalización', 'slug' => 'hospitalizacion']);
+
+    Volt::test('settings.admission-types')
+        ->set('form.name', 'Hospitalizacion')
+        ->call('create')
+        ->assertHasErrors('form.name');
+
+    expect(AdmissionType::where('hospital_id', $hospital->id)->where('name', 'Hospitalizacion')->exists())->toBeFalse();
+});
+
 test('un admin no puede tocar un tipo de ingreso de otro hospital', function () {
     $hospital = Hospital::factory()->create();
     $otherHospital = Hospital::factory()->create();
