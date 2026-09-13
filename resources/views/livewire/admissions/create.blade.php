@@ -593,16 +593,23 @@ $save = function () {
         return;
     }
 
-    foreach ($this->customFieldValues as $fieldId => $value) {
-        if ($value === null || $value === '') {
-            continue;
-        }
+    if (Auth::user()->hospital?->hasFeature('admissions_custom_form')) {
+        $allowedFieldIds = collect([1, 2, 3, 4])
+            ->flatMap(fn (int $step) => $this->customFieldsForStep($step))
+            ->pluck('id')
+            ->all();
 
-        \App\Models\AdmissionCustomFieldValue::create([
-            'admission_id' => $admission->id,
-            'custom_field_id' => $fieldId,
-            'value' => is_array($value) ? json_encode($value) : (string) $value,
-        ]);
+        foreach ($this->customFieldValues as $fieldId => $value) {
+            if ($value === null || $value === '' || ! in_array((int) $fieldId, $allowedFieldIds, true)) {
+                continue;
+            }
+
+            \App\Models\AdmissionCustomFieldValue::create([
+                'admission_id' => $admission->id,
+                'custom_field_id' => $fieldId,
+                'value' => is_array($value) ? json_encode($value) : (string) $value,
+            ]);
+        }
     }
 
     $this->savedAdmission = $admission;
