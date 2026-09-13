@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\AdmissionType;
 use App\Models\Admission;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,7 +16,7 @@ mount(function () {
 // los ingresos (no los pacientes) por dia/semana/mes para poder ver los
 // reingresos del periodo en vez de una fila unica por paciente.
 $admissions = computed(function () {
-    $query = Admission::query()->with('patient')->orderByDesc('fecha_ingreso')->orderByDesc('id');
+    $query = Admission::query()->with(['patient', 'admissionType'])->orderByDesc('fecha_ingreso')->orderByDesc('id');
 
     $query->where('fecha_ingreso', '>=', match ($this->period) {
         'day' => now()->startOfDay(),
@@ -54,7 +53,7 @@ $admissions = computed(function () {
                         <div class="font-medium truncate">{{ $admission->patient->nombreCompleto() ?: __('Recién nacido/a') }}</div>
                         <div class="text-sm text-zinc-500 dark:text-zinc-400">
                             {{ $admission->fecha_ingreso?->format('d/m/Y') }}
-                            · {{ AdmissionType::from($admission->tipo_atencion)->label() }}
+                            · {{ $admission->admissionType?->name }}
                             @if ($admission->sala_ingreso)
                                 · {{ $admission->sala_ingreso }}
                             @endif

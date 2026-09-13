@@ -40,7 +40,7 @@ mount(function (Admission $admission) {
                     <div>
                         <p class="text-2xl print:text-base font-semibold">{{ $admission->patient->nombreCompleto() ?: __('Recién nacido/a') }}</p>
                         <p class="text-sm print:text-xs text-zinc-500 dark:text-zinc-400">
-                            {{ App\Enums\AdmissionType::from($admission->tipo_atencion)->label() }}
+                            {{ $admission->admissionType?->name }}
                             · {{ $admission->completo ? __('Completo') : __('Pendiente de completar') }}
                         </p>
                         @if ($admission->patient->expediente_no)
