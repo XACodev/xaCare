@@ -74,6 +74,9 @@ state([
 
     'savedAdmission' => null,
     'lastAdmissionPatientId' => null,
+
+    // Campos personalizados (addon admissions_custom_form)
+    'customFieldValues' => [],
 ]);
 
 mount(function () {
@@ -142,6 +145,19 @@ $selectedAdmissionType = function (): ?\App\Models\AdmissionType {
     return $this->admissionTypeId
         ? \App\Models\AdmissionType::find($this->admissionTypeId)
         : null;
+};
+
+$customFieldsForStep = function (int $step) {
+    if (! Auth::user()->hospital?->hasFeature('admissions_custom_form') || ! $this->admissionTypeId) {
+        return collect();
+    }
+
+    return \App\Models\AdmissionTypeCustomField::query()
+        ->where('active', true)
+        ->where('step', $step)
+        ->where(fn ($q) => $q->whereNull('admission_type_id')->orWhere('admission_type_id', $this->admissionTypeId))
+        ->orderBy('sort_order')
+        ->get();
 };
 
 $paises = computed(fn () => config('locations.countries', []));
@@ -387,7 +403,7 @@ $rules = function () {
         ];
     }
 
-    return match ($this->currentStep) {
+    $rules = match ($this->currentStep) {
         1 => [
             'patientQuery' => ['required_without:patientId'],
         ],
@@ -444,6 +460,19 @@ $rules = function () {
         ],
         default => [],
     };
+
+    foreach ($this->customFieldsForStep($this->currentStep) as $field) {
+        $tipoRegla = match ($field->field_type) {
+            'numero' => 'numeric',
+            'fecha' => 'date',
+            'si_no' => 'boolean',
+            'seleccion_multiple' => 'array',
+            default => 'string',
+        };
+        $rules["customFieldValues.{$field->id}"] = ($field->required ? 'required|' : 'nullable|').$tipoRegla;
+    }
+
+    return $rules;
 };
 
 $nextStep = function () {
@@ -562,6 +591,18 @@ $save = function () {
 
     if (! $admission) {
         return;
+    }
+
+    foreach ($this->customFieldValues as $fieldId => $value) {
+        if ($value === null || $value === '') {
+            continue;
+        }
+
+        \App\Models\AdmissionCustomFieldValue::create([
+            'admission_id' => $admission->id,
+            'custom_field_id' => $fieldId,
+            'value' => is_array($value) ? json_encode($value) : (string) $value,
+        ]);
     }
 
     $this->savedAdmission = $admission;
@@ -822,6 +863,28 @@ $save = function () {
                             <flux:button variant="outline" wire:click="newPatient">+ {{ __('Registrar paciente nuevo') }}</flux:button>
                         </div>
 
+                        @foreach ($this->customFieldsForStep(1) as $field)
+                            <div>
+                                @if ($field->field_type === 'texto_corto')
+                                    <flux:input wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'texto_largo')
+                                    <flux:textarea wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'numero')
+                                    <flux:input type="number" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'fecha')
+                                    <flux:input type="date" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'si_no')
+                                    <flux:checkbox wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif (in_array($field->field_type, ['seleccion_unica', 'seleccion_multiple']))
+                                    <flux:select wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" :multiple="$field->field_type === 'seleccion_multiple'">
+                                        @foreach ($field->options ?? [] as $opcion)
+                                            <flux:select.option value="{{ $opcion }}">{{ $opcion }}</flux:select.option>
+                                        @endforeach
+                                    </flux:select>
+                                @endif
+                            </div>
+                        @endforeach
+
                         <div class="flex justify-end pt-2">
                             <flux:button variant="primary" wire:click="nextStep">{{ __('Siguiente: Datos personales') }} →</flux:button>
                         </div>
@@ -1013,6 +1076,28 @@ $save = function () {
                         </div>
                         @endif
 
+                        @foreach ($this->customFieldsForStep(2) as $field)
+                            <div>
+                                @if ($field->field_type === 'texto_corto')
+                                    <flux:input wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'texto_largo')
+                                    <flux:textarea wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'numero')
+                                    <flux:input type="number" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'fecha')
+                                    <flux:input type="date" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'si_no')
+                                    <flux:checkbox wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif (in_array($field->field_type, ['seleccion_unica', 'seleccion_multiple']))
+                                    <flux:select wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" :multiple="$field->field_type === 'seleccion_multiple'">
+                                        @foreach ($field->options ?? [] as $opcion)
+                                            <flux:select.option value="{{ $opcion }}">{{ $opcion }}</flux:select.option>
+                                        @endforeach
+                                    </flux:select>
+                                @endif
+                            </div>
+                        @endforeach
+
                         <div class="flex justify-end pt-2">
                             <flux:button variant="primary" wire:click="nextStep">{{ __('Siguiente: Contactos y seguro') }} →</flux:button>
                         </div>
@@ -1065,6 +1150,28 @@ $save = function () {
                             </div>
                         @endif
                         @endif
+
+                        @foreach ($this->customFieldsForStep(3) as $field)
+                            <div>
+                                @if ($field->field_type === 'texto_corto')
+                                    <flux:input wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'texto_largo')
+                                    <flux:textarea wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'numero')
+                                    <flux:input type="number" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'fecha')
+                                    <flux:input type="date" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'si_no')
+                                    <flux:checkbox wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif (in_array($field->field_type, ['seleccion_unica', 'seleccion_multiple']))
+                                    <flux:select wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" :multiple="$field->field_type === 'seleccion_multiple'">
+                                        @foreach ($field->options ?? [] as $opcion)
+                                            <flux:select.option value="{{ $opcion }}">{{ $opcion }}</flux:select.option>
+                                        @endforeach
+                                    </flux:select>
+                                @endif
+                            </div>
+                        @endforeach
 
                         <div class="flex justify-between pt-2">
                             <flux:button variant="ghost" wire:click="previousStep">← {{ __('Atrás') }}</flux:button>
@@ -1171,6 +1278,28 @@ $save = function () {
                                 <flux:textarea wire:model="a_maternidad_condiciones_egreso" label="{{ __('Condiciones del egreso') }}" />
                             </div>
                         @endif
+
+                        @foreach ($this->customFieldsForStep(4) as $field)
+                            <div>
+                                @if ($field->field_type === 'texto_corto')
+                                    <flux:input wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'texto_largo')
+                                    <flux:textarea wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'numero')
+                                    <flux:input type="number" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'fecha')
+                                    <flux:input type="date" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'si_no')
+                                    <flux:checkbox wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif (in_array($field->field_type, ['seleccion_unica', 'seleccion_multiple']))
+                                    <flux:select wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" :multiple="$field->field_type === 'seleccion_multiple'">
+                                        @foreach ($field->options ?? [] as $opcion)
+                                            <flux:select.option value="{{ $opcion }}">{{ $opcion }}</flux:select.option>
+                                        @endforeach
+                                    </flux:select>
+                                @endif
+                            </div>
+                        @endforeach
 
                         <div class="flex justify-between pt-2">
                             <flux:button variant="ghost" wire:click="previousStep">← {{ __('Atrás') }}</flux:button>
