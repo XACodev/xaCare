@@ -10,8 +10,11 @@ use App\Support\PatientAge;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Livewire\WithFileUploads;
 
-use function Livewire\Volt\{state, mount, computed, rules};
+use function Livewire\Volt\{state, mount, computed, rules, uses};
+
+uses(WithFileUploads::class);
 
 state([
     'isRapidMode' => false,
@@ -77,6 +80,10 @@ state([
 
     // Campos personalizados (addon admissions_custom_form)
     'customFieldValues' => [],
+
+    // Documentos de identidad (addon admissions_id_documents)
+    'dpiUpload' => null,
+    'firmaUpload' => null,
 ]);
 
 mount(function () {
@@ -461,6 +468,11 @@ $rules = function () {
         default => [],
     };
 
+    if ($this->currentStep === 4 && Auth::user()->hospital?->hasFeature('admissions_id_documents')) {
+        $rules['dpiUpload'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+        $rules['firmaUpload'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+    }
+
     foreach ($this->customFieldsForStep($this->currentStep) as $field) {
         $tipoRegla = match ($field->field_type) {
             'numero' => 'numeric',
@@ -609,6 +621,20 @@ $save = function () {
                 'custom_field_id' => $fieldId,
                 'value' => is_array($value) ? json_encode($value) : (string) $value,
             ]);
+        }
+    }
+
+    if (Auth::user()->hospital?->hasFeature('admissions_id_documents')) {
+        if ($this->dpiUpload) {
+            $path = "admissions/{$admission->id}/dpi.".$this->dpiUpload->extension();
+            \App\Support\EncryptedFileStorage::store('local', $path, file_get_contents($this->dpiUpload->getRealPath()));
+            $admission->update(['dpi_path' => $path]);
+        }
+
+        if ($this->firmaUpload) {
+            $path = "admissions/{$admission->id}/firma.".$this->firmaUpload->extension();
+            \App\Support\EncryptedFileStorage::store('local', $path, file_get_contents($this->firmaUpload->getRealPath()));
+            $admission->update(['firma_path' => $path]);
         }
     }
 
@@ -1307,6 +1333,13 @@ $save = function () {
                                 @endif
                             </div>
                         @endforeach
+
+                        @if (Auth::user()->hospital?->hasFeature('admissions_id_documents'))
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <flux:input type="file" wire:model="dpiUpload" label="{{ __('Documento de identidad (DPI)') }}" />
+                                <flux:input type="file" wire:model="firmaUpload" label="{{ __('Firma digital (imagen, no certificada legalmente)') }}" />
+                            </div>
+                        @endif
 
                         <div class="flex justify-between pt-2">
                             <flux:button variant="ghost" wire:click="previousStep">← {{ __('Atrás') }}</flux:button>
