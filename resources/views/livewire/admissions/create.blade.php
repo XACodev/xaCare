@@ -371,6 +371,7 @@ $rules = function () {
 
     $docMin = $this->documentoValidacion['min'] ?? 4;
     $docMax = $this->documentoValidacion['max'] ?? 30;
+    $seccionesRequeridas = $this->selectedAdmissionType()?->required_sections ?? [];
 
     if ($this->isRapidMode) {
         return [
@@ -430,7 +431,7 @@ $rules = function () {
         4 => [
             'a_fecha_ingreso' => ['required', 'date'],
             'a_hora_ingreso' => ['nullable', 'date_format:H:i'],
-            'a_sala_ingreso' => ['nullable', 'string', 'max:255'],
+            'a_sala_ingreso' => [in_array('sala_habitacion', $seccionesRequeridas, true) ? 'required' : 'nullable', 'string', 'max:255'],
             'a_habitacion' => ['nullable', 'string', 'max:255'],
             'a_medico_responsable' => ['nullable', 'string', 'max:255'],
             'a_referido_por' => ['nullable', 'string', 'max:255'],
@@ -889,20 +890,23 @@ $save = function () {
                                         class="text-sm font-medium {{ $p_sexo === 'F' ? 'bg-mist text-accent-content dark:bg-accent/20 dark:text-accent' : 'bg-white dark:bg-zinc-900 text-zinc-500' }}">F</button>
                                 </div>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Estado civil') }}</label>
-                                <div class="flex flex-wrap gap-2">
-                                    @foreach (['S' => 'Soltero/a', 'C' => 'Casado/a', 'U' => 'Unido/a', 'D' => 'Divorciado/a', 'V' => 'Viudo/a'] as $value => $label)
-                                        <button type="button" wire:click="$set('p_estado_civil', '{{ $value }}')"
-                                            class="px-3 h-9 rounded-lg text-sm border {{ $p_estado_civil === $value ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
-                                            {{ $label }}
-                                        </button>
-                                    @endforeach
+                            @if (in_array('estado_civil', $this->selectedAdmissionType()?->visible_sections ?? [], true))
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Estado civil') }}</label>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach (['S' => 'Soltero/a', 'C' => 'Casado/a', 'U' => 'Unido/a', 'D' => 'Divorciado/a', 'V' => 'Viudo/a'] as $value => $label)
+                                            <button type="button" wire:click="$set('p_estado_civil', '{{ $value }}')"
+                                                class="px-3 h-9 rounded-lg text-sm border {{ $p_estado_civil === $value ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
+                                                {{ $label }}
+                                            </button>
+                                        @endforeach
+                                    </div>
                                 </div>
-                            </div>
+                            @endif
                         </div>
 
                         {{-- Nacionalidad, documento, lugar de nacimiento y dirección --}}
+                        @if (in_array('nacionalidad_documento', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                         <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-mist/20 dark:bg-zinc-800/20 space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{{ __('¿Es guatemalteco/a?') }}</label>
@@ -957,6 +961,7 @@ $save = function () {
 
                             <flux:input wire:model="p_dpi" label="{{ $p_es_extranjero ? __('Número de documento') : __('Número de CUI / DPI') }}" />
 
+                            @if (in_array('lugar_nacimiento_direccion', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                             <div class="border-t border-zinc-200 dark:border-zinc-700 pt-4 space-y-4">
                                 <div class="font-medium text-sm">{{ __('Lugar de nacimiento') }}</div>
 
@@ -993,9 +998,12 @@ $save = function () {
                             </div>
 
                             <flux:input wire:model="p_direccion_habitual" label="{{ __('Dirección habitual') }}" />
+                            @endif
                         </div>
+                        @endif
 
                         {{-- Familiares --}}
+                        @if (in_array('familiares', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <flux:input wire:model="p_nombre_padre" label="{{ __('Nombre del padre') }}" />
                             <flux:input wire:model="p_nombre_madre" label="{{ __('Nombre de la madre') }}" />
@@ -1003,6 +1011,7 @@ $save = function () {
                                 <flux:input wire:model="p_nombre_conyuge" label="{{ __('Nombre del cónyuge') }}" />
                             @endif
                         </div>
+                        @endif
 
                         <div class="flex justify-end pt-2">
                             <flux:button variant="primary" wire:click="nextStep">{{ __('Siguiente: Contactos y seguro') }} →</flux:button>
@@ -1015,6 +1024,7 @@ $save = function () {
                     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
                         <flux:heading size="lg">{{ __('Contactos y seguro') }}</flux:heading>
 
+                        @if (in_array('contactos_emergencia', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <flux:input wire:model="p_telefono" label="{{ __('Teléfono del paciente') }}" />
                             <flux:input wire:model="p_telefono_casa" label="{{ __('Teléfono de casa u otro contacto del paciente') }}" />
@@ -1039,7 +1049,9 @@ $save = function () {
                                 </div>
                             @endforeach
                         </div>
+                        @endif
 
+                        @if (in_array('seguro', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                             <flux:checkbox wire:model.live="a_tiene_seguro" label="{{ __('Tiene seguro') }}" />
                             <flux:checkbox wire:model.live="a_tiene_igss" label="{{ __('IGSS') }}" />
@@ -1051,6 +1063,7 @@ $save = function () {
                                 <flux:input wire:model="a_poliza" label="{{ __('Póliza') }}" />
                                 <flux:input wire:model="a_certificado" label="{{ __('Certificado') }}" />
                             </div>
+                        @endif
                         @endif
 
                         <div class="flex justify-between pt-2">
@@ -1072,6 +1085,7 @@ $save = function () {
                                     <button type="button" wire:click="setNow" class="text-xs font-semibold text-accent px-2">{{ __('Ahora') }}</button>
                                 </x-slot>
                             </flux:input>
+                            @if (in_array('sala_habitacion', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                             <div class="relative">
                                 <flux:input wire:model.live.debounce.300ms="a_sala_ingreso" label="{{ __('Sala / Servicio (ej. Medicina Interna, Pediatría)') }}" placeholder="{{ __('Escribe o elige del catálogo') }}" autocomplete="off" />
                                 @if (count($this->salaSuggestions))
@@ -1098,9 +1112,11 @@ $save = function () {
                                     </div>
                                 @endif
                             </div>
+                            @endif
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            @if (in_array('medico_responsable', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                             <div class="relative">
                                 <flux:input wire:model.live.debounce.300ms="a_medico_responsable" label="{{ __('Médico responsable') }}" placeholder="{{ __('Busca en el staff o escribe libre') }}" autocomplete="off" />
                                 @if (count($this->medicoSuggestions))
@@ -1114,7 +1130,10 @@ $save = function () {
                                     </div>
                                 @endif
                             </div>
+                            @endif
+                            @if (in_array('referido_por', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                             <flux:input wire:model="a_referido_por" label="{{ __('Referido por') }}" />
+                            @endif
                         </div>
 
                         <div class="flex items-center justify-between p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
@@ -1125,10 +1144,12 @@ $save = function () {
                             <flux:switch wire:model="a_va_a_quirofano" />
                         </div>
 
+                        @if (in_array('otras_hospitalizaciones', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                         <flux:textarea wire:model="a_otras_hospitalizaciones" label="{{ __('Otras hospitalizaciones') }}" />
+                        @endif
 
-                        {{-- Maternidad: solo si el paciente es femenino --}}
-                        @if ($p_sexo === 'F')
+                        {{-- Maternidad: solo si el paciente es femenino y la sección aplica --}}
+                        @if ($p_sexo === 'F' && in_array('maternidad', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                             <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-mist/30 dark:bg-zinc-800/30 p-5 space-y-4">
                                 <flux:heading size="sm">{{ __('Maternidad') }}</flux:heading>
 

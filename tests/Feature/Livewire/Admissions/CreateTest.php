@@ -65,6 +65,7 @@ test('admin can register an admission selecting an existing patient', function (
         ->call('nextStep')
         ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->set('a_medico_responsable', 'Dr. Test')
         ->call('save')
         ->assertHasNoErrors();
@@ -95,6 +96,7 @@ test('admin can register an admission creating a new patient inline', function (
         ->call('nextStep')
         ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -193,6 +195,7 @@ test('new patient gets an automatic expediente number sequential by hospital', f
         ->call('nextStep')
         ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -216,6 +219,7 @@ test('selecting an existing patient allows editing their data before saving', fu
         ->call('nextStep')
         ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -239,6 +243,7 @@ test('nationality defaults to guatemalan unless foreign is selected', function (
         ->call('nextStep')
         ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -263,6 +268,7 @@ test('maternity fields and other hospitalizations are stored on admission', func
         ->call('nextStep')
         ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->set('a_otras_hospitalizaciones', 'Apendicitis 2020')
         ->set('a_maternidad_no_hijo', '1')
         ->set('a_maternidad_sexo', 'M')
@@ -326,6 +332,7 @@ test('foreign patient stores country document type and passport', function () {
         ->call('nextStep')
         ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -378,6 +385,7 @@ test('multiple emergency contacts are stored as json', function () {
         ->call('nextStep')
         ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -405,6 +413,7 @@ test('newborn patient can be registered without a name and linked to mother', fu
         ->call('nextStep')
         ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -458,11 +467,14 @@ test('medico responsable sugiere solo staff marcado como appears_as_suggestion d
 
 test('el campo nombre del conyuge solo aparece si el estado civil es casado o union de hecho', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $this->actingAs($user);
 
     Volt::test('admissions.create')
+        ->set('admissionTypeId', $tipo->id)
         ->call('newPatient')
         ->set('p_estado_civil', 'S')
         ->assertDontSee(__('Nombre del cónyuge'))
@@ -492,9 +504,42 @@ test('el nombre del conyuge solo se persiste cuando el estado civil lo amerita',
         ->call('nextStep')
         ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
     $patient = Patient::where('primer_nombre', 'Maria')->first();
     expect($patient->nombre_conyuge)->toBeNull();
+});
+
+it('hides sections not marked visible for the chosen admission type', function () {
+    $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $coex = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'coex')->firstOrFail();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
+
+    Volt::actingAs($user)->test('admissions.create')
+        ->set('admissionTypeId', $coex->id)
+        ->call('selectPatient', $patient->id)
+        ->call('nextStep')
+        ->assertDontSeeText('Contactos de emergencia');
+});
+
+it('requires a section field only when the type marks it required', function () {
+    $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $hospitalizacion = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+
+    $component = Volt::actingAs($user)->test('admissions.create')
+        ->set('admissionTypeId', $hospitalizacion->id)
+        ->set('currentStep', 4)
+        ->set('a_sala_ingreso', '');
+
+    $component->call('nextStep');
+
+    $component->assertHasErrors(['a_sala_ingreso']);
 });
