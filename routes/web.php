@@ -72,8 +72,14 @@ Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
         $path = $type === 'dpi' ? $admission->dpi_path : $admission->firma_path;
         abort_if(blank($path), 404);
 
+        $extension = pathinfo($path, PATHINFO_EXTENSION) ?: 'bin';
+        $filename = "admission-{$admission->id}-{$type}.{$extension}";
+
         return response(\App\Support\EncryptedFileStorage::retrieve('local', $path))
-            ->header('Content-Type', 'application/octet-stream');
+            ->header('Content-Type', 'application/octet-stream')
+            ->header('X-Content-Type-Options', 'nosniff')
+            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"")
+            ->header('Cache-Control', 'private, no-store');
     })
         ->name('admissions.documents.show')
         ->middleware('hospital.feature:admissions_id_documents');

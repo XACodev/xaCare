@@ -56,7 +56,10 @@ it('serves the decrypted document only to a user of the same hospital', function
     $this->actingAs($user)
         ->get(route('admissions.documents.show', ['admission' => $admission, 'type' => 'dpi']))
         ->assertOk()
-        ->assertSee('bytes-del-dpi', false);
+        ->assertSee('bytes-del-dpi', false)
+        ->assertHeader('X-Content-Type-Options', 'nosniff')
+        ->assertHeader('Content-Disposition', "attachment; filename=\"admission-{$admission->id}-dpi.jpg\"")
+        ->assertHeader('Cache-Control', 'no-store, private');
 });
 
 it('404s for an admission of another hospital', function () {
