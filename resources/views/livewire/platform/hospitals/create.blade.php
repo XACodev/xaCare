@@ -59,6 +59,8 @@ $save = function () {
         ]);
     }
 
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+
     $this->success_message = __('Hospital created.');
     $this->reset(['name', 'plan']);
 };

@@ -14,6 +14,11 @@ class AdmissionType extends Model
 {
     use BelongsToTenant, HasFactory;
 
+    public static function allowsPlatformAdminWrites(): bool
+    {
+        return true;
+    }
+
     protected $fillable = [
         'hospital_id',
         'name',
