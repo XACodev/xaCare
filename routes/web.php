@@ -65,6 +65,19 @@ Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
     Volt::route('admissions/create', 'admissions.create')->name('admissions.create');
     Volt::route('admissions/{admission}', 'admissions.show')->name('admissions.show');
 
+    Route::get('admissions/{admission}/documents/{type}', function (\App\Models\Admission $admission, string $type) {
+        abort_unless($admission->hospital_id === auth()->user()->hospital_id, 404);
+        abort_unless(in_array($type, ['dpi', 'firma'], true), 404);
+
+        $path = $type === 'dpi' ? $admission->dpi_path : $admission->firma_path;
+        abort_if(blank($path), 404);
+
+        return response(\App\Support\EncryptedFileStorage::retrieve('local', $path))
+            ->header('Content-Type', 'application/octet-stream');
+    })
+        ->name('admissions.documents.show')
+        ->middleware('hospital.feature:admissions_id_documents');
+
     // El QR impreso solo trae el token, nunca la URL: quien lo escanea es
     // siempre esta app, que resuelve el token aqui y redirige. Asi el QR
     // sigue funcionando aunque cambiemos rutas despues, y nadie ve a que

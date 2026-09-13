@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Admission extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToTenant;
+    use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'hospital_id', 'patient_id', 'admission_type_id', 'va_a_quirofano',
@@ -22,6 +22,7 @@ class Admission extends Model
         'medico_responsable', 'medico_colegiado',
         'maternidad_no_hijo', 'maternidad_fecha_nacimiento', 'maternidad_hora', 'maternidad_sexo', 'maternidad_condiciones_egreso',
         'qr_token', 'qr_printed_at', 'completo',
+        'dpi_path', 'firma_path',
     ];
 
     protected $casts = [
