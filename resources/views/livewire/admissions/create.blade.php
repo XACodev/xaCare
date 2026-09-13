@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\AdmissionType;
 use App\Models\Admission;
 use App\Models\HospitalRoom;
 use App\Models\HospitalWard;
@@ -11,13 +10,13 @@ use App\Support\PatientAge;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 use function Livewire\Volt\{state, mount, computed, rules};
 
 state([
     'isRapidMode' => false,
-    'currentStep' => 1,
+    'currentStep' => 0,
+    'admissionTypeId' => null,
 
     // Paciente
     'patientId' => null,
@@ -52,7 +51,6 @@ state([
     'p_emergency_contacts' => [['nombre' => '', 'telefono' => '']],
 
     // Ingreso
-    'a_tipo_atencion' => 'hospitalizacion',
     'a_va_a_quirofano' => false,
     'a_fecha_ingreso' => now()->toDateString(),
     'a_hora_ingreso' => now()->format('H:i'),
@@ -133,7 +131,18 @@ $categoriaPaciente = computed(function () {
         ?->name ?? $age->category()->label();
 });
 
-$tipoOptions = computed(fn () => AdmissionType::options());
+$admissionTypes = function () {
+    return \App\Models\AdmissionType::query()
+        ->where('active', true)
+        ->orderBy('sort_order')
+        ->get();
+};
+
+$selectedAdmissionType = function (): ?\App\Models\AdmissionType {
+    return $this->admissionTypeId
+        ? \App\Models\AdmissionType::find($this->admissionTypeId)
+        : null;
+};
 
 $paises = computed(fn () => config('locations.countries', []));
 
@@ -232,10 +241,11 @@ $medicoSuggestions = computed(function () {
 });
 
 $stepLabels = computed(fn () => [
+    0 => ['title' => 'Tipo de ingreso', 'subtitle' => 'Selecciona el tipo de atención'],
     1 => ['title' => 'Identificación', 'subtitle' => 'Busca o registra al paciente'],
     2 => ['title' => 'Datos personales', 'subtitle' => 'Nacionalidad, nombres, documento'],
     3 => ['title' => 'Contactos y seguro', 'subtitle' => 'Dirección, emergencia, seguro'],
-    4 => ['title' => 'Ingreso clínico', 'subtitle' => 'Tipo de atención, sala, médico'],
+    4 => ['title' => 'Ingreso clínico', 'subtitle' => 'Fecha, sala, médico'],
 ]);
 
 $selectPatient = function (int $id) {
@@ -355,6 +365,10 @@ $sugerirEstadoCivil = function () {
 };
 
 $rules = function () {
+    if ($this->currentStep === 0 && ! $this->isRapidMode) {
+        return ['admissionTypeId' => 'required|exists:admission_types,id'];
+    }
+
     $docMin = $this->documentoValidacion['min'] ?? 4;
     $docMax = $this->documentoValidacion['max'] ?? 30;
 
@@ -414,7 +428,6 @@ $rules = function () {
             'a_certificado' => ['nullable', 'string', 'max:255'],
         ],
         4 => [
-            'a_tipo_atencion' => ['required', Rule::in(array_keys(AdmissionType::options()))],
             'a_fecha_ingreso' => ['required', 'date'],
             'a_hora_ingreso' => ['nullable', 'date_format:H:i'],
             'a_sala_ingreso' => ['nullable', 'string', 'max:255'],
@@ -438,11 +451,11 @@ $nextStep = function () {
 };
 
 $previousStep = function () {
-    $this->currentStep = max(1, $this->currentStep - 1);
+    $this->currentStep = max(0, $this->currentStep - 1);
 };
 
 $goToStep = function (int $step) {
-    if ($step < 1 || $step > 4 || $step > $this->currentStep) {
+    if ($step < 0 || $step > 4 || $step > $this->currentStep) {
         return;
     }
     $this->currentStep = $step;
@@ -519,7 +532,9 @@ $save = function () {
         return Admission::create([
             'hospital_id' => $hospitalId,
             'patient_id' => $patient->id,
-            'tipo_atencion' => $this->isRapidMode ? AdmissionType::URGENCIA->value : $this->a_tipo_atencion,
+            'admission_type_id' => $this->isRapidMode
+                ? \App\Models\AdmissionType::where('es_ingreso_rapido_default', true)->value('id')
+                : $this->admissionTypeId,
             'va_a_quirofano' => (bool) $this->a_va_a_quirofano,
             'fecha_ingreso' => $this->a_fecha_ingreso,
             'hora_ingreso' => $this->a_hora_ingreso ?: null,
@@ -594,7 +609,7 @@ $save = function () {
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Paciente') }}</p>
                     <p class="text-lg font-semibold">{{ $savedAdmission->patient->nombreCompleto() ?: __('Recién nacido/a') }}</p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        {{ App\Enums\AdmissionType::from($savedAdmission->tipo_atencion)->label() }}
+                        {{ $savedAdmission->admissionType?->name }}
                         · {{ $savedAdmission->completo ? __('Completo') : __('Pendiente de completar') }}
                     </p>
                     @if ($savedAdmission->patient->expediente_no)
@@ -683,7 +698,7 @@ $save = function () {
     {{-- MODO NORMAL: WIZARD 4 PASOS --}}
     @if (! $isRapidMode)
         {{-- Stepper --}}
-        <div class="grid grid-cols-4 gap-3">
+        <div class="grid grid-cols-5 gap-3">
             @foreach ($this->stepLabels as $step => $label)
                 <button type="button" wire:click="goToStep({{ $step }})"
                     @class([
@@ -717,6 +732,39 @@ $save = function () {
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {{-- Formulario principal --}}
             <div class="lg:col-span-2 space-y-6">
+                {{-- Paso 0: Tipo de ingreso --}}
+                @if ($currentStep === 0)
+                    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
+                        <div>
+                            <flux:heading size="lg">{{ __('¿Qué tipo de ingreso vamos a registrar?') }}</flux:heading>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                                {{ __('El tipo de ingreso determina qué información pediremos en los siguientes pasos.') }}
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            @foreach ($this->admissionTypes() as $tipo)
+                                <button
+                                    type="button"
+                                    wire:click="$set('admissionTypeId', {{ $tipo->id }})"
+                                    @class([
+                                        'rounded-lg border p-4 text-left transition',
+                                        'border-teal-600 bg-teal-50' => $admissionTypeId === $tipo->id,
+                                        'border-zinc-200' => $admissionTypeId !== $tipo->id,
+                                    ])
+                                >
+                                    <span class="font-medium">{{ $tipo->name }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                        @error('admissionTypeId') <flux:text class="text-red-600">{{ $message }}</flux:text> @enderror
+
+                        <div class="flex justify-end pt-2">
+                            <flux:button variant="primary" wire:click="nextStep">{{ __('Siguiente: Identificación') }} →</flux:button>
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Paso 1: Identificación --}}
                 @if ($currentStep === 1)
                     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
@@ -1016,18 +1064,6 @@ $save = function () {
                 @if ($currentStep === 4)
                     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
                         <flux:heading size="lg">{{ __('Ingreso clínico') }}</flux:heading>
-
-                        <div>
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{{ __('Tipo de atención') }}</label>
-                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                                @foreach ($this->tipoOptions as $value => $label)
-                                    <button type="button" wire:click="$set('a_tipo_atencion', '{{ $value }}')"
-                                        class="px-3 h-12 rounded-lg text-sm border {{ $a_tipo_atencion === $value ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
-                                        {{ $label }}
-                                    </button>
-                                @endforeach
-                            </div>
-                        </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <flux:input type="date" wire:model="a_fecha_ingreso" label="{{ __('Fecha de ingreso') }} *" />
