@@ -81,6 +81,14 @@ Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
     Volt::route('settings/hospital-rooms', 'settings.hospital-rooms')->name('settings.hospital-rooms');
     Volt::route('settings/patient-categories', 'settings.patient-categories')->name('settings.patient-categories');
 
+    Volt::route('settings/admission-types', 'settings.admission-types')
+        ->name('settings.admission-types')
+        ->middleware('hospital.feature:admissions_custom_form');
+
+    Volt::route('settings/admission-types/{admissionType}/edit', 'settings.admission-types-edit')
+        ->name('settings.admission-types.edit')
+        ->middleware('hospital.feature:admissions_custom_form');
+
     Volt::route('seguros', 'insurance.index')
         ->middleware('hospital.feature:insurance')
         ->name('modules.insurance');

@@ -43,6 +43,12 @@
                             :current="request()->routeIs('admissions.index')" wire:navigate>
                             {{ __('Listado de ingresos') }}
                         </flux:navlist.item>
+                        @if ($me?->hospital?->hasFeature('admissions_custom_form'))
+                            <flux:navlist.item icon="clipboard-document-list" :href="route('settings.admission-types')"
+                                :current="request()->routeIs('settings.admission-types*')" wire:navigate>
+                                {{ __('Tipos de ingreso') }}
+                            </flux:navlist.item>
+                        @endif
                         <flux:navlist.item icon="inbox-arrow-down" :href="route('admissions.create')"
                             :current="request()->routeIs('admissions.create')" wire:navigate>
                             {{ __('Nuevo Ingreso') }}
