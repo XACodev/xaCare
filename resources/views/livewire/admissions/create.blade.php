@@ -388,14 +388,6 @@ $sugerirEstadoCivil = function () {
 };
 
 $rules = function () {
-    if ($this->currentStep === 0 && ! $this->isRapidMode) {
-        return ['admissionTypeId' => 'required|exists:admission_types,id'];
-    }
-
-    $docMin = $this->documentoValidacion['min'] ?? 4;
-    $docMax = $this->documentoValidacion['max'] ?? 30;
-    $seccionesRequeridas = $this->selectedAdmissionType()?->required_sections ?? [];
-
     if ($this->isRapidMode) {
         return [
             'p_primer_apellido' => ['required', 'string', 'max:255'],
@@ -410,7 +402,19 @@ $rules = function () {
         ];
     }
 
-    $rules = match ($this->currentStep) {
+    return $this->rulesForStep($this->currentStep);
+};
+
+$rulesForStep = function (int $step): array {
+    if ($step === 0) {
+        return ['admissionTypeId' => 'required|exists:admission_types,id'];
+    }
+
+    $docMin = $this->documentoValidacion['min'] ?? 4;
+    $docMax = $this->documentoValidacion['max'] ?? 30;
+    $seccionesRequeridas = $this->selectedAdmissionType()?->required_sections ?? [];
+
+    $rules = match ($step) {
         1 => [
             'patientQuery' => ['required_without:patientId'],
         ],
@@ -468,12 +472,12 @@ $rules = function () {
         default => [],
     };
 
-    if ($this->currentStep === 4 && Auth::user()->hospital?->hasFeature('admissions_id_documents')) {
+    if ($step === 4 && Auth::user()->hospital?->hasFeature('admissions_id_documents')) {
         $rules['dpiUpload'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
         $rules['firmaUpload'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
     }
 
-    foreach ($this->customFieldsForStep($this->currentStep) as $field) {
+    foreach ($this->customFieldsForStep($step) as $field) {
         $tipoRegla = match ($field->field_type) {
             'numero' => 'numeric',
             'fecha' => 'date',
@@ -504,7 +508,21 @@ $goToStep = function (int $step) {
 };
 
 $save = function () {
-    $this->validate();
+    if ($this->isRapidMode) {
+        $this->validate();
+    } else {
+        // 'patientQuery' es solo el cuadro de búsqueda del paso 1 (UX en vivo);
+        // no se persiste y no debe bloquear el guardado, sobre todo en el flujo
+        // de "paciente nuevo" donde nunca se escribe una búsqueda. La identidad
+        // real ya queda garantizada por patientId o por los nombres requeridos
+        // del paso 2.
+        $this->validate(
+            collect([1, 2, 3, 4])
+                ->flatMap(fn (int $step) => $this->rulesForStep($step))
+                ->except(['patientQuery'])
+                ->all()
+        );
+    }
 
     abort_unless(Auth::check(), 401);
 
@@ -575,8 +593,8 @@ $save = function () {
             'hospital_id' => $hospitalId,
             'patient_id' => $patient->id,
             'admission_type_id' => $this->isRapidMode
-                ? \App\Models\AdmissionType::where('es_ingreso_rapido_default', true)->value('id')
-                : $this->admissionTypeId,
+                ? \App\Models\AdmissionType::where('es_ingreso_rapido_default', true)->where('active', true)->value('id')
+                : \App\Models\AdmissionType::whereKey($this->admissionTypeId)->value('id'),
             'va_a_quirofano' => (bool) $this->a_va_a_quirofano,
             'fecha_ingreso' => $this->a_fecha_ingreso,
             'hora_ingreso' => $this->a_hora_ingreso ?: null,

@@ -512,6 +512,93 @@ test('el nombre del conyuge solo se persiste cuando el estado civil lo amerita',
     expect($patient->nombre_conyuge)->toBeNull();
 });
 
+it('does not persist a cross-tenant admissionTypeId forced by the client', function () {
+    $hospitalA = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospitalA);
+    $hospitalB = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospitalB);
+    $foreignTipo = \App\Models\AdmissionType::where('hospital_id', $hospitalB->id)->where('slug', 'hospitalizacion')->firstOrFail();
+
+    $admin = User::factory()->create(['hospital_id' => $hospitalA->id, 'role' => 'admin']);
+    $admin->assignRole('admin');
+    $this->actingAs($admin);
+
+    Volt::test('admissions.create')
+        ->call('newPatient')
+        ->set('p_primer_apellido', 'Lopez')
+        ->set('p_primer_nombre', 'Ana')
+        ->call('nextStep')
+        ->call('nextStep')
+        // El atacante fuerza el id de un tipo de ingreso que pertenece a otro hospital.
+        ->set('admissionTypeId', $foreignTipo->id)
+        ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $admission = Admission::first();
+    expect($admission)->not->toBeNull();
+    expect($admission->hospital_id)->toBe($hospitalA->id);
+    expect($admission->admission_type_id)->not->toBe($foreignTipo->id);
+});
+
+it('does not persist a deactivated rapid-mode default admission type', function () {
+    $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $urgencia = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'urgencia')->firstOrFail();
+    $urgencia->update(['es_ingreso_rapido_default' => true, 'active' => false]);
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $this->actingAs($user);
+
+    Volt::test('admissions.create')
+        ->set('isRapidMode', true)
+        ->set('p_primer_apellido', 'Perez')
+        ->set('p_primer_nombre', 'Luis')
+        ->set('a_fecha_ingreso', now()->toDateString())
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $admission = Admission::first();
+    expect($admission)->not->toBeNull();
+    expect($admission->admission_type_id)->toBeNull();
+});
+
+it('requires a required custom field on an earlier step even if the wizard currently shows step 4', function () {
+    $hospital = Hospital::factory()->create(['addons' => ['admissions_custom_form']]);
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
+    $field = \App\Models\AdmissionTypeCustomField::create([
+        'hospital_id' => $hospital->id,
+        'admission_type_id' => $tipo->id,
+        'step' => 2,
+        'label' => 'Número de póliza',
+        'slug' => 'numero_poliza',
+        'field_type' => 'texto_corto',
+        'required' => true,
+        'sort_order' => 0,
+        'active' => true,
+    ]);
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
+    $this->actingAs($user);
+
+    // El wizard llega a step 4 sin nunca haber pasado por la validación del
+    // paso 2 (por ejemplo, saltando directamente vía goToStep/currentStep),
+    // dejando el campo obligatorio del paso 2 vacío.
+    Volt::test('admissions.create')
+        ->set('admissionTypeId', $tipo->id)
+        ->call('selectPatient', $patient->id)
+        ->set('currentStep', 4)
+        ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
+        ->call('save')
+        ->assertHasErrors(["customFieldValues.{$field->id}"]);
+
+    expect(Admission::count())->toBe(0);
+});
+
 it('hides sections not marked visible for the chosen admission type', function () {
     $hospital = Hospital::factory()->create();
     \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
