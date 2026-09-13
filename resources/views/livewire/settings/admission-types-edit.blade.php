@@ -37,11 +37,13 @@ new class extends Component
 
     public function customFields(): Collection
     {
-        return $this->admissionType->customFields()->orderBy('sort_order')->get();
+        return $this->admissionType->customFields()->where('active', true)->orderBy('sort_order')->get();
     }
 
     public function toggleSection(string $section, bool $visible): void
     {
+        abort_unless(AdmissionFormSection::tryFrom($section) !== null, 422);
+
         $this->visibleSections = $visible
             ? array_values(array_unique([...$this->visibleSections, $section]))
             : array_values(array_diff($this->visibleSections, [$section]));
@@ -55,6 +57,9 @@ new class extends Component
 
     public function toggleRequired(string $section, bool $required): void
     {
+        abort_unless(AdmissionFormSection::tryFrom($section) !== null, 422);
+        abort_unless(in_array($section, $this->visibleSections, true), 422);
+
         $this->requiredSections = $required
             ? array_values(array_unique([...$this->requiredSections, $section]))
             : array_values(array_diff($this->requiredSections, [$section]));
@@ -67,7 +72,9 @@ new class extends Component
         $field = AdmissionTypeCustomField::withoutGlobalScopes()->findOrFail($fieldId);
         abort_unless($field->hospital_id === $this->admissionType->hospital_id, 403);
 
-        $field->delete();
+        // No se elimina físicamente: las respuestas históricas (admission_custom_field_values)
+        // quedarían huérfanas por el cascadeOnDelete. Se desactiva en su lugar.
+        $field->update(['active' => false]);
     }
 
     private function save(): void
@@ -106,7 +113,7 @@ new class extends Component
             <div class="flex items-center justify-between">
                 <span>{{ $field->label }} ({{ $field->field_type }}, paso {{ $field->step }})</span>
                 <flux:button wire:click="deleteCustomField({{ $field->id }})" variant="danger" size="sm">
-                    Eliminar
+                    Desactivar
                 </flux:button>
             </div>
         @endforeach
