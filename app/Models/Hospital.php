@@ -31,6 +31,7 @@ class Hospital extends Model
         'slug',
         'plan',
         'features',
+        'addons',
         'is_active',
         'subscription_status',
         'trial_ends_at',
@@ -44,6 +45,7 @@ class Hospital extends Model
     {
         return [
             'features' => 'array',
+            'addons' => 'array',
             'is_active' => 'boolean',
             'subscription_status' => SubscriptionStatus::class,
             'trial_ends_at' => 'datetime',
@@ -53,7 +55,8 @@ class Hospital extends Model
 
     public function hasFeature(string $feature): bool
     {
-        return in_array($feature, $this->features ?? [], true);
+        return in_array($feature, $this->features ?? [], true)
+            || in_array($feature, $this->addons ?? [], true);
     }
 
     /**
