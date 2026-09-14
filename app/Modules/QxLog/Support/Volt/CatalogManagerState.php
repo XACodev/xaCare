@@ -30,6 +30,21 @@ trait CatalogManagerState
             throw ValidationException::withMessages(['form.name' => __('This name already exists.')]);
         }
 
+        // Algunos llamadores (admission-types.blade.php) pasan un slug explícito derivado
+        // del nombre vía Str::slug(). Dos nombres distintos pueden normalizar al mismo
+        // slug (ej. "Hospitalización" vs "Hospitalizacion"), lo que revienta el unique
+        // constraint por hospital_id+slug con un QueryException sin manejar.
+        if (array_key_exists('slug', $data)) {
+            $slugDuplicate = $modelClass::withoutGlobalScopes()
+                ->where('hospital_id', $hospitalId)
+                ->where('slug', $data['slug'])
+                ->exists();
+
+            if ($slugDuplicate) {
+                throw ValidationException::withMessages(['form.name' => __('This name already exists.')]);
+            }
+        }
+
         $maxSort = (int) $modelClass::withoutGlobalScopes()->where('hospital_id', $hospitalId)->max('sort_order');
 
         $modelClass::create([...$data, 'hospital_id' => $hospitalId, 'sort_order' => $maxSort + 1, 'active' => true]);

@@ -76,6 +76,20 @@ test('canceling a subscription deactivates the hospital', function () {
         ->and($hospital->is_active)->toBeFalse();
 });
 
+test('super admin can toggle the admissions_custom_form and admissions_id_documents addons', function () {
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
+    $hospital = Hospital::factory()->create(['addons' => []]);
+    $this->actingAs($superAdmin);
+
+    Volt::test('platform.hospitals.edit', ['hospital' => $hospital->id])
+        ->set('addonCustomForm', true)
+        ->set('addonIdDocuments', false)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($hospital->fresh()->addons)->toBe(['admissions_custom_form']);
+});
+
 test('changing subscription status is recorded in the activity log', function () {
     $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
     $hospital = Hospital::factory()->create(['plan' => 'basic', 'subscription_status' => SubscriptionStatus::Active]);

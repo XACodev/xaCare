@@ -28,6 +28,8 @@ state([
     'staff_q' => '',
     'staff_show_deleted' => false,
     'enabled_roles' => [],
+    'addonCustomForm' => false,
+    'addonIdDocuments' => false,
 ]);
 
 mount(function (string|int $hospital) {
@@ -42,6 +44,8 @@ mount(function (string|int $hospital) {
     $this->subscription_status = $h->subscription_status->value;
     $this->trial_ends_at = $h->trial_ends_at?->format('Y-m-d\TH:i') ?? '';
     $this->enabled_roles = $h->enabled_roles ?? [];
+    $this->addonCustomForm = in_array('admissions_custom_form', $h->addons ?? [], true);
+    $this->addonIdDocuments = in_array('admissions_id_documents', $h->addons ?? [], true);
 
     $this->loadInvitations();
 });
@@ -103,6 +107,15 @@ $save = function () {
         SubscriptionStatus::from($data['subscription_status']),
         filled($data['trial_ends_at']) ? Carbon::parse($data['trial_ends_at']) : null,
     );
+
+    $addons = [];
+    if ($this->addonCustomForm) {
+        $addons[] = 'admissions_custom_form';
+    }
+    if ($this->addonIdDocuments) {
+        $addons[] = 'admissions_id_documents';
+    }
+    $this->hospital->update(['addons' => $addons]);
 
     $this->hospital->refresh();
     $this->is_active = $this->hospital->is_active;
@@ -238,6 +251,9 @@ $restoreStaff = function (int $id) {
         <flux:input type="datetime-local" wire:model="trial_ends_at" label="{{ __('Trial ends at') }}" />
 
         <flux:checkbox wire:model.live="is_active" label="{{ __('Active') }}" />
+
+        <flux:checkbox wire:model="addonCustomForm" label="Formulario de ingreso personalizable" />
+        <flux:checkbox wire:model="addonIdDocuments" label="Documentos de identidad (DPI y firma)" />
 
         <div class="pt-2 flex justify-end">
             <flux:button variant="primary" wire:click="save" class="w-full sm:w-auto">

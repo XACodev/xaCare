@@ -152,11 +152,19 @@ test('hospital admin cannot create an admission pointing at a patient from anoth
 
     $this->actingAs($adminA);
 
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospitalA);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospitalA->id)->where('slug', 'hospitalizacion')->firstOrFail();
+
     Volt::test('admissions.create')
         ->set('currentStep', 4)
         ->set('patientId', $patientB->id)
-        ->set('a_tipo_atencion', 'hospitalizacion')
+        // Datos minimos del paso 2 para superar la validacion completa de save()
+        // y llegar al chequeo real de propiedad del paciente por hospital.
+        ->set('p_primer_apellido', 'Lopez')
+        ->set('p_primer_nombre', 'Ana')
+        ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasErrors(['patientId']);
 

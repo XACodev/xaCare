@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\AdmissionType;
 use App\Models\Admission;
 use App\Models\HospitalRoom;
 use App\Models\HospitalWard;
@@ -11,13 +10,16 @@ use App\Support\PatientAge;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
+use Livewire\WithFileUploads;
 
-use function Livewire\Volt\{state, mount, computed, rules};
+use function Livewire\Volt\{state, mount, computed, rules, uses};
+
+uses(WithFileUploads::class);
 
 state([
     'isRapidMode' => false,
-    'currentStep' => 1,
+    'currentStep' => 0,
+    'admissionTypeId' => null,
 
     // Paciente
     'patientId' => null,
@@ -52,7 +54,6 @@ state([
     'p_emergency_contacts' => [['nombre' => '', 'telefono' => '']],
 
     // Ingreso
-    'a_tipo_atencion' => 'hospitalizacion',
     'a_va_a_quirofano' => false,
     'a_fecha_ingreso' => now()->toDateString(),
     'a_hora_ingreso' => now()->format('H:i'),
@@ -76,6 +77,13 @@ state([
 
     'savedAdmission' => null,
     'lastAdmissionPatientId' => null,
+
+    // Campos personalizados (addon admissions_custom_form)
+    'customFieldValues' => [],
+
+    // Documentos de identidad (addon admissions_id_documents)
+    'dpiUpload' => null,
+    'firmaUpload' => null,
 ]);
 
 mount(function () {
@@ -133,7 +141,31 @@ $categoriaPaciente = computed(function () {
         ?->name ?? $age->category()->label();
 });
 
-$tipoOptions = computed(fn () => AdmissionType::options());
+$admissionTypes = function () {
+    return \App\Models\AdmissionType::query()
+        ->where('active', true)
+        ->orderBy('sort_order')
+        ->get();
+};
+
+$selectedAdmissionType = function (): ?\App\Models\AdmissionType {
+    return $this->admissionTypeId
+        ? \App\Models\AdmissionType::find($this->admissionTypeId)
+        : null;
+};
+
+$customFieldsForStep = function (int $step) {
+    if (! Auth::user()->hospital?->hasFeature('admissions_custom_form') || ! $this->admissionTypeId) {
+        return collect();
+    }
+
+    return \App\Models\AdmissionTypeCustomField::query()
+        ->where('active', true)
+        ->where('step', $step)
+        ->where(fn ($q) => $q->whereNull('admission_type_id')->orWhere('admission_type_id', $this->admissionTypeId))
+        ->orderBy('sort_order')
+        ->get();
+};
 
 $paises = computed(fn () => config('locations.countries', []));
 
@@ -232,10 +264,11 @@ $medicoSuggestions = computed(function () {
 });
 
 $stepLabels = computed(fn () => [
+    0 => ['title' => 'Tipo de ingreso', 'subtitle' => 'Selecciona el tipo de atención'],
     1 => ['title' => 'Identificación', 'subtitle' => 'Busca o registra al paciente'],
     2 => ['title' => 'Datos personales', 'subtitle' => 'Nacionalidad, nombres, documento'],
     3 => ['title' => 'Contactos y seguro', 'subtitle' => 'Dirección, emergencia, seguro'],
-    4 => ['title' => 'Ingreso clínico', 'subtitle' => 'Tipo de atención, sala, médico'],
+    4 => ['title' => 'Ingreso clínico', 'subtitle' => 'Fecha, sala, médico'],
 ]);
 
 $selectPatient = function (int $id) {
@@ -355,9 +388,6 @@ $sugerirEstadoCivil = function () {
 };
 
 $rules = function () {
-    $docMin = $this->documentoValidacion['min'] ?? 4;
-    $docMax = $this->documentoValidacion['max'] ?? 30;
-
     if ($this->isRapidMode) {
         return [
             'p_primer_apellido' => ['required', 'string', 'max:255'],
@@ -372,7 +402,19 @@ $rules = function () {
         ];
     }
 
-    return match ($this->currentStep) {
+    return $this->rulesForStep($this->currentStep);
+};
+
+$rulesForStep = function (int $step): array {
+    if ($step === 0) {
+        return ['admissionTypeId' => 'required|exists:admission_types,id'];
+    }
+
+    $docMin = $this->documentoValidacion['min'] ?? 4;
+    $docMax = $this->documentoValidacion['max'] ?? 30;
+    $seccionesRequeridas = $this->selectedAdmissionType()?->required_sections ?? [];
+
+    $rules = match ($step) {
         1 => [
             'patientQuery' => ['required_without:patientId'],
         ],
@@ -414,10 +456,9 @@ $rules = function () {
             'a_certificado' => ['nullable', 'string', 'max:255'],
         ],
         4 => [
-            'a_tipo_atencion' => ['required', Rule::in(array_keys(AdmissionType::options()))],
             'a_fecha_ingreso' => ['required', 'date'],
             'a_hora_ingreso' => ['nullable', 'date_format:H:i'],
-            'a_sala_ingreso' => ['nullable', 'string', 'max:255'],
+            'a_sala_ingreso' => [in_array('sala_habitacion', $seccionesRequeridas, true) ? 'required' : 'nullable', 'string', 'max:255'],
             'a_habitacion' => ['nullable', 'string', 'max:255'],
             'a_medico_responsable' => ['nullable', 'string', 'max:255'],
             'a_referido_por' => ['nullable', 'string', 'max:255'],
@@ -430,6 +471,24 @@ $rules = function () {
         ],
         default => [],
     };
+
+    if ($step === 4 && Auth::user()->hospital?->hasFeature('admissions_id_documents')) {
+        $rules['dpiUpload'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+        $rules['firmaUpload'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+    }
+
+    foreach ($this->customFieldsForStep($step) as $field) {
+        $tipoRegla = match ($field->field_type) {
+            'numero' => 'numeric',
+            'fecha' => 'date',
+            'si_no' => 'boolean',
+            'seleccion_multiple' => 'array',
+            default => 'string',
+        };
+        $rules["customFieldValues.{$field->id}"] = ($field->required ? 'required|' : 'nullable|').$tipoRegla;
+    }
+
+    return $rules;
 };
 
 $nextStep = function () {
@@ -438,18 +497,32 @@ $nextStep = function () {
 };
 
 $previousStep = function () {
-    $this->currentStep = max(1, $this->currentStep - 1);
+    $this->currentStep = max(0, $this->currentStep - 1);
 };
 
 $goToStep = function (int $step) {
-    if ($step < 1 || $step > 4 || $step > $this->currentStep) {
+    if ($step < 0 || $step > 4 || $step > $this->currentStep) {
         return;
     }
     $this->currentStep = $step;
 };
 
 $save = function () {
-    $this->validate();
+    if ($this->isRapidMode) {
+        $this->validate();
+    } else {
+        // 'patientQuery' es solo el cuadro de búsqueda del paso 1 (UX en vivo);
+        // no se persiste y no debe bloquear el guardado, sobre todo en el flujo
+        // de "paciente nuevo" donde nunca se escribe una búsqueda. La identidad
+        // real ya queda garantizada por patientId o por los nombres requeridos
+        // del paso 2.
+        $this->validate(
+            collect([1, 2, 3, 4])
+                ->flatMap(fn (int $step) => $this->rulesForStep($step))
+                ->except(['patientQuery'])
+                ->all()
+        );
+    }
 
     abort_unless(Auth::check(), 401);
 
@@ -519,7 +592,9 @@ $save = function () {
         return Admission::create([
             'hospital_id' => $hospitalId,
             'patient_id' => $patient->id,
-            'tipo_atencion' => $this->isRapidMode ? AdmissionType::URGENCIA->value : $this->a_tipo_atencion,
+            'admission_type_id' => $this->isRapidMode
+                ? \App\Models\AdmissionType::where('es_ingreso_rapido_default', true)->where('active', true)->value('id')
+                : \App\Models\AdmissionType::whereKey($this->admissionTypeId)->value('id'),
             'va_a_quirofano' => (bool) $this->a_va_a_quirofano,
             'fecha_ingreso' => $this->a_fecha_ingreso,
             'hora_ingreso' => $this->a_hora_ingreso ?: null,
@@ -546,6 +621,39 @@ $save = function () {
 
     if (! $admission) {
         return;
+    }
+
+    if (Auth::user()->hospital?->hasFeature('admissions_custom_form')) {
+        $allowedFieldIds = collect([1, 2, 3, 4])
+            ->flatMap(fn (int $step) => $this->customFieldsForStep($step))
+            ->pluck('id')
+            ->all();
+
+        foreach ($this->customFieldValues as $fieldId => $value) {
+            if ($value === null || $value === '' || ! in_array((int) $fieldId, $allowedFieldIds, true)) {
+                continue;
+            }
+
+            \App\Models\AdmissionCustomFieldValue::create([
+                'admission_id' => $admission->id,
+                'custom_field_id' => $fieldId,
+                'value' => is_array($value) ? json_encode($value) : (string) $value,
+            ]);
+        }
+    }
+
+    if (Auth::user()->hospital?->hasFeature('admissions_id_documents')) {
+        if ($this->dpiUpload) {
+            $path = "admissions/{$admission->id}/dpi.".$this->dpiUpload->extension();
+            \App\Support\EncryptedFileStorage::store('local', $path, file_get_contents($this->dpiUpload->getRealPath()));
+            $admission->update(['dpi_path' => $path]);
+        }
+
+        if ($this->firmaUpload) {
+            $path = "admissions/{$admission->id}/firma.".$this->firmaUpload->extension();
+            \App\Support\EncryptedFileStorage::store('local', $path, file_get_contents($this->firmaUpload->getRealPath()));
+            $admission->update(['firma_path' => $path]);
+        }
     }
 
     $this->savedAdmission = $admission;
@@ -594,7 +702,7 @@ $save = function () {
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Paciente') }}</p>
                     <p class="text-lg font-semibold">{{ $savedAdmission->patient->nombreCompleto() ?: __('Recién nacido/a') }}</p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        {{ App\Enums\AdmissionType::from($savedAdmission->tipo_atencion)->label() }}
+                        {{ $savedAdmission->admissionType?->name }}
                         · {{ $savedAdmission->completo ? __('Completo') : __('Pendiente de completar') }}
                     </p>
                     @if ($savedAdmission->patient->expediente_no)
@@ -683,7 +791,7 @@ $save = function () {
     {{-- MODO NORMAL: WIZARD 4 PASOS --}}
     @if (! $isRapidMode)
         {{-- Stepper --}}
-        <div class="grid grid-cols-4 gap-3">
+        <div class="grid grid-cols-5 gap-3">
             @foreach ($this->stepLabels as $step => $label)
                 <button type="button" wire:click="goToStep({{ $step }})"
                     @class([
@@ -717,6 +825,39 @@ $save = function () {
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {{-- Formulario principal --}}
             <div class="lg:col-span-2 space-y-6">
+                {{-- Paso 0: Tipo de ingreso --}}
+                @if ($currentStep === 0)
+                    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
+                        <div>
+                            <flux:heading size="lg">{{ __('¿Qué tipo de ingreso vamos a registrar?') }}</flux:heading>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                                {{ __('El tipo de ingreso determina qué información pediremos en los siguientes pasos.') }}
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            @foreach ($this->admissionTypes() as $tipo)
+                                <button
+                                    type="button"
+                                    wire:click="$set('admissionTypeId', {{ $tipo->id }})"
+                                    @class([
+                                        'rounded-lg border p-4 text-left transition',
+                                        'border-teal-600 bg-teal-50' => $admissionTypeId === $tipo->id,
+                                        'border-zinc-200' => $admissionTypeId !== $tipo->id,
+                                    ])
+                                >
+                                    <span class="font-medium">{{ $tipo->name }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                        @error('admissionTypeId') <flux:text class="text-red-600">{{ $message }}</flux:text> @enderror
+
+                        <div class="flex justify-end pt-2">
+                            <flux:button variant="primary" wire:click="nextStep">{{ __('Siguiente: Identificación') }} →</flux:button>
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Paso 1: Identificación --}}
                 @if ($currentStep === 1)
                     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
@@ -772,6 +913,28 @@ $save = function () {
                             </div>
                             <flux:button variant="outline" wire:click="newPatient">+ {{ __('Registrar paciente nuevo') }}</flux:button>
                         </div>
+
+                        @foreach ($this->customFieldsForStep(1) as $field)
+                            <div>
+                                @if ($field->field_type === 'texto_corto')
+                                    <flux:input wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'texto_largo')
+                                    <flux:textarea wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'numero')
+                                    <flux:input type="number" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'fecha')
+                                    <flux:input type="date" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'si_no')
+                                    <flux:checkbox wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif (in_array($field->field_type, ['seleccion_unica', 'seleccion_multiple']))
+                                    <flux:select wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" :multiple="$field->field_type === 'seleccion_multiple'">
+                                        @foreach ($field->options ?? [] as $opcion)
+                                            <flux:select.option value="{{ $opcion }}">{{ $opcion }}</flux:select.option>
+                                        @endforeach
+                                    </flux:select>
+                                @endif
+                            </div>
+                        @endforeach
 
                         <div class="flex justify-end pt-2">
                             <flux:button variant="primary" wire:click="nextStep">{{ __('Siguiente: Datos personales') }} →</flux:button>
@@ -841,20 +1004,23 @@ $save = function () {
                                         class="text-sm font-medium {{ $p_sexo === 'F' ? 'bg-mist text-accent-content dark:bg-accent/20 dark:text-accent' : 'bg-white dark:bg-zinc-900 text-zinc-500' }}">F</button>
                                 </div>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Estado civil') }}</label>
-                                <div class="flex flex-wrap gap-2">
-                                    @foreach (['S' => 'Soltero/a', 'C' => 'Casado/a', 'U' => 'Unido/a', 'D' => 'Divorciado/a', 'V' => 'Viudo/a'] as $value => $label)
-                                        <button type="button" wire:click="$set('p_estado_civil', '{{ $value }}')"
-                                            class="px-3 h-9 rounded-lg text-sm border {{ $p_estado_civil === $value ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
-                                            {{ $label }}
-                                        </button>
-                                    @endforeach
+                            @if (in_array('estado_civil', $this->selectedAdmissionType()?->visible_sections ?? [], true))
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Estado civil') }}</label>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach (['S' => 'Soltero/a', 'C' => 'Casado/a', 'U' => 'Unido/a', 'D' => 'Divorciado/a', 'V' => 'Viudo/a'] as $value => $label)
+                                            <button type="button" wire:click="$set('p_estado_civil', '{{ $value }}')"
+                                                class="px-3 h-9 rounded-lg text-sm border {{ $p_estado_civil === $value ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
+                                                {{ $label }}
+                                            </button>
+                                        @endforeach
+                                    </div>
                                 </div>
-                            </div>
+                            @endif
                         </div>
 
                         {{-- Nacionalidad, documento, lugar de nacimiento y dirección --}}
+                        @if (in_array('nacionalidad_documento', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                         <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-mist/20 dark:bg-zinc-800/20 space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{{ __('¿Es guatemalteco/a?') }}</label>
@@ -909,6 +1075,7 @@ $save = function () {
 
                             <flux:input wire:model="p_dpi" label="{{ $p_es_extranjero ? __('Número de documento') : __('Número de CUI / DPI') }}" />
 
+                            @if (in_array('lugar_nacimiento_direccion', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                             <div class="border-t border-zinc-200 dark:border-zinc-700 pt-4 space-y-4">
                                 <div class="font-medium text-sm">{{ __('Lugar de nacimiento') }}</div>
 
@@ -945,9 +1112,12 @@ $save = function () {
                             </div>
 
                             <flux:input wire:model="p_direccion_habitual" label="{{ __('Dirección habitual') }}" />
+                            @endif
                         </div>
+                        @endif
 
                         {{-- Familiares --}}
+                        @if (in_array('familiares', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <flux:input wire:model="p_nombre_padre" label="{{ __('Nombre del padre') }}" />
                             <flux:input wire:model="p_nombre_madre" label="{{ __('Nombre de la madre') }}" />
@@ -955,6 +1125,29 @@ $save = function () {
                                 <flux:input wire:model="p_nombre_conyuge" label="{{ __('Nombre del cónyuge') }}" />
                             @endif
                         </div>
+                        @endif
+
+                        @foreach ($this->customFieldsForStep(2) as $field)
+                            <div>
+                                @if ($field->field_type === 'texto_corto')
+                                    <flux:input wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'texto_largo')
+                                    <flux:textarea wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'numero')
+                                    <flux:input type="number" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'fecha')
+                                    <flux:input type="date" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'si_no')
+                                    <flux:checkbox wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif (in_array($field->field_type, ['seleccion_unica', 'seleccion_multiple']))
+                                    <flux:select wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" :multiple="$field->field_type === 'seleccion_multiple'">
+                                        @foreach ($field->options ?? [] as $opcion)
+                                            <flux:select.option value="{{ $opcion }}">{{ $opcion }}</flux:select.option>
+                                        @endforeach
+                                    </flux:select>
+                                @endif
+                            </div>
+                        @endforeach
 
                         <div class="flex justify-end pt-2">
                             <flux:button variant="primary" wire:click="nextStep">{{ __('Siguiente: Contactos y seguro') }} →</flux:button>
@@ -967,6 +1160,7 @@ $save = function () {
                     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
                         <flux:heading size="lg">{{ __('Contactos y seguro') }}</flux:heading>
 
+                        @if (in_array('contactos_emergencia', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <flux:input wire:model="p_telefono" label="{{ __('Teléfono del paciente') }}" />
                             <flux:input wire:model="p_telefono_casa" label="{{ __('Teléfono de casa u otro contacto del paciente') }}" />
@@ -991,7 +1185,9 @@ $save = function () {
                                 </div>
                             @endforeach
                         </div>
+                        @endif
 
+                        @if (in_array('seguro', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                             <flux:checkbox wire:model.live="a_tiene_seguro" label="{{ __('Tiene seguro') }}" />
                             <flux:checkbox wire:model.live="a_tiene_igss" label="{{ __('IGSS') }}" />
@@ -1004,6 +1200,29 @@ $save = function () {
                                 <flux:input wire:model="a_certificado" label="{{ __('Certificado') }}" />
                             </div>
                         @endif
+                        @endif
+
+                        @foreach ($this->customFieldsForStep(3) as $field)
+                            <div>
+                                @if ($field->field_type === 'texto_corto')
+                                    <flux:input wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'texto_largo')
+                                    <flux:textarea wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'numero')
+                                    <flux:input type="number" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'fecha')
+                                    <flux:input type="date" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'si_no')
+                                    <flux:checkbox wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif (in_array($field->field_type, ['seleccion_unica', 'seleccion_multiple']))
+                                    <flux:select wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" :multiple="$field->field_type === 'seleccion_multiple'">
+                                        @foreach ($field->options ?? [] as $opcion)
+                                            <flux:select.option value="{{ $opcion }}">{{ $opcion }}</flux:select.option>
+                                        @endforeach
+                                    </flux:select>
+                                @endif
+                            </div>
+                        @endforeach
 
                         <div class="flex justify-between pt-2">
                             <flux:button variant="ghost" wire:click="previousStep">← {{ __('Atrás') }}</flux:button>
@@ -1017,18 +1236,6 @@ $save = function () {
                     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
                         <flux:heading size="lg">{{ __('Ingreso clínico') }}</flux:heading>
 
-                        <div>
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{{ __('Tipo de atención') }}</label>
-                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                                @foreach ($this->tipoOptions as $value => $label)
-                                    <button type="button" wire:click="$set('a_tipo_atencion', '{{ $value }}')"
-                                        class="px-3 h-12 rounded-lg text-sm border {{ $a_tipo_atencion === $value ? 'bg-mist border-accent text-accent-content dark:bg-accent/20 dark:text-accent font-semibold' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
-                                        {{ $label }}
-                                    </button>
-                                @endforeach
-                            </div>
-                        </div>
-
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <flux:input type="date" wire:model="a_fecha_ingreso" label="{{ __('Fecha de ingreso') }} *" />
                             <flux:input type="time" wire:model="a_hora_ingreso" label="{{ __('Hora') }}">
@@ -1036,6 +1243,7 @@ $save = function () {
                                     <button type="button" wire:click="setNow" class="text-xs font-semibold text-accent px-2">{{ __('Ahora') }}</button>
                                 </x-slot>
                             </flux:input>
+                            @if (in_array('sala_habitacion', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                             <div class="relative">
                                 <flux:input wire:model.live.debounce.300ms="a_sala_ingreso" label="{{ __('Sala / Servicio (ej. Medicina Interna, Pediatría)') }}" placeholder="{{ __('Escribe o elige del catálogo') }}" autocomplete="off" />
                                 @if (count($this->salaSuggestions))
@@ -1062,9 +1270,11 @@ $save = function () {
                                     </div>
                                 @endif
                             </div>
+                            @endif
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            @if (in_array('medico_responsable', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                             <div class="relative">
                                 <flux:input wire:model.live.debounce.300ms="a_medico_responsable" label="{{ __('Médico responsable') }}" placeholder="{{ __('Busca en el staff o escribe libre') }}" autocomplete="off" />
                                 @if (count($this->medicoSuggestions))
@@ -1078,7 +1288,10 @@ $save = function () {
                                     </div>
                                 @endif
                             </div>
+                            @endif
+                            @if (in_array('referido_por', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                             <flux:input wire:model="a_referido_por" label="{{ __('Referido por') }}" />
+                            @endif
                         </div>
 
                         <div class="flex items-center justify-between p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
@@ -1089,10 +1302,12 @@ $save = function () {
                             <flux:switch wire:model="a_va_a_quirofano" />
                         </div>
 
+                        @if (in_array('otras_hospitalizaciones', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                         <flux:textarea wire:model="a_otras_hospitalizaciones" label="{{ __('Otras hospitalizaciones') }}" />
+                        @endif
 
-                        {{-- Maternidad: solo si el paciente es femenino --}}
-                        @if ($p_sexo === 'F')
+                        {{-- Maternidad: solo si el paciente es femenino y la sección aplica --}}
+                        @if ($p_sexo === 'F' && in_array('maternidad', $this->selectedAdmissionType()?->visible_sections ?? [], true))
                             <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-mist/30 dark:bg-zinc-800/30 p-5 space-y-4">
                                 <flux:heading size="sm">{{ __('Maternidad') }}</flux:heading>
 
@@ -1112,6 +1327,35 @@ $save = function () {
                                 </div>
 
                                 <flux:textarea wire:model="a_maternidad_condiciones_egreso" label="{{ __('Condiciones del egreso') }}" />
+                            </div>
+                        @endif
+
+                        @foreach ($this->customFieldsForStep(4) as $field)
+                            <div>
+                                @if ($field->field_type === 'texto_corto')
+                                    <flux:input wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'texto_largo')
+                                    <flux:textarea wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'numero')
+                                    <flux:input type="number" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'fecha')
+                                    <flux:input type="date" wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif ($field->field_type === 'si_no')
+                                    <flux:checkbox wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" />
+                                @elseif (in_array($field->field_type, ['seleccion_unica', 'seleccion_multiple']))
+                                    <flux:select wire:model="customFieldValues.{{ $field->id }}" label="{{ $field->label }}" :multiple="$field->field_type === 'seleccion_multiple'">
+                                        @foreach ($field->options ?? [] as $opcion)
+                                            <flux:select.option value="{{ $opcion }}">{{ $opcion }}</flux:select.option>
+                                        @endforeach
+                                    </flux:select>
+                                @endif
+                            </div>
+                        @endforeach
+
+                        @if (Auth::user()->hospital?->hasFeature('admissions_id_documents'))
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <flux:input type="file" wire:model="dpiUpload" label="{{ __('Documento de identidad (DPI)') }}" />
+                                <flux:input type="file" wire:model="firmaUpload" label="{{ __('Firma digital (imagen, no certificada legalmente)') }}" />
                             </div>
                         @endif
 

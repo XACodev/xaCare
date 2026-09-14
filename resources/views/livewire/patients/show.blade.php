@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\AdmissionType;
 use App\Models\Patient;
 use Illuminate\Support\Facades\Auth;
 
@@ -21,7 +20,7 @@ mount(function (string $patient) {
 // por orden cronologico (No. de ingreso) -- distingue reingresos del mismo
 // expediente sin necesitar una columna nueva en `admissions`.
 $admissions = computed(function () {
-    return $this->patient->admissions()->orderBy('fecha_ingreso')->orderBy('id')->get()
+    return $this->patient->admissions()->with('admissionType')->orderBy('fecha_ingreso')->orderBy('id')->get()
         ->values()
         ->map(fn ($admission, $index) => ['admission' => $admission, 'numero' => $index + 1])
         ->reverse();
@@ -127,7 +126,7 @@ $estadoCivilLabel = function (?string $codigo) {
                         <span class="text-sm font-semibold">{{ __('Ingreso No.') }} {{ $row['numero'] }}</span>
                         <span class="text-sm text-zinc-500 dark:text-zinc-400">
                             · {{ $row['admission']->fecha_ingreso?->format('d/m/Y') }}
-                            · {{ AdmissionType::from($row['admission']->tipo_atencion)->label() }}
+                            · {{ $row['admission']->admissionType?->name }}
                         </span>
                     </div>
                     <flux:badge :variant="$row['admission']->completo ? 'success' : 'warning'">

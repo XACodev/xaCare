@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\AdmissionType;
 use App\Models\Admission;
 use App\Models\Hospital;
 use App\Models\Patient;
@@ -14,8 +13,47 @@ beforeEach(function () {
     Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 });
 
+it('shows the admission type selection as step 0 before identification', function () {
+    $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+
+    Volt::actingAs($user)->test('admissions.create')
+        ->assertSet('currentStep', 0)
+        ->assertSeeText('COEX')
+        ->assertSeeText('Hospitalización');
+});
+
+it('requires selecting an admission type before advancing past step 0', function () {
+    $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+
+    Volt::actingAs($user)->test('admissions.create')
+        ->call('nextStep')
+        ->assertSet('currentStep', 0)
+        ->assertHasErrors(['admissionTypeId']);
+});
+
+it('advances to step 1 after choosing an admission type', function () {
+    $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'coex')->firstOrFail();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+
+    Volt::actingAs($user)->test('admissions.create')
+        ->set('admissionTypeId', $tipo->id)
+        ->call('nextStep')
+        ->assertSet('currentStep', 1);
+});
+
 test('admin can register an admission selecting an existing patient', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
@@ -25,8 +63,9 @@ test('admin can register an admission selecting an existing patient', function (
         ->call('selectPatient', $patient->id)
         ->call('nextStep')
         ->call('nextStep')
-        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->set('a_medico_responsable', 'Dr. Test')
         ->call('save')
         ->assertHasNoErrors();
@@ -35,13 +74,15 @@ test('admin can register an admission selecting an existing patient', function (
     expect($admission)->not->toBeNull();
     expect($admission->patient_id)->toBe($patient->id);
     expect($admission->hospital_id)->toBe($hospital->id);
-    expect($admission->tipo_atencion)->toBe(AdmissionType::HOSPITALIZACION->value);
+    expect($admission->admission_type_id)->toBe($tipo->id);
     expect($admission->qr_token)->not->toBeNull();
     expect($admission->completo)->toBeTrue();
 });
 
 test('admin can register an admission creating a new patient inline', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $this->actingAs($user);
@@ -53,8 +94,9 @@ test('admin can register an admission creating a new patient inline', function (
         ->set('p_sexo', 'F')
         ->call('nextStep')
         ->call('nextStep')
-        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -69,6 +111,9 @@ test('admin can register an admission creating a new patient inline', function (
 
 test('rapid mode registers urgent admission with minimal data and marks incomplete', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $urgencia = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'urgencia')->firstOrFail();
+    $urgencia->update(['es_ingreso_rapido_default' => true]);
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $this->actingAs($user);
@@ -83,7 +128,7 @@ test('rapid mode registers urgent admission with minimal data and marks incomple
 
     $admission = Admission::first();
     expect($admission)->not->toBeNull();
-    expect($admission->tipo_atencion)->toBe(AdmissionType::URGENCIA->value);
+    expect($admission->admission_type_id)->toBe($urgencia->id);
     expect($admission->completo)->toBeFalse();
     expect($admission->patient->nombreCompleto())->toBe('Luis Perez');
     expect($admission->qr_token)->not->toBeNull();
@@ -135,6 +180,8 @@ test('set now button fills current date and time', function () {
 
 test('new patient gets an automatic expediente number sequential by hospital', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     Patient::factory()->create(['hospital_id' => $hospital->id, 'expediente_no' => '9800']);
@@ -146,8 +193,9 @@ test('new patient gets an automatic expediente number sequential by hospital', f
         ->set('p_primer_nombre', 'Ana')
         ->call('nextStep')
         ->call('nextStep')
-        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -157,6 +205,8 @@ test('new patient gets an automatic expediente number sequential by hospital', f
 
 test('selecting an existing patient allows editing their data before saving', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $patient = Patient::factory()->create(['hospital_id' => $hospital->id, 'telefono' => '12345678']);
@@ -167,8 +217,9 @@ test('selecting an existing patient allows editing their data before saving', fu
         ->set('p_telefono', '87654321')
         ->call('nextStep')
         ->call('nextStep')
-        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -177,6 +228,8 @@ test('selecting an existing patient allows editing their data before saving', fu
 
 test('nationality defaults to guatemalan unless foreign is selected', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $this->actingAs($user);
@@ -188,8 +241,9 @@ test('nationality defaults to guatemalan unless foreign is selected', function (
         ->set('p_es_extranjero', false)
         ->call('nextStep')
         ->call('nextStep')
-        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -199,6 +253,8 @@ test('nationality defaults to guatemalan unless foreign is selected', function (
 
 test('maternity fields and other hospitalizations are stored on admission', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $this->actingAs($user);
@@ -210,8 +266,9 @@ test('maternity fields and other hospitalizations are stored on admission', func
         ->set('p_sexo', 'F')
         ->call('nextStep')
         ->call('nextStep')
-        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->set('a_otras_hospitalizaciones', 'Apendicitis 2020')
         ->set('a_maternidad_no_hijo', '1')
         ->set('a_maternidad_sexo', 'M')
@@ -254,6 +311,8 @@ test('sala y habitacion sugieren coincidencias del catalogo del hospital', funct
 
 test('foreign patient stores country document type and passport', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $this->actingAs($user);
@@ -271,8 +330,9 @@ test('foreign patient stores country document type and passport', function () {
         ->set('p_fecha_nacimiento', '1990-05-10')
         ->call('nextStep')
         ->call('nextStep')
-        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -307,6 +367,8 @@ test('age is calculated in months and days for infants', function () {
 
 test('multiple emergency contacts are stored as json', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $this->actingAs($user);
@@ -321,8 +383,9 @@ test('multiple emergency contacts are stored as json', function () {
         ])
         ->call('nextStep')
         ->call('nextStep')
-        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -333,6 +396,8 @@ test('multiple emergency contacts are stored as json', function () {
 
 test('newborn patient can be registered without a name and linked to mother', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $mother = Patient::factory()->create(['hospital_id' => $hospital->id, 'sexo' => 'F', 'primer_nombre' => 'Mama']);
@@ -346,8 +411,9 @@ test('newborn patient can be registered without a name and linked to mother', fu
         ->set('p_fecha_nacimiento', now()->toDateString())
         ->call('nextStep')
         ->call('nextStep')
-        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
@@ -401,11 +467,14 @@ test('medico responsable sugiere solo staff marcado como appears_as_suggestion d
 
 test('el campo nombre del conyuge solo aparece si el estado civil es casado o union de hecho', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $this->actingAs($user);
 
     Volt::test('admissions.create')
+        ->set('admissionTypeId', $tipo->id)
         ->call('newPatient')
         ->set('p_estado_civil', 'S')
         ->assertDontSee(__('Nombre del cónyuge'))
@@ -419,6 +488,8 @@ test('el campo nombre del conyuge solo aparece si el estado civil es casado o un
 
 test('el nombre del conyuge solo se persiste cuando el estado civil lo amerita', function () {
     $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
     $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
     $user->assignRole('admin');
     $this->actingAs($user);
@@ -431,11 +502,131 @@ test('el nombre del conyuge solo se persiste cuando el estado civil lo amerita',
         ->set('p_nombre_conyuge', 'Nombre Fantasma')
         ->call('nextStep')
         ->call('nextStep')
-        ->set('a_tipo_atencion', AdmissionType::HOSPITALIZACION->value)
+        ->set('admissionTypeId', $tipo->id)
         ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->call('save')
         ->assertHasNoErrors();
 
     $patient = Patient::where('primer_nombre', 'Maria')->first();
     expect($patient->nombre_conyuge)->toBeNull();
+});
+
+it('does not persist a cross-tenant admissionTypeId forced by the client', function () {
+    $hospitalA = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospitalA);
+    $hospitalB = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospitalB);
+    $foreignTipo = \App\Models\AdmissionType::where('hospital_id', $hospitalB->id)->where('slug', 'hospitalizacion')->firstOrFail();
+
+    $admin = User::factory()->create(['hospital_id' => $hospitalA->id, 'role' => 'admin']);
+    $admin->assignRole('admin');
+    $this->actingAs($admin);
+
+    Volt::test('admissions.create')
+        ->call('newPatient')
+        ->set('p_primer_apellido', 'Lopez')
+        ->set('p_primer_nombre', 'Ana')
+        ->call('nextStep')
+        ->call('nextStep')
+        // El atacante fuerza el id de un tipo de ingreso que pertenece a otro hospital.
+        ->set('admissionTypeId', $foreignTipo->id)
+        ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $admission = Admission::first();
+    expect($admission)->not->toBeNull();
+    expect($admission->hospital_id)->toBe($hospitalA->id);
+    expect($admission->admission_type_id)->not->toBe($foreignTipo->id);
+});
+
+it('does not persist a deactivated rapid-mode default admission type', function () {
+    $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $urgencia = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'urgencia')->firstOrFail();
+    $urgencia->update(['es_ingreso_rapido_default' => true, 'active' => false]);
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $this->actingAs($user);
+
+    Volt::test('admissions.create')
+        ->set('isRapidMode', true)
+        ->set('p_primer_apellido', 'Perez')
+        ->set('p_primer_nombre', 'Luis')
+        ->set('a_fecha_ingreso', now()->toDateString())
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $admission = Admission::first();
+    expect($admission)->not->toBeNull();
+    expect($admission->admission_type_id)->toBeNull();
+});
+
+it('requires a required custom field on an earlier step even if the wizard currently shows step 4', function () {
+    $hospital = Hospital::factory()->create(['addons' => ['admissions_custom_form']]);
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
+    $field = \App\Models\AdmissionTypeCustomField::create([
+        'hospital_id' => $hospital->id,
+        'admission_type_id' => $tipo->id,
+        'step' => 2,
+        'label' => 'Número de póliza',
+        'slug' => 'numero_poliza',
+        'field_type' => 'texto_corto',
+        'required' => true,
+        'sort_order' => 0,
+        'active' => true,
+    ]);
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
+    $this->actingAs($user);
+
+    // El wizard llega a step 4 sin nunca haber pasado por la validación del
+    // paso 2 (por ejemplo, saltando directamente vía goToStep/currentStep),
+    // dejando el campo obligatorio del paso 2 vacío.
+    Volt::test('admissions.create')
+        ->set('admissionTypeId', $tipo->id)
+        ->call('selectPatient', $patient->id)
+        ->set('currentStep', 4)
+        ->set('a_fecha_ingreso', now()->toDateString())
+        ->set('a_sala_ingreso', 'Medicina Interna')
+        ->call('save')
+        ->assertHasErrors(["customFieldValues.{$field->id}"]);
+
+    expect(Admission::count())->toBe(0);
+});
+
+it('hides sections not marked visible for the chosen admission type', function () {
+    $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $coex = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'coex')->firstOrFail();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
+
+    Volt::actingAs($user)->test('admissions.create')
+        ->set('admissionTypeId', $coex->id)
+        ->call('selectPatient', $patient->id)
+        ->call('nextStep')
+        ->assertDontSeeText('Contactos de emergencia');
+});
+
+it('requires a section field only when the type marks it required', function () {
+    $hospital = Hospital::factory()->create();
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $hospitalizacion = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+
+    $component = Volt::actingAs($user)->test('admissions.create')
+        ->set('admissionTypeId', $hospitalizacion->id)
+        ->set('currentStep', 4)
+        ->set('a_sala_ingreso', '');
+
+    $component->call('nextStep');
+
+    $component->assertHasErrors(['a_sala_ingreso']);
 });

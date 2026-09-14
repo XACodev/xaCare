@@ -6,14 +6,15 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Admission extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToTenant;
+    use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'hospital_id', 'patient_id', 'tipo_atencion', 'va_a_quirofano',
+        'hospital_id', 'patient_id', 'admission_type_id', 'va_a_quirofano',
         'fecha_ingreso', 'hora_ingreso', 'fecha_egreso', 'hora_egreso', 'total_dias',
         'tiene_seguro', 'tiene_igss', 'compania_seguros', 'poliza', 'certificado',
         'impresion_clinica', 'diagnostico_final', 'complicaciones', 'operaciones',
@@ -21,6 +22,7 @@ class Admission extends Model
         'medico_responsable', 'medico_colegiado',
         'maternidad_no_hijo', 'maternidad_fecha_nacimiento', 'maternidad_hora', 'maternidad_sexo', 'maternidad_condiciones_egreso',
         'qr_token', 'qr_printed_at', 'completo',
+        'dpi_path', 'firma_path',
     ];
 
     protected $casts = [
@@ -38,6 +40,16 @@ class Admission extends Model
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
+    }
+
+    public function admissionType(): BelongsTo
+    {
+        return $this->belongsTo(AdmissionType::class);
+    }
+
+    public function customFieldValues(): HasMany
+    {
+        return $this->hasMany(AdmissionCustomFieldValue::class);
     }
 
     public function qrUrl(): string

@@ -20,12 +20,16 @@ test('tras registrar un ingreso marcado va_a_quirofano, expone el paciente para 
     $patient = Patient::factory()->create(['hospital_id' => $hospital->id]);
     $this->actingAs($user);
 
+    \App\Support\AdmissionTypeSeeder::seedDefaultsFor($hospital);
+    $tipo = \App\Models\AdmissionType::where('hospital_id', $hospital->id)->where('slug', 'hospitalizacion')->firstOrFail();
+
     $component = Volt::test('admissions.create')
         ->call('selectPatient', $patient->id)
         ->call('nextStep')
         ->call('nextStep')
-        ->set('a_tipo_atencion', 'hospitalizacion')
+        ->set('admissionTypeId', $tipo->id)
         ->set('a_va_a_quirofano', true)
+        ->set('a_sala_ingreso', 'Medicina Interna')
         ->set('a_fecha_ingreso', now()->toDateString())
         ->call('save')
         ->assertHasNoErrors();

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AdmissionType;
 use App\Models\Hospital;
 use App\Models\OrganizationSetting;
 use App\Models\User;
@@ -47,6 +48,23 @@ test('creating a hospital seeds a default operating room and surgery status cata
 
     $statuses = SurgeryStatus::withoutGlobalScopes()->where('hospital_id', $hospital->id)->pluck('slug');
     expect($statuses->sort()->values()->all())->toBe(['cancelada', 'completada', 'en-curso', 'programada']);
+});
+
+test('creating a hospital seeds the 7 default admission types', function () {
+    $superAdmin = User::factory()->create(['hospital_id' => null, 'is_platform_admin' => true]);
+    $this->actingAs($superAdmin);
+
+    Volt::test('platform.hospitals.create')
+        ->set('name', 'Hospital Con Tipos De Ingreso')
+        ->set('plan', 'basic')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $hospital = Hospital::where('name', 'Hospital Con Tipos De Ingreso')->first();
+
+    expect(
+        AdmissionType::withoutGlobalScopes()->where('hospital_id', $hospital->id)->count()
+    )->toBe(7);
 });
 
 test('non super admin cannot create a hospital', function () {
