@@ -43,9 +43,10 @@ $refreshRoles = function () {
     $this->roles = Role::query()
         ->where('team_id', Auth::user()->hospital_id)
         ->where('guard_name', 'web')
+        ->withCount('users')
         ->orderBy('name')
         ->get()
-        ->map(fn ($r) => ['id' => $r->id, 'name' => $r->name])
+        ->map(fn ($r) => ['id' => $r->id, 'name' => $r->name, 'users_count' => $r->users_count])
         ->toArray();
 };
 
@@ -190,9 +191,11 @@ $deleteRole = function () {
 ?>
 
 <div class="max-w-7xl mx-auto p-4 space-y-6">
-    <div class="flex flex-col gap-1">
-        <flux:heading size="xl">{{ __('Roles Custom') }}</flux:heading>
-        <flux:subheading>{{ __('Crea roles propios de tu hospital y asigna sus permisos.') }}</flux:subheading>
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+            <div class="text-xs text-zinc-500 dark:text-zinc-400 mb-1">{{ __('Configuraciones') }} / {{ __('Roles') }}</div>
+            <flux:heading size="xl">{{ __('Roles y permisos') }}</flux:heading>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -210,20 +213,20 @@ $deleteRole = function () {
 
             {{-- Roles List Card --}}
             <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden flex flex-col flex-1 min-h-[300px]">
-                <div class="p-4 border-b border-zinc-200 dark:border-zinc-700">
-                    <flux:heading size="lg">{{ __('Roles') }}</flux:heading>
-                </div>
-
-                <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                <div class="flex-1 overflow-y-auto p-2 space-y-0.5">
                     @forelse($this->roles as $r)
                         <button wire:click="selectRole({{ $r['id'] }})"
-                            class="w-full text-left px-4 py-3 rounded-lg flex items-center justify-between transition group
+                            class="w-full text-left px-3 py-2.5 rounded-lg flex flex-col gap-0.5 transition
                             {{ $selected_role_id === $r['id']
-                                ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium'
-                                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-200'
+                                ? 'bg-accent/10 dark:bg-accent/20'
+                                : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
                             }}">
-                            <span class="font-mono text-sm truncate">{{ $r['name'] }}</span>
-                            <flux:icon name="chevron-right" size="sm" class="opacity-0 group-hover:opacity-100 {{ $selected_role_id === $r['id'] ? 'opacity-100' : '' }}" />
+                            <div class="flex items-center justify-between">
+                                <span class="font-mono text-sm font-semibold truncate {{ $selected_role_id === $r['id'] ? 'text-accent-content dark:text-accent' : 'text-zinc-900 dark:text-zinc-100' }}">
+                                    {{ $r['name'] }}
+                                </span>
+                                <span class="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">{{ $r['users_count'] }}</span>
+                            </div>
                         </button>
                     @empty
                         <div class="p-4 text-center text-zinc-500 text-sm">{{ __('Aún no tienes roles custom.') }}</div>
@@ -267,31 +270,27 @@ $deleteRole = function () {
                         <flux:separator />
 
                         <div>
-                            <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center justify-between mb-3">
                                 <flux:heading size="md">{{ __('Permisos') }}</flux:heading>
                                 <span class="text-xs text-zinc-500">{{ count($selected_permissions) }} {{ __('seleccionados') }}</span>
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                                 @foreach($this->permissions as $p)
                                     @php
                                         $isSelected = in_array($p['name'], $selected_permissions);
                                     @endphp
                                     <button type="button"
                                         wire:click="togglePermission('{{ $p['name'] }}')"
-                                        class="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border transition text-left h-full
-                                        {{ $isSelected
-                                            ? 'border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-800 shadow-sm'
-                                            : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                                        }}">
-                                        <span class="font-mono text-sm truncate flex-1 leading-relaxed {{ $isSelected ? 'text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400' }}">
+                                        class="w-full flex items-center justify-between gap-4 px-4 h-12 border-t border-zinc-100 dark:border-zinc-800 first:border-t-0 text-left transition
+                                        {{ $isSelected ? 'bg-accent/5 dark:bg-accent/10' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50' }}">
+                                        <span class="font-mono text-sm truncate {{ $isSelected ? 'text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-500 dark:text-zinc-400' }}">
                                             {{ $p['name'] }}
                                         </span>
-                                        <div class="flex flex-col items-center justify-center">
-                                            <span class="text-xs font-bold uppercase tracking-wider {{ $isSelected ? 'text-green-600 dark:text-green-400' : 'text-zinc-400 opacity-50' }}">
-                                                {{ $isSelected ? 'ON' : 'OFF' }}
-                                            </span>
-                                        </div>
+                                        <span class="size-[22px] rounded-md flex-none flex items-center justify-center text-xs font-bold
+                                            {{ $isSelected ? 'bg-accent text-accent-content border border-accent' : 'bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700' }}">
+                                            {{ $isSelected ? '✓' : '' }}
+                                        </span>
                                     </button>
                                 @endforeach
                             </div>
@@ -299,10 +298,13 @@ $deleteRole = function () {
                     </div>
 
                     {{-- Footer Actions --}}
-                    <div class="absolute bottom-0 left-0 right-0 p-6 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-700 rounded-b-xl flex items-center justify-between gap-4">
+                    <div class="absolute bottom-0 left-0 right-0 p-6 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-700 rounded-b-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div class="flex flex-col gap-1">
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400">
+                                {{ __(':count usuarios tienen este rol', ['count' => collect($this->roles)->firstWhere('id', $selected_role_id)['users_count'] ?? 0]) }}
+                            </span>
                             @unless($isCoreRole)
-                                <flux:button variant="danger" wire:click="deleteRole" icon="trash">
+                                <flux:button variant="danger" wire:click="deleteRole" icon="trash" size="sm" class="self-start">
                                     {{ __('Eliminar Rol') }}
                                 </flux:button>
                             @endunless

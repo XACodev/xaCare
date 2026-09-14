@@ -35,7 +35,7 @@ $statuses = computed(fn () => SurgeryStatus::query()->where('active', true)->ord
 
 $cases = computed(function () {
     return SurgicalCase::query()
-        ->with(['operatingRoom', 'surgeryStatus', 'patient', 'procedureType'])
+        ->with(['operatingRoom', 'surgeryStatus', 'patient', 'procedureType', 'assignments.user', 'assignments.surgicalRole'])
         ->when($this->view !== 'list', fn ($q) => $q->where('is_draft', false))
         ->when($this->room_filter, fn ($q) => $q->where('operating_room_id', $this->room_filter))
         ->when($this->status_filter, fn ($q) => $q->where('surgery_status_id', $this->status_filter))
@@ -249,24 +249,50 @@ $moveToStatus = function (int $caseId, int $statusId) {
             @endforelse
         </div>
     @elseif($view === 'kanban')
-        <div class="flex gap-4 overflow-x-auto pb-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 items-start">
             @foreach($this->casesByStatus as $column)
-                <div class="min-w-72 flex-shrink-0 rounded-xl border border-zinc-200 bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 p-3 space-y-3">
-                    <div class="font-medium text-zinc-700 dark:text-zinc-200">
-                        {{ $column['status']->name }} ({{ $column['cases']->count() }})
+                <div class="space-y-2.5" wire:key="column-{{ $column['status']->id }}">
+                    <div class="flex items-center justify-between px-1">
+                        <span class="font-semibold text-sm flex items-center gap-2">
+                            <span class="size-2 rounded-full flex-none" style="background-color: {{ $column['status']->color ?: '#8A959C' }}"></span>
+                            {{ $column['status']->name }}
+                        </span>
+                        <span class="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">{{ $column['cases']->count() }}</span>
                     </div>
 
-                    @foreach($column['cases'] as $case)
-                        <div class="rounded-lg border border-zinc-200 bg-white dark:bg-zinc-900 dark:border-zinc-700 p-3 space-y-2">
-                            <a href="{{ route('surgeries.schedule.edit', $case) }}" class="font-medium text-sm text-zinc-900 dark:text-zinc-100 hover:underline">
-                                {{ $case->patient_name ?? __('Unnamed patient') }}
+                    @forelse($column['cases'] as $case)
+                        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-3.5 space-y-2" wire:key="case-{{ $case->id }}">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold tabular-nums" style="color: {{ $column['status']->color ?: '#8A959C' }}">
+                                    {{ $case->start_time ? substr($case->start_time, 0, 5) : '--:--' }}
+                                </span>
+                                <flux:badge size="sm">{{ $case->operatingRoom?->name ?? __('Sin quirófano') }}</flux:badge>
+                            </div>
+
+                            <a href="{{ route('surgeries.schedule.edit', $case) }}" class="block">
+                                <div class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 hover:underline">
+                                    {{ $case->procedureType?->name ?? __('Sin procedimiento') }}
+                                </div>
+                                <div class="text-sm text-zinc-600 dark:text-zinc-300">
+                                    {{ $case->patient_name ?? __('Paciente sin nombre') }}
+                                </div>
                             </a>
-                            <div class="text-xs text-zinc-500 dark:text-zinc-400">
-                                {{ $case->procedure_date?->format('d/m/Y') }} · {{ $case->operatingRoom?->name }}
+
+                            <div class="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                                <span class="truncate">
+                                    {{ $case->assignments->first(fn ($a) => $a->surgicalRole?->slug === 'cirujano')?->user?->name ?? '—' }}
+                                </span>
+                                <span class="flex -space-x-1.5">
+                                    @foreach($case->assignments->reject(fn ($a) => $a->surgicalRole?->slug === 'cirujano')->take(2) as $assignment)
+                                        <span class="size-6 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[9px] font-semibold text-zinc-600 dark:text-zinc-300">
+                                            {{ $assignment->user?->initials() }}
+                                        </span>
+                                    @endforeach
+                                </span>
                             </div>
 
                             @can('surgeries.schedule')
-                                <div class="flex flex-wrap gap-1">
+                                <div class="flex flex-wrap gap-1 pt-1">
                                     @foreach($this->statuses as $target)
                                         @if($target->id !== $case->surgery_status_id)
                                             <flux:button size="xs" variant="subtle"
@@ -278,7 +304,11 @@ $moveToStatus = function (int $caseId, int $statusId) {
                                 </div>
                             @endcan
                         </div>
-                    @endforeach
+                    @empty
+                        <div class="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 p-3.5 text-center text-xs text-zinc-400 dark:text-zinc-600">
+                            {{ __('Sin cirugías') }}
+                        </div>
+                    @endforelse
                 </div>
             @endforeach
         </div>

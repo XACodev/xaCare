@@ -43,6 +43,13 @@
     --color-pending-soft: #FEF3E2;
     --color-done: #15803D;
     --color-done-soft: #E7F5EC;
+
+    /* Paleta ciclable para tipos de ingreso (catálogo dinámico por hospital,
+       ver AdmissionType::colorToken()) — no atada a nombres fijos. */
+    --color-info: #1D4ED8;
+    --color-info-soft: #E7ECFB;
+    --color-violet: #7C3AED;
+    --color-violet-soft: #EFE7FC;
 }
 
 @layer theme {
@@ -51,6 +58,24 @@
         --color-accent-content: #18BAAD;
         --color-accent-foreground: #062A27;
         --color-mist: #0B3B37;
+
+        --color-urgent-soft: #3A1A16;
+        --color-pending-soft: #3A2A12;
+        --color-done-soft: #123420;
+        --color-info-soft: #16224A;
+        --color-violet-soft: #2A1A4A;
+    }
+}
+
+@layer components {
+    /* Encabezado de tabla estilo mockup: superficie-2, texto muted, uppercase opcional por pantalla. */
+    .qx-table-head {
+        @apply bg-zinc-100 dark:bg-surface-dark text-zinc-500 dark:text-zinc-400 text-xs;
+    }
+
+    /* Fila de tabla de 52px con hover, igual en todas las pantallas restyled. */
+    .qx-table-row {
+        @apply h-13 border-t border-zinc-200 dark:border-border-dark hover:bg-zinc-50 dark:hover:bg-white/[.03];
     }
 }
 

@@ -153,218 +153,178 @@ $liquidate = function () {
 
 ?>
 
-<div class="max-w-6xl mx-auto p-4 space-y-6">
-    <div class="mb-4">
-        <flux:heading size="xl">{{ __('Liquidate Procedures') }}</flux:heading>
-        <flux:subheading>{{ __('Generate payout batch') }}</flux:subheading>
+<div class="max-w-6xl mx-auto p-4 space-y-4">
+    <div>
+        <div class="text-xs text-zinc-500 dark:text-zinc-400 mb-1">{{ __('Pagos') }} / {{ __('Realizar pago') }}</div>
+        <flux:heading size="xl">{{ __('Realizar pago') }}</flux:heading>
     </div>
 
-    <div class="rounded-xl border bg-white p-6 dark:bg-zinc-900 dark:border-zinc-700 space-y-6">
-        <div>
-            <flux:select wire:model.change="payee_id" label="{{ __('Instrumentist') }}"
-                placeholder="{{ __('Select instrumentist') }}" empty="{{ __('Not found') }}">
-                @foreach($this->payees as $i)
-                    <flux:select.option value="{{ $i['id'] }}">
-                        {{ $i['name'] }}
-                    </flux:select.option>
-                @endforeach
-            </flux:select>
+    <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-5 items-start">
+        <div class="space-y-4 min-w-0">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+                <flux:select wire:model.change="payee_id" label="{{ __('Instrumentist') }}"
+                    placeholder="{{ __('Select instrumentist') }}" empty="{{ __('Not found') }}">
+                    @foreach($this->payees as $i)
+                        <flux:select.option value="{{ $i['id'] }}">
+                            {{ $i['name'] }}
+                        </flux:select.option>
+                    @endforeach
+                </flux:select>
+            </div>
+
+            @if($this->payee_id)
+                @error('selected')
+                    <p class="text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                        {{ $message }}
+                    </p>
+                @enderror
+
+                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-3.5 border-b border-zinc-100 dark:border-zinc-800">
+                        <span class="font-semibold text-sm">
+                            {{ __(':count procedures', ['count' => $this->pending_count]) }}
+                        </span>
+                        <button type="button" wire:click="toggleAll" class="text-sm font-semibold text-accent hover:underline">
+                            {{ __('Seleccionar todos') }}
+                        </button>
+                    </div>
+
+                    {{-- Desktop Table --}}
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="qx-table-head">
+                                    <th class="w-10 pl-4"></th>
+                                    <th scope="col" class="px-4 py-3 text-left font-semibold tracking-wider">{{ __('Fecha') }}</th>
+                                    <th scope="col" class="px-4 py-3 text-left font-semibold tracking-wider">{{ __('Procedimiento') }}</th>
+                                    <th scope="col" class="px-4 py-3 text-left font-semibold tracking-wider">{{ __('Paciente') }}</th>
+                                    <th scope="col" class="px-4 py-3 text-left font-semibold tracking-wider">{{ __('Reglas') }}</th>
+                                    <th scope="col" class="px-4 py-3 text-right font-semibold tracking-wider">{{ __('Monto') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($this->pending_assignments as $p)
+                                    <tr wire:key="assignment-{{ $p->id }}" class="qx-table-row">
+                                        <td class="pl-4">
+                                            <flux:checkbox wire:model.live="selected" value="{{ $p->id }}" />
+                                        </td>
+                                        <td class="px-4 py-3 text-zinc-700 dark:text-zinc-300 tabular-nums">
+                                            {{ $p->surgicalCase->procedure_date->format('d/m/Y') }}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="font-medium truncate max-w-45" title="{{ $p->surgicalCase->procedureType?->name }}">
+                                                {{ $p->surgicalCase->procedureType?->name }}
+                                            </div>
+                                            <div class="text-xs text-zinc-500 dark:text-zinc-400">
+                                                {{ Carbon\Carbon::parse($p->surgicalCase->start_time)->format('H:i') }}
+                                                - {{ Carbon\Carbon::parse($p->surgicalCase->end_time)->format('H:i') }}
+                                                · {{ $p->surgicalRole->name }}
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 text-zinc-700 dark:text-zinc-300 capitalize">
+                                            {{ strtolower($p->surgicalCase->patient_name) }}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <x-procedure-rule-badge :rule="data_get($p, 'pricing_snapshot.rule')"
+                                                :videosurgery="$p->surgicalCase->is_videosurgery" />
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-semibold tabular-nums">
+                                            Q{{ number_format((float) $p->calculated_amount, 2) }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" class="px-6 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400 italic">
+                                            {{ __('No pending procedures.') }}
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- Mobile Cards --}}
+                    <div class="md:hidden divide-y divide-zinc-100 dark:divide-zinc-800">
+                        @forelse($this->pending_assignments as $p)
+                            <div class="p-4 space-y-3">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div class="flex items-center gap-3">
+                                        <flux:checkbox wire:model.live="selected" value="{{ $p->id }}" />
+                                        <div>
+                                            <div class="font-medium text-zinc-900 dark:text-zinc-100">
+                                                {{ $p->surgicalCase->patient_name }}
+                                            </div>
+                                            <div class="text-sm text-zinc-500 dark:text-zinc-400">
+                                                {{ $p->surgicalCase->procedureType?->name }}
+                                            </div>
+                                            <div class="text-xs text-zinc-500 dark:text-zinc-400">
+                                                {{ $p->surgicalRole->name }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="font-semibold tabular-nums">
+                                            Q{{ number_format((float) $p->calculated_amount, 2) }}
+                                        </div>
+                                        <div class="text-xs text-zinc-500 dark:text-zinc-400">
+                                            {{ $p->surgicalCase->procedure_date->format('d/m/Y') }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400 pl-8">
+                                    <div>
+                                        {{ __('Duration') }}: {{ $p->surgicalCase->duration_minutes }} {{ __('min') }}
+                                        <div class="text-xs text-zinc-500 dark:text-zinc-400">
+                                            {{ Carbon\Carbon::parse($p->surgicalCase->start_time)->format('H:i') }} -
+                                            {{ Carbon\Carbon::parse($p->surgicalCase->end_time)->format('H:i') }}
+                                        </div>
+                                    </div>
+                                    <x-procedure-rule-badge :rule="data_get($p, 'pricing_snapshot.rule')"
+                                        :videosurgery="$p->surgicalCase->is_videosurgery" />
+                                </div>
+                            </div>
+                        @empty
+                            <div class="p-8 text-center text-zinc-500 dark:text-zinc-400">
+                                {{ __('No pending procedures.') }}
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+            @endif
         </div>
 
         @if($this->payee_id)
-            <div
-                class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-100 dark:border-zinc-700/50">
-                <div class="space-y-1">
-                    <div class="text-sm text-zinc-500 dark:text-zinc-400">
-                        {{ __('Total pending') }}
-                    </div>
-                    <div class="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                        Q{{ number_format($this->pending_total ?? 0, 2) }}
-                    </div>
-                    <div class="text-xs text-zinc-500 dark:text-zinc-400">
-                        {{ __(':count procedures', ['count' => $this->pending_count]) }}
-                    </div>
-                </div>
+            <aside class="lg:sticky lg:top-4">
+                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5 space-y-4">
+                    <div class="font-semibold">{{ __('Resumen del lote') }}</div>
 
-                <div class="space-y-1">
-                    <div class="text-sm text-zinc-500 dark:text-zinc-400">
-                        {{ __('Total selected') }}
-                    </div>
-                    <div class="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                        Q{{ number_format($this->selected_total ?? 0, 2) }}
-                    </div>
-                    <div class="text-xs text-zinc-500 dark:text-zinc-400">
-                        {{ __(':count selected', ['count' => $this->selected_count]) }}
-                    </div>
-                </div>
-
-                <flux:button wire:click="toggleAll" variant="filled" size="sm">
-                    {{ __('Select / Unselect all') }}
-                </flux:button>
-            </div>
-
-            @error('selected')
-                <p class="text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded">
-                    {{ $message }}
-                </p>
-            @enderror
-
-            <div class="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
-
-                {{-- Desktop Table --}}
-                <div class="hidden md:block overflow-x-auto overflow-y-auto">
-                    <table
-                        class="min-w-full text-sm divide-y divide-zinc-200 dark:divide-zinc-700 text-zinc-500 dark:text-zinc-400">
-                        <thead class="bg-zinc-50 dark:bg-zinc-800 text-center">
-                            <tr>
-                                <th class="px-4 py-3 font-medium text-left">
-                                    <flux:checkbox wire:click="toggleAll" />
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    <flux:label>
-                                        {{ __('Date') }}
-                                    </flux:label>
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    <div class="flex items-center justify-between">
-                                        <flux:label>
-                                            {{ __('Duration') }}
-                                        </flux:label>
-                                        <flux:badge size="sm" color="accent">
-                                            {{ __('Rules') }}
-                                        </flux:badge>
-                                    </div>
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    <flux:label>
-                                        {{ __('Patient') }}
-                                    </flux:label>
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    <flux:label>
-                                        {{ __('Surgery') }}
-                                    </flux:label>
-                                </th>
-                                <th class="px-4 py-3 font-medium">
-                                    <flux:label>
-                                        {{ __('Role') }}
-                                    </flux:label>
-                                </th>
-                                <th class="px-4 py-3 font-medium text-right">
-                                    <flux:label>
-                                        {{ __('Amount') }}
-                                    </flux:label>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700 bg-white dark:bg-zinc-900">
-                            @forelse($this->pending_assignments as $p)
-                                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors text-sm">
-                                    <td class="px-4 py-3">
-                                        <flux:checkbox wire:model.live="selected" value="{{ $p->id }}" />
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        {{ $p->surgicalCase->procedure_date->format('d/m/Y') }}
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-center">
-                                        <div class="flex flex-row justify-between items-center">
-                                            <div class="flex flex-col items-center">
-                                                <div>
-                                                    {{ $p->surgicalCase->duration_minutes }}
-                                                    <span class="text-xs">
-                                                        {{ __('min') }}
-                                                    </span>
-                                                </div>
-                                                <span class="text-xs">
-                                                    {{ Carbon\Carbon::parse($p->surgicalCase->start_time)->format('H:i') }}
-                                                    -
-                                                    {{ Carbon\Carbon::parse($p->surgicalCase->end_time)->format('H:i') }}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <x-procedure-rule-badge :rule="data_get($p, 'pricing_snapshot.rule')"
-                                                    :videosurgery="$p->surgicalCase->is_videosurgery" />
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-3 font-medium capitalize text-zinc-900 dark:text-zinc-100">
-                                        {{ strtolower($p->surgicalCase->patient_name) }}
-                                    </td>
-                                    <td class="px-4 py-3 truncate max-w-45" title="{{ $p->surgicalCase->procedureType?->name }}">
-                                        {{ $p->surgicalCase->procedureType?->name }}
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        {{ $p->surgicalRole->name }}
-                                    </td>
-                                    <td class="px-4 py-3 text-right font-bold">
-                                        Q{{ number_format((float) $p->calculated_amount, 2) }}
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
-                                        {{ __('No pending procedures.') }}
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                {{-- Mobile Cards --}}
-                <div class="md:hidden divide-y divide-zinc-200 dark:divide-zinc-700">
-                    @forelse($this->pending_assignments as $p)
-                        <div class="p-4 bg-white dark:bg-zinc-900 space-y-3">
-                            <div class="flex items-start justify-between gap-4">
-                                <div class="flex items-center gap-3">
-                                    <flux:checkbox wire:model.live="selected" value="{{ $p->id }}" />
-                                    <div>
-                                        <div class="font-medium text-zinc-900 dark:text-zinc-100">
-                                            {{ $p->surgicalCase->patient_name }}
-                                        </div>
-                                        <div class="text-sm text-zinc-500 dark:text-zinc-400">
-                                            {{ $p->surgicalCase->procedureType?->name }}
-                                        </div>
-                                        <div class="text-xs text-zinc-500 dark:text-zinc-400">
-                                            {{ $p->surgicalRole->name }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <div class="font-mono font-medium text-emerald-600 dark:text-emerald-400">
-                                        Q{{ number_format((float) $p->calculated_amount, 2) }}
-                                    </div>
-                                    <div class="text-xs text-zinc-500 dark:text-zinc-400">
-                                        {{ $p->surgicalCase->procedure_date->format('d/m/Y') }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400 pl-8">
-                                <div>
-                                    {{ __('Duration') }}: {{ $p->surgicalCase->duration_minutes }} {{ __('min') }}
-                                    <div class="text-xs text-zinc-500 dark:text-zinc-400">
-                                        {{ Carbon\Carbon::parse($p->surgicalCase->start_time)->format('H:i') }} -
-                                        {{ Carbon\Carbon::parse($p->surgicalCase->end_time)->format('H:i') }}
-                                    </div>
-                                </div>
-                                <x-procedure-rule-badge :rule="data_get($p, 'pricing_snapshot.rule')"
-                                    :videosurgery="$p->surgicalCase->is_videosurgery" />
-                            </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400">{{ __('Seleccionados') }}</span>
+                            <span>{{ __(':count selected', ['count' => $this->selected_count]) }}</span>
                         </div>
-                    @empty
-                        <div class="p-8 text-center text-zinc-500 dark:text-zinc-400">
-                            {{ __('No pending procedures.') }}
+                        <div class="flex justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400">{{ __('Total pending') }}</span>
+                            <span class="tabular-nums">Q{{ number_format($this->pending_total ?? 0, 2) }}</span>
                         </div>
-                    @endforelse
-                </div>
-            </div>
+                    </div>
 
-            <div class="flex justify-end pt-2">
-                <flux:button wire:click="liquidate" loading="liquidate" variant="primary">
-                    {{ __('Liquidate selected') }}
-                </flux:button>
-            </div>
+                    <div class="flex justify-between items-baseline border-t border-zinc-100 dark:border-zinc-800 pt-3">
+                        <span class="font-semibold">{{ __('Total a pagar') }}</span>
+                        <span class="text-2xl font-semibold tracking-tight tabular-nums">
+                            Q{{ number_format($this->selected_total ?? 0, 2) }}
+                        </span>
+                    </div>
+
+                    <flux:button wire:click="liquidate" loading="liquidate" variant="primary" class="w-full">
+                        {{ __('Liquidar y generar voucher') }}
+                    </flux:button>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 text-center leading-relaxed">
+                        {{ __('Se marcarán como pagados y el voucher se puede imprimir o enviar.') }}
+                    </p>
+                </div>
+            </aside>
         @endif
     </div>
 </div>

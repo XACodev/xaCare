@@ -50,4 +50,29 @@ class AdmissionType extends Model
     {
         return $this->hasMany(AdmissionTypeCustomField::class);
     }
+
+    /**
+     * Color de `<flux:badge :color="...">` determinista para distinguir tipos
+     * de ingreso en la UI (chips, filtros). El catálogo es dinámico por
+     * hospital (sin columna de color en BD), así que se cicla sobre una
+     * paleta fija por `sort_order` en vez de mapear por nombre.
+     */
+    public function colorToken(): string
+    {
+        $palette = ['accent', 'red', 'blue', 'violet'];
+
+        return $palette[$this->sort_order % count($palette)];
+    }
+
+    /**
+     * Misma paleta que `colorToken()`, como clase Tailwind literal (necesario
+     * para barras/puntos de color fuera de `flux:badge`, donde Tailwind no
+     * puede resolver una clase `bg-{{ $var }}` generada en runtime).
+     */
+    public function colorBarClass(): string
+    {
+        $palette = ['bg-accent', 'bg-red-500', 'bg-blue-600', 'bg-violet-600'];
+
+        return $palette[$this->sort_order % count($palette)];
+    }
 }

@@ -15,6 +15,11 @@ new #[Layout('components.layouts.app')] #[Title('Dashboard')] class extends Comp
         $this->showEarnings = !$this->showEarnings;
     }
 
+    public function goToRapidAdmission(): mixed
+    {
+        return redirect()->route('admissions.create')->with('rapid', true);
+    }
+
     public function mount(): void
     {
         if (Auth::user()?->is_platform_admin) {
@@ -65,45 +70,54 @@ new #[Layout('components.layouts.app')] #[Title('Dashboard')] class extends Comp
 
     <div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">
 
+        <!-- Header -->
+        <div class="flex flex-wrap items-end justify-between gap-4">
+            <div>
+                <div class="text-xs text-zinc-500 dark:text-zinc-400 mb-1.5">{{ ucfirst(now()->translatedFormat('D d M Y')) }}</div>
+                <h1 class="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                    {{ __('Buenos días, :name', ['name' => Str::of($user->name)->before(' ')]) }}
+                </h1>
+            </div>
+            @if($hasQxlog && $user->hasRole('admin'))
+                <div class="flex gap-2.5">
+                    <a href="{{ route('admissions.create') }}" wire:navigate
+                        class="h-10 px-4 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors">
+                        <flux:icon.plus class="size-4" />
+                        {{ __('Nuevo ingreso') }}
+                    </a>
+                    <button type="button" wire:click="goToRapidAdmission"
+                        class="h-10 px-4 rounded-lg bg-urgent-soft border border-urgent/25 text-urgent flex items-center gap-2 text-sm font-semibold hover:bg-urgent/10 transition-colors">
+                        <span class="size-2 rounded-full bg-urgent"></span>
+                        {{ __('Ingreso rápido') }}
+                    </button>
+                </div>
+            @endif
+        </div>
+
         <!-- Stats Section -->
         @if($user && $user->hasRole('admin') && $hasQxlog)
-            <div class="grid gap-4 md:grid-cols-3">
-                <div
-                    class="relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
-                    <dt class="truncate text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Procedimientos</dt>
-                    <dd class="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
+            <div class="grid gap-3.5 md:grid-cols-3">
+                <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                    <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Total Procedimientos') }}</dt>
+                    <dd class="mt-1.5 text-3xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50">
                         {{ $stats['total_procedures'] }}</dd>
-                    <div
-                        class="absolute right-4 top-6 p-2 bg-mist dark:bg-accent/10 rounded-lg text-accent dark:text-accent">
-                        <flux:icon.layout-grid class="size-5" />
-                    </div>
                 </div>
-                <div
-                    class="relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
-                    <dt class="truncate text-sm font-medium text-zinc-500 dark:text-zinc-400">Pendientes de Pago</dt>
-                    <dd class="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
+                <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                    <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Pendientes de Pago') }}</dt>
+                    <dd class="mt-1.5 text-3xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50">
                         {{ $stats['pending_procedures'] }}</dd>
-                    <div
-                        class="absolute right-4 top-6 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-600 dark:text-amber-400">
-                        <flux:icon.clock class="size-5" />
-                    </div>
                 </div>
-                <div
-                    class="relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
-                    <dt class="truncate text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Pagado</dt>
-                    <dd class="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
+                <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                    <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Total Pagado') }}</dt>
+                    <dd class="mt-1.5 text-3xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50">
                         Q{{ number_format($stats['total_paid'], 2) }}</dd>
-                    <div
-                        class="absolute right-4 top-6 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-600 dark:text-emerald-400">
-                        <flux:icon.banknotes class="size-5" />
-                    </div>
                 </div>
             </div>
         @elseif($user && $user->hasRole('instrumentist') && $hasQxlog)
-            <div class="grid gap-4 md:grid-cols-3">
-                 <div class="relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
+            <div class="grid gap-3.5 md:grid-cols-3">
+                <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
                     <div class="flex items-center justify-between">
-                        <dt class="truncate text-sm font-medium text-zinc-500 dark:text-zinc-400">Ganancias Totales</dt>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Ganancias Totales') }}</dt>
                         <button wire:click="toggleEarnings" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
                             @if($showEarnings)
                                 <flux:icon.eye class="size-4" />
@@ -112,16 +126,13 @@ new #[Layout('components.layouts.app')] #[Title('Dashboard')] class extends Comp
                             @endif
                         </button>
                     </div>
-                    <dd class="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-100 {{ $showEarnings ? '' : 'blur-md select-none' }} transition-all duration-300">
+                    <dd class="mt-1.5 text-3xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50 {{ $showEarnings ? '' : 'blur-md select-none' }} transition-all duration-300">
                         Q{{ number_format($stats['total_earnings'], 2) }}
                     </dd>
-                     <div class="absolute right-4 top-6 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-600 dark:text-emerald-400">
-                        <flux:icon.banknotes class="size-5" />
-                    </div>
                 </div>
-                <div class="relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
-                     <div class="flex items-center justify-between">
-                        <dt class="truncate text-sm font-medium text-zinc-500 dark:text-zinc-400">Pendiente de Cobro</dt>
+                <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                    <div class="flex items-center justify-between">
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Pendiente de Cobro') }}</dt>
                         <button wire:click="toggleEarnings" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
                             @if($showEarnings)
                                 <flux:icon.eye class="size-4" />
@@ -130,22 +141,14 @@ new #[Layout('components.layouts.app')] #[Title('Dashboard')] class extends Comp
                             @endif
                         </button>
                     </div>
-                    <dd class="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-100 {{ $showEarnings ? '' : 'blur-md select-none' }} transition-all duration-300">
+                    <dd class="mt-1.5 text-3xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50 {{ $showEarnings ? '' : 'blur-md select-none' }} transition-all duration-300">
                         Q{{ number_format($stats['pending_earnings'], 2) }}
                     </dd>
-                     <div class="absolute right-4 top-6 p-2 bg-amber-50 dark:bg-emerald-900/20 rounded-lg text-amber-600 dark:text-amber-400">
-                        <flux:icon.clock class="size-5" />
-                    </div>
                 </div>
-                <div
-                    class="relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
-                    <dt class="truncate text-sm font-medium text-zinc-500 dark:text-zinc-400">Procedimientos</dt>
-                    <dd class="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
+                <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                    <dt class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Procedimientos') }}</dt>
+                    <dd class="mt-1.5 text-3xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-50">
                         {{ $stats['procedures_count'] }}</dd>
-                    <div
-                        class="absolute right-4 top-6 p-2 bg-mist dark:bg-accent/10 rounded-lg text-accent dark:text-accent">
-                        <flux:icon.layout-grid class="size-5" />
-                    </div>
                 </div>
             </div>
         @endif
