@@ -61,4 +61,17 @@ class OperatingRoom extends Model implements HasHospital
     {
         return $this->hasMany(SurgicalCase::class);
     }
+
+    /**
+     * Color determinista por quirófano (mismo patrón que
+     * AdmissionType::colorBarClass()) — el catálogo es dinámico por
+     * hospital, sin columna de color en BD, así que se cicla sobre una
+     * paleta fija por `sort_order` para el calendario semanal (1g).
+     */
+    public function colorBarClass(): string
+    {
+        $palette = ['bg-teal-600', 'bg-blue-600', 'bg-red-600', 'bg-violet-600', 'bg-amber-600'];
+
+        return $palette[$this->sort_order % count($palette)];
+    }
 }

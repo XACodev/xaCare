@@ -86,6 +86,22 @@ test('hospital admin can update a staff member phone number', function () {
     expect($userToEdit->fresh()->phone)->toBe('55551234');
 });
 
+test('hospital admin can update a staff member shift label', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = User::factory()->create(['is_platform_admin' => false, 'role' => 'admin', 'hospital_id' => $hospital->id]);
+    $userToEdit = User::factory()->create(['role' => 'doctor', 'username' => 'shifttestuser', 'hospital_id' => $hospital->id, 'shift_label' => null]);
+    $userToEdit->assignRole('doctor');
+
+    $this->actingAs($admin);
+
+    Volt::test('users.edit', ['user' => $userToEdit->slug])
+        ->set('shift_label', 'Turno mañana · en quirófano')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($userToEdit->fresh()->shift_label)->toBe('Turno mañana · en quirófano');
+});
+
 test('setting hospital_id on the component has no effect on save (field is not part of the form)', function () {
     $hospital = Hospital::factory()->create();
     $otherHospital = Hospital::factory()->create();

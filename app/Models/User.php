@@ -49,6 +49,7 @@ class User extends Authenticatable
         'is_platform_admin',
         'use_pay_scheme',
         'phone',
+        'shift_label',
     ];
 
     /**

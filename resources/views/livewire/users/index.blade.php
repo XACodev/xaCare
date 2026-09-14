@@ -45,7 +45,7 @@ $users = computed(function () {
         $query->role($this->role);
     }
 
-    return $query->limit(150)->get(['id', 'slug', 'name', 'username', 'email', 'role', 'hospital_id', 'deleted_at']);
+    return $query->limit(150)->get(['id', 'slug', 'name', 'username', 'email', 'role', 'hospital_id', 'shift_label', 'deleted_at']);
 });
 
 $groupedUsers = computed(function () {
@@ -248,83 +248,60 @@ $roleColor = function (?string $role) {
                     @endforelse
                 </div>
 
-                <!-- Desktop View (Table) -->
-                <div class="hidden sm:block overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
-                    <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
-                        <thead class="bg-zinc-50 dark:bg-zinc-800/50">
-                            <tr>
-                                <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-zinc-500 tracking-wider">
-                                    <flux:label> {{ __('Name') }} </flux:label>
-                                </th>
-                                <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-zinc-500 tracking-wider">
-                                    <flux:label> {{ __('Username') }} </flux:label>
-                                </th>
-                                <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-zinc-500 tracking-wider">
-                                    <flux:label> {{ __('Email') }} </flux:label>
-                                </th>
-                                <th scope="col"
-                                    class="px-4 py-4 text-center text-xs font-semibold text-zinc-500 tracking-wider">
-                                    <flux:label> {{ __('Status') }} </flux:label>
-                                </th>
-                                <th scope="col"
-                                    class="px-4 py-4 text-center text-xs font-semibold text-zinc-500 tracking-wider">
-                                    <flux:label> {{ __('Actions') }} </flux:label>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-700">
-                            @forelse($groupUsers as $u)
-                                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-900 dark:text-zinc-100">
-                                        {{ $u->name }}
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
-                                        {{ $u->username }}
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">{{ $u->email }}
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-center">
-                                        <flux:badge size="sm" color="{{ $u->deleted_at ? 'red' : 'green' }}">
-                                            {{ $u->deleted_at ? __('Deleted') : __('Active') }}
-                                        </flux:badge>
-                                    </td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
-                                        <flux:dropdown>
-                                            <flux:button size="sm" variant="ghost" icon="ellipsis-vertical" />
-                                            <flux:menu>
-                                                <flux:menu.item href="{{ route('users.show', $u) }}" icon="eye">
-                                                    {{ __('View') }}
-                                                </flux:menu.item>
-                                                @if (!$u->deleted_at)
-                                                    <flux:menu.item href="{{ route('users.edit', $u) }}" icon="pencil">
-                                                        {{ __('Edit') }}
-                                                    </flux:menu.item>
-                                                    <flux:menu.separator />
-                                                    <flux:menu.item wire:click="deleteUser({{ $u->id }})"
-                                                        wire:confirm="{{ __('Delete this user? (can be restored)') }}" variant="danger"
-                                                        icon="trash">
-                                                        {{ __('Delete') }}
-                                                    </flux:menu.item>
-                                                @endif
-                                                @if ($u->deleted_at)
-                                                    <flux:menu.item wire:click="restoreUser({{ $u->id }})"
-                                                        wire:confirm="{{ __('Restore this user?') }}" icon="arrow-uturn-left">
-                                                        {{ __('Restore') }}
-                                                    </flux:menu.item>
-                                                @endif
-                                            </flux:menu>
-                                        </flux:dropdown>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="px-6 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400 italic">
-                                        {{ __('No users in this role.') }}
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <!-- Desktop View (Card grid, patrón mockup 1m) -->
+                <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    @forelse($groupUsers as $u)
+                        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 space-y-3 {{ $u->deleted_at ? 'opacity-60' : '' }}">
+                            <div class="flex items-center gap-3">
+                                <span class="size-11 rounded-full flex items-center justify-center font-semibold text-sm flex-none
+                                    {{ $u->deleted_at ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500' : 'bg-accent/15 text-accent-content dark:text-accent' }}">
+                                    {{ Str::of($u->name)->explode(' ')->map(fn ($p) => Str::substr($p, 0, 1))->take(2)->join('') }}
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-medium text-zinc-900 dark:text-zinc-100 capitalize truncate">{{ $u->name }}</div>
+                                    <div class="text-sm text-zinc-500 dark:text-zinc-400 truncate">{{ $u->email }}</div>
+                                </div>
+                                <flux:dropdown>
+                                    <flux:button size="sm" variant="ghost" icon="ellipsis-vertical" />
+                                    <flux:menu>
+                                        <flux:menu.item href="{{ route('users.show', $u) }}" icon="eye">
+                                            {{ __('View') }}
+                                        </flux:menu.item>
+                                        @if (!$u->deleted_at)
+                                            <flux:menu.item href="{{ route('users.edit', $u) }}" icon="pencil">
+                                                {{ __('Edit') }}
+                                            </flux:menu.item>
+                                            <flux:menu.separator />
+                                            <flux:menu.item wire:click="deleteUser({{ $u->id }})"
+                                                wire:confirm="{{ __('Delete this user? (can be restored)') }}" variant="danger"
+                                                icon="trash">
+                                                {{ __('Delete') }}
+                                            </flux:menu.item>
+                                        @endif
+                                        @if ($u->deleted_at)
+                                            <flux:menu.item wire:click="restoreUser({{ $u->id }})"
+                                                wire:confirm="{{ __('Restore this user?') }}" icon="arrow-uturn-left">
+                                                {{ __('Restore') }}
+                                            </flux:menu.item>
+                                        @endif
+                                    </flux:menu>
+                                </flux:dropdown>
+                            </div>
+
+                            <div class="flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-400">
+                                <span>{{ $u->shift_label ?: __('No shift set') }}</span>
+                                <flux:badge size="sm" :variant="$u->deleted_at ? 'warning' : 'success'">
+                                    {{ $u->deleted_at ? __('Deleted') : __('Active') }}
+                                </flux:badge>
+                            </div>
+
+                            <div class="text-xs text-zinc-400 font-mono">{{ $u->username }}</div>
+                        </div>
+                    @empty
+                        <div class="col-span-full p-8 text-center text-sm text-zinc-500 dark:text-zinc-400 italic">
+                            {{ __('No users in this role.') }}
+                        </div>
+                    @endforelse
                 </div>
             </div>
         @empty

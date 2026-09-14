@@ -3,6 +3,7 @@
 namespace App\Modules\Reports\Services;
 
 use App\Models\Hospital;
+use App\Modules\QxLog\Models\OperatingRoom;
 use App\Modules\QxLog\Models\PayoutBatch;
 use App\Modules\QxLog\Models\SurgicalAssignment;
 use App\Modules\QxLog\Models\SurgicalCase;
@@ -117,5 +118,74 @@ class ReportService
                 'hospital' => Hospital::find($row->hospital_id)?->name ?? '—',
                 'total' => (float) $row->total,
             ]);
+    }
+
+    /**
+     * Ingresos por día (últimos N días) agrupados por tipo de ingreso real
+     * del hospital (catálogo dinámico AdmissionType — no las 3 categorías
+     * fijas Hosp/Emerg/COEX del mockup, que no existen como enum en el
+     * esquema). Usa AdmissionType::colorBarClass() para el mismo color
+     * consistente que ya usan los chips de tipo de ingreso en el resto de
+     * la app.
+     *
+     * @return Collection<int, array{date: string, types: Collection, total: float}>
+     */
+    public function revenueByDayAndAdmissionType(int $days = 14): Collection
+    {
+        $from = now()->subDays($days - 1)->startOfDay();
+
+        $cases = SurgicalCase::query()
+            ->with('admission.admissionType')
+            ->whereDate('procedure_date', '>=', $from)
+            ->get()
+            ->groupBy(fn (SurgicalCase $c) => $c->procedure_date->format('Y-m-d'));
+
+        return collect(range(0, $days - 1))
+            ->map(fn (int $i) => $from->copy()->addDays($i)->format('Y-m-d'))
+            ->map(function (string $date) use ($cases) {
+                $dayCases = $cases->get($date, collect());
+
+                return [
+                    'date' => $date,
+                    'types' => $dayCases
+                        ->groupBy(fn (SurgicalCase $c) => $c->admission?->admissionType?->name ?? '—')
+                        ->map(fn (Collection $group, string $name) => [
+                            'name' => $name,
+                            'amount' => (float) $group->sum('calculated_amount'),
+                            'color' => $group->first()->admission?->admissionType?->colorBarClass() ?? 'bg-zinc-400',
+                        ])
+                        ->values(),
+                    'total' => (float) $dayCases->sum('calculated_amount'),
+                ];
+            });
+    }
+
+    /**
+     * Procedimientos por quirófano en un rango, con porcentaje sobre el
+     * total (para la lista "Procedimientos por quirófano").
+     *
+     * @return Collection<int, array{name: string, count: int, percent: int}>
+     */
+    public function proceduresByOperatingRoom(?string $from, ?string $to): Collection
+    {
+        $counts = SurgicalCase::query()
+            ->when($from, fn ($q) => $q->whereDate('procedure_date', '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate('procedure_date', '<=', $to))
+            ->selectRaw('operating_room_id, count(*) as total')
+            ->groupBy('operating_room_id')
+            ->pluck('total', 'operating_room_id');
+
+        $totalAll = max($counts->sum(), 1);
+
+        return OperatingRoom::query()
+            ->whereIn('id', $counts->keys())
+            ->get()
+            ->map(fn (OperatingRoom $room) => [
+                'name' => $room->name,
+                'count' => (int) $counts->get($room->id, 0),
+                'percent' => (int) round($counts->get($room->id, 0) / $totalAll * 100),
+            ])
+            ->sortByDesc('count')
+            ->values();
     }
 }

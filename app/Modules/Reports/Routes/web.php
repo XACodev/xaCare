@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
 Route::prefix('reports')->name('reports.')->middleware(['web', 'auth', 'admin', 'hospital.subscribed'])->group(function () {
+    Volt::route('/', 'reports.index')->name('index');
     Volt::route('procedures', 'reports.procedures')->name('procedures');
     Volt::route('payouts', 'reports.payouts')->name('payouts');
     Volt::route('distribution', 'reports.distribution')->name('distribution');

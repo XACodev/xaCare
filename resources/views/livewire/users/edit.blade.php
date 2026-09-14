@@ -15,6 +15,7 @@ state([
     'username' => '',
     'email' => '',
     'phone' => '',
+    'shift_label' => '',
     'role' => '',
     'hospital_id' => '',
     'hospitalName' => null,
@@ -62,6 +63,7 @@ mount(function (string|int $user) {
     $this->username = $u->username;
     $this->email = $u->email;
     $this->phone = $u->phone;
+    $this->shift_label = $u->shift_label;
     $this->role = $u->getRoleNames()->first() ?? '';
     $this->hospital_id = $u->hospital_id;
     $this->hospitalName = $u->hospital?->name;
@@ -85,6 +87,7 @@ rules(function () {
         'username' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users', 'username')->ignore($this->user->id)],
         'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->user->id)],
         'phone' => ['nullable', 'string', 'max:20'],
+        'shift_label' => ['nullable', 'string', 'max:100'],
         'role' => ['required', 'string', 'max:50', Rule::in($visibleRoleNames)],
         'password' => ['nullable', 'string', 'min:6', 'confirmed'],
         'use_pay_scheme' => ['boolean'],
@@ -107,6 +110,7 @@ $save = function () {
         'username' => $data['username'],
         'email' => $data['email'],
         'phone' => $data['phone'],
+        'shift_label' => $data['shift_label'],
         'role' => $data['role'],
         'use_pay_scheme' => $data['use_pay_scheme'],
     ]);
@@ -192,6 +196,8 @@ $toggleDelete = function () {
         <flux:input wire:model="email" type="email" label="{{ __('Email') }}" />
 
         <flux:input wire:model="phone" label="{{ __('Phone') }}" />
+
+        <flux:input wire:model="shift_label" label="{{ __('Shift') }}" placeholder="{{ __('e.g. Morning shift · Room 3') }}" />
 
         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Role') }}</label>
         <select wire:model="role"

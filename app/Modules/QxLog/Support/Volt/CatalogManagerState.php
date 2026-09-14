@@ -50,6 +50,23 @@ trait CatalogManagerState
         $modelClass::create([...$data, 'hospital_id' => $hospitalId, 'sort_order' => $maxSort + 1, 'active' => true]);
     }
 
+    protected function catalogUpdate(string $modelClass, int $id, array $data, string $errorKey = 'form.name'): void
+    {
+        $item = $this->catalogFind($modelClass, $id);
+
+        $duplicate = $modelClass::withoutGlobalScopes()
+            ->where('hospital_id', $item->hospital_id)
+            ->where('id', '!=', $id)
+            ->whereRaw('LOWER(name) = ?', [Str::lower(trim($data['name']))])
+            ->exists();
+
+        if ($duplicate) {
+            throw ValidationException::withMessages([$errorKey => __('This name already exists.')]);
+        }
+
+        $item->update($data);
+    }
+
     protected function catalogFind(string $modelClass, int $id)
     {
         $item = $modelClass::withoutGlobalScopes()->findOrFail($id);

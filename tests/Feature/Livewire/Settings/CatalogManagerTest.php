@@ -107,3 +107,41 @@ test('un admin no puede tocar un quirofano de otro hospital', function () {
         ->call('toggleActive', $foreignRoom->id)
         ->assertStatus(403);
 });
+
+test('edita un quirofano en linea con el panel debajo de la tabla', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = catalogManagerAdmin($hospital);
+    $this->actingAs($admin);
+
+    $room = OperatingRoom::factory()->for($hospital, 'hospital')->create(['name' => 'Quirófano 1', 'active' => true]);
+
+    Volt::test('qxlog.settings.rooms')
+        ->call('edit', $room->id)
+        ->assertSet('editForm.name', 'Quirófano 1')
+        ->set('editForm.name', 'Quirófano 1 renombrado')
+        ->set('editForm.active', false)
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertSet('editingId', null);
+
+    $room->refresh();
+    expect($room->name)->toBe('Quirófano 1 renombrado');
+    expect($room->active)->toBeFalse();
+});
+
+test('editar un quirofano con un nombre duplicado devuelve error de validacion', function () {
+    $hospital = Hospital::factory()->create();
+    $admin = catalogManagerAdmin($hospital);
+    $this->actingAs($admin);
+
+    OperatingRoom::factory()->for($hospital, 'hospital')->create(['name' => 'Quirófano 1']);
+    $roomToEdit = OperatingRoom::factory()->for($hospital, 'hospital')->create(['name' => 'Quirófano 2']);
+
+    Volt::test('qxlog.settings.rooms')
+        ->call('edit', $roomToEdit->id)
+        ->set('editForm.name', 'quirófano 1')
+        ->call('save')
+        ->assertHasErrors(['editForm.name']);
+
+    expect($roomToEdit->fresh()->name)->toBe('Quirófano 2');
+});

@@ -94,6 +94,7 @@ Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
         return redirect()->route('admissions.show', ['admission' => $admission, 'token' => $admission->qr_token]);
     })->name('qr.resolve');
 
+    Volt::route('settings', 'settings.index')->name('settings.index');
     Volt::route('settings/organization', 'settings.organization')->name('settings.organization');
     Volt::route('settings/roles', 'settings.roles.index')->name('settings.roles.index');
     Volt::route('settings/wards', 'settings.wards')->name('settings.wards');

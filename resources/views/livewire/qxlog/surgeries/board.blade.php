@@ -19,6 +19,7 @@ state([
     'calendar_anchor' => null,
 ])->url();
 state(['calendar_selected_day' => null]);
+state(['agenda_day' => null]);
 
 mount(function () {
     $user = Auth::user();
@@ -26,6 +27,10 @@ mount(function () {
 
     if (! $this->calendar_anchor) {
         $this->calendar_anchor = now()->toDateString();
+    }
+
+    if (! $this->agenda_day) {
+        $this->agenda_day = now()->toDateString();
     }
 });
 
@@ -45,6 +50,31 @@ $cases = computed(function () {
         ->orderBy('start_time')
         ->get();
 });
+
+// Franja de 7 días (semana de agenda_day) + casos del día seleccionado, para
+// la vista "agenda del día" en móvil (1h) — reutiliza la pestaña "List" del
+// board existente en vez de una ruta nueva, mostrando este bloque solo en
+// pantallas pequeñas (ver `sm:hidden` en la vista).
+$agendaWeekDays = computed(function () {
+    $start = Carbon::parse($this->agenda_day)->startOfWeek(Carbon::MONDAY);
+
+    return collect(range(0, 6))->map(fn (int $i) => $start->copy()->addDays($i));
+});
+
+$agendaCases = computed(function () {
+    return SurgicalCase::query()
+        ->with(['operatingRoom', 'surgeryStatus', 'assignments.user', 'assignments.surgicalRole'])
+        ->where('is_draft', false)
+        ->whereDate('procedure_date', $this->agenda_day)
+        ->when($this->room_filter, fn ($q) => $q->where('operating_room_id', $this->room_filter))
+        ->when($this->status_filter, fn ($q) => $q->where('surgery_status_id', $this->status_filter))
+        ->orderBy('start_time')
+        ->get();
+});
+
+$setAgendaDay = function (string $date) {
+    $this->agenda_day = $date;
+};
 
 $casesByStatus = computed(function () {
     $grouped = $this->cases->groupBy('surgery_status_id');
@@ -180,11 +210,16 @@ $moveToStatus = function (int $caseId, int $statusId) {
             <flux:subheading>xaCare • {{ __('Surgery scheduling board') }}</flux:subheading>
         </div>
 
-        @can('surgeries.schedule')
-            <flux:button href="{{ route('surgeries.schedule.create') }}" variant="primary">
-                {{ __('Schedule Surgery') }}
+        <div class="flex gap-2">
+            <flux:button :href="route('surgeries.calendar')" wire:navigate variant="subtle" icon="calendar-days">
+                {{ __('Weekly calendar') }}
             </flux:button>
-        @endcan
+            @can('surgeries.schedule')
+                <flux:button href="{{ route('surgeries.schedule.create') }}" variant="primary">
+                    {{ __('Schedule Surgery') }}
+                </flux:button>
+            @endcan
+        </div>
     </div>
 
     <div class="flex flex-wrap gap-2">
@@ -223,7 +258,44 @@ $moveToStatus = function (int $caseId, int $statusId) {
     </div>
 
     @if($view === 'list')
-        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:bg-zinc-800 dark:border-zinc-700 divide-y divide-zinc-200 dark:divide-zinc-700">
+        <!-- Agenda del día (móvil, patrón mockup 1h) -->
+        <div class="sm:hidden space-y-4">
+            <div class="grid grid-cols-7 gap-1.5 text-center text-xs">
+                @foreach($this->agendaWeekDays as $day)
+                    <button type="button" wire:click="setAgendaDay('{{ $day->toDateString() }}')"
+                        class="rounded-lg py-2 {{ $day->toDateString() === $agenda_day ? 'bg-accent text-white font-semibold' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400' }}">
+                        <div>{{ ucfirst($day->translatedFormat('D')) }}</div>
+                        <div class="font-semibold">{{ $day->day }}</div>
+                    </button>
+                @endforeach
+            </div>
+
+            <div class="space-y-3">
+                @forelse($this->agendaCases as $case)
+                    <a href="{{ route('surgeries.schedule.edit', $case) }}" class="grid grid-cols-[54px_1fr] gap-3">
+                        <div class="text-right pt-3">
+                            <div class="font-semibold tabular-nums text-sm">{{ $case->start_time ? substr($case->start_time, 0, 5) : '--:--' }}</div>
+                            <div class="text-xs text-zinc-400">{{ $case->duration_minutes ? $case->duration_minutes.' min' : '' }}</div>
+                        </div>
+                        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-3.5 space-y-1"
+                            style="border-left-width: 3px; border-left-color: {{ $case->surgeryStatus?->color ?: '#8A959C' }}">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="font-semibold text-sm">{{ $case->procedureType?->name ?? __('Sin procedimiento') }}</span>
+                                <flux:badge size="sm">{{ $case->surgeryStatus?->name ?? __('No status') }}</flux:badge>
+                            </div>
+                            <div class="text-sm text-zinc-600 dark:text-zinc-300">{{ $case->patient_name ?? __('Unnamed patient') }}</div>
+                            <div class="text-xs text-zinc-400 dark:text-zinc-500">
+                                {{ $case->operatingRoom?->name }} · {{ $case->assignments->first(fn ($a) => $a->surgicalRole?->slug === 'cirujano')?->user?->name ?? '—' }}
+                            </div>
+                        </div>
+                    </a>
+                @empty
+                    <div class="p-8 text-center text-zinc-500 dark:text-zinc-400">{{ __('No surgeries found.') }}</div>
+                @endforelse
+            </div>
+        </div>
+
+        <div class="hidden sm:block rounded-xl border border-zinc-200 bg-white shadow-sm dark:bg-zinc-800 dark:border-zinc-700 divide-y divide-zinc-200 dark:divide-zinc-700">
             @forelse($this->cases as $case)
                 <a href="{{ route('surgeries.schedule.edit', $case) }}" class="block p-4 hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
                     <div class="flex items-center justify-between gap-4">

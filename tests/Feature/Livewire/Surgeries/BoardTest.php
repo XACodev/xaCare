@@ -235,6 +235,25 @@ test('el calendario respeta el filtro de quirofano y estado', function () {
     expect($day['cases'])->toHaveCount(1);
 });
 
+test('la agenda movil muestra solo los casos del dia seleccionado', function () {
+    $hospital = Hospital::factory()->create();
+    $user = boardActingUser($hospital);
+    test()->actingAs($user);
+
+    SurgicalCase::factory()->create(['hospital_id' => $hospital->id, 'is_draft' => false, 'procedure_date' => '2026-09-10']);
+    SurgicalCase::factory()->create(['hospital_id' => $hospital->id, 'is_draft' => false, 'procedure_date' => '2026-09-10']);
+    SurgicalCase::factory()->create(['hospital_id' => $hospital->id, 'is_draft' => false, 'procedure_date' => '2026-09-11']);
+
+    $component = Volt::test('qxlog.surgeries.board')
+        ->set('view', 'list')
+        ->call('setAgendaDay', '2026-09-10');
+
+    expect($component->instance()->agendaCases)->toHaveCount(2);
+
+    $component->call('setAgendaDay', '2026-09-11');
+    expect($component->instance()->agendaCases)->toHaveCount(1);
+});
+
 test('abrir un dia del calendario expone sus casos y cerrar limpia la seleccion', function () {
     $hospital = Hospital::factory()->create();
     $user = boardActingUser($hospital);

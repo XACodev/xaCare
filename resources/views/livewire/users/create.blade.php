@@ -19,6 +19,7 @@ state([
     'password_confirmation' => '',
     'use_pay_scheme' => false,
     'phone' => '',
+    'shift_label' => '',
     'success_message' => null,
     'availableRoles' => [],
 ]);
@@ -61,6 +62,7 @@ rules(fn () => [
     'password' => ['required', 'string', 'min:6', 'confirmed'],
     'use_pay_scheme' => ['boolean'],
     'phone' => ['nullable', 'string', 'max:8'],
+    'shift_label' => ['nullable', 'string', 'max:100'],
 ]);
 
 
@@ -85,6 +87,7 @@ $save = function () {
         'is_platform_admin' => false,
         'use_pay_scheme' => $data['use_pay_scheme'],
         'phone' => $data['phone'],
+        'shift_label' => $data['shift_label'],
         'role' => $data['role']
     ]);
 
@@ -97,6 +100,7 @@ $save = function () {
         'username',
         'email',
         'phone',
+        'shift_label',
         'role',
         'availableRoles',
         'password',
@@ -129,6 +133,8 @@ $save = function () {
         <flux:input wire:model.live="email" type="email" label="{{ __('Email') }}" placeholder="{{ __('Email') }}" />
 
         <flux:input wire:model.live="phone" label="{{ __('Phone') }}" placeholder="{{ __('Phone') }}" />
+
+        <flux:input wire:model.live="shift_label" label="{{ __('Shift') }}" placeholder="{{ __('e.g. Morning shift · Room 3') }}" />
 
         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Role') }}</label>
         <select wire:model.live="role"
