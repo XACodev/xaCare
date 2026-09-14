@@ -131,7 +131,7 @@ $moveDown = function (int $id) {
 
             <div class="flex justify-end gap-3">
                 <flux:button variant="ghost" wire:click="cancelEdit">{{ __('Cancel') }}</flux:button>
-                <flux:button variant="primary" wire:click="save">{{ __('Save changes') }}</flux:button>
+                <flux:button variant="primary" wire:click="save">{{ __('Save Changes') }}</flux:button>
             </div>
         </div>
     @endif
