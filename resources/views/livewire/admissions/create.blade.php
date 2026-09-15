@@ -667,15 +667,63 @@ $save = function () {
 ?>
 
 <div class="max-w-6xl mx-auto p-4 space-y-6">
-    {{-- Header --}}
-    <div class="flex items-center justify-between gap-4">
-        <div>
+    {{-- Mockup 1c (wizard móvil): ← Atrás | Paso n de 5 · título | Salir + barras 4px --}}
+    @if (! $savedAdmission && ! $isRapidMode)
+        <div class="lg:hidden -mx-4 -mt-4 px-5 pt-3 space-y-3.5">
+            <div class="flex items-center justify-between gap-2">
+                @if ($currentStep > 0)
+                    <button type="button" wire:click="previousStep" data-test="mobile-back"
+                        class="shrink-0 text-[15px] text-accent">
+                        ← {{ __('Atrás') }}
+                    </button>
+                @else
+                    <a href="{{ route('admissions.index') }}" wire:navigate data-test="mobile-back"
+                        class="shrink-0 text-[15px] text-accent">
+                        ← {{ __('Ingresos') }}
+                    </a>
+                @endif
+                <span class="min-w-0 truncate text-center text-[13px] text-zinc-500 dark:text-zinc-400">
+                    {{ __('Paso :n de :total', ['n' => $currentStep + 1, 'total' => 5]) }}
+                    · {{ $this->stepLabels[$currentStep]['title'] }}
+                </span>
+                <a href="{{ route('admissions.index') }}" wire:navigate
+                    class="shrink-0 text-[15px] text-zinc-500 dark:text-zinc-400">
+                    {{ __('Salir') }}
+                </a>
+            </div>
+            <div class="flex w-full gap-1.5">
+                <div @class(['h-1 flex-1 rounded-sm', 'bg-accent' => $currentStep >= 0, 'bg-zinc-200 dark:bg-zinc-700' => $currentStep < 0])></div>
+                <div @class(['h-1 flex-1 rounded-sm', 'bg-accent' => $currentStep >= 1, 'bg-zinc-200 dark:bg-zinc-700' => $currentStep < 1])></div>
+                <div @class(['h-1 flex-1 rounded-sm', 'bg-accent' => $currentStep >= 2, 'bg-zinc-200 dark:bg-zinc-700' => $currentStep < 2])></div>
+                <div @class(['h-1 flex-1 rounded-sm', 'bg-accent' => $currentStep >= 3, 'bg-zinc-200 dark:bg-zinc-700' => $currentStep < 3])></div>
+                <div @class(['h-1 flex-1 rounded-sm', 'bg-accent' => $currentStep >= 4, 'bg-zinc-200 dark:bg-zinc-700' => $currentStep < 4])></div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Mockup 1e ingreso rápido móvil: banner coral --}}
+    @if ($isRapidMode && ! $savedAdmission)
+        <div class="lg:hidden -mx-4 -mt-4 bg-urgent text-white px-5 pt-3 pb-5 grid gap-2">
+            <div class="flex items-center justify-between text-[15px]">
+                <button type="button" wire:click="$set('isRapidMode', false); currentStep = 0" class="opacity-90">
+                    ✕ {{ __('Cancelar') }}
+                </button>
+                <span class="text-[12px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md bg-white/20">{{ __('Urgencia') }}</span>
+            </div>
+            <div class="text-2xl font-semibold tracking-tight">{{ __('Ingreso rápido') }}</div>
+            <div class="text-sm opacity-90">{{ __('Solo lo esencial. El resto se completa después.') }}</div>
+        </div>
+    @endif
+
+    {{-- Header escritorio --}}
+    <div class="hidden lg:flex items-start justify-between gap-3">
+        <div class="min-w-0">
             <div class="text-xs text-zinc-500 dark:text-zinc-400 mb-1">{{ __('Ingresos') }} / {{ __('Nuevo ingreso') }}</div>
             <flux:heading size="xl">
                 {{ $isRapidMode ? __('Ingreso rápido') : __('Nuevo ingreso') }}
             </flux:heading>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 shrink-0">
             @if (! $isRapidMode)
                 <flux:button wire:click="$set('isRapidMode', true)" variant="outline" class="border-urgent text-urgent hover:bg-urgent-soft">
                     <span class="w-2 h-2 rounded-full bg-urgent mr-2"></span>
@@ -686,11 +734,13 @@ $save = function () {
                     {{ __('Cancelar') }}
                 </flux:button>
             @endif
-            <flux:link href="{{ route('patients.index') }}" class="text-sm">{{ __('Volver') }}</flux:link>
+            <flux:link href="{{ route('admissions.index') }}" class="text-sm">{{ __('Volver') }}</flux:link>
         </div>
     </div>
 
-    {{-- Confirmación + QR --}}
+    @if ($savedAdmission)
+        <x-mobile-back :href="route('admissions.index')" :label="__('Ingresos')" class="no-print" />
+    @endif
     @if ($savedAdmission)
         <div x-data x-init="window.scrollTo({ top: 0, behavior: 'smooth' })" class="print-area rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6 shadow-lg">
             <flux:callout variant="success" icon="check-circle" heading="{{ __('Ingreso registrado correctamente') }}" />
@@ -734,7 +784,7 @@ $save = function () {
     {{-- MODO RÁPIDO --}}
     @if ($isRapidMode)
         <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">
-            <div class="p-4 rounded-lg bg-urgent-soft border border-urgent/20 text-urgent text-sm">
+            <div class="hidden lg:block p-4 rounded-lg bg-urgent-soft border border-urgent/20 text-urgent text-sm">
                 {{ __('Solo lo esencial. El resto se completa después.') }}
             </div>
 
@@ -746,13 +796,13 @@ $save = function () {
 
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Sexo') }}</label>
-                    <div class="grid grid-cols-2 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700">
+                    <div class="h-13 grid grid-cols-2 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
                         <button type="button" wire:click="$set('p_sexo', 'M')"
-                            class="py-2.5 text-sm font-medium {{ $p_sexo === 'M' ? 'bg-mist text-accent-content dark:bg-accent/20 dark:text-accent' : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400' }}">
+                            class="text-sm font-medium {{ $p_sexo === 'M' ? 'bg-mist text-accent font-semibold dark:bg-accent/20 dark:text-accent' : 'bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400' }}">
                             {{ __('Masculino') }}
                         </button>
                         <button type="button" wire:click="$set('p_sexo', 'F')"
-                            class="py-2.5 text-sm font-medium {{ $p_sexo === 'F' ? 'bg-mist text-accent-content dark:bg-accent/20 dark:text-accent' : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400' }}">
+                            class="text-sm font-medium {{ $p_sexo === 'F' ? 'bg-mist text-accent font-semibold dark:bg-accent/20 dark:text-accent' : 'bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400' }}">
                             {{ __('Femenino') }}
                         </button>
                     </div>
@@ -780,7 +830,7 @@ $save = function () {
             </div>
 
             <div class="pt-2">
-                <flux:button wire:click="save" variant="primary" class="w-full md:w-auto bg-urgent hover:bg-urgent/90">
+                <flux:button wire:click="save" variant="primary" class="w-full md:w-auto h-14 rounded-[14px] bg-urgent hover:bg-urgent/90 text-[17px] font-semibold">
                     {{ __('Registrar ingreso') }}
                 </flux:button>
                 <p class="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
@@ -792,8 +842,8 @@ $save = function () {
 
     {{-- MODO NORMAL: WIZARD 4 PASOS --}}
     @if (! $isRapidMode)
-        {{-- Stepper --}}
-        <div class="grid grid-cols-5 gap-3">
+        {{-- Stepper escritorio (1d) --}}
+        <div class="hidden lg:grid grid-cols-5 gap-3">
             @foreach ($this->stepLabels as $step => $label)
                 <button type="button" wire:click="goToStep({{ $step }})"
                     @class([
@@ -837,18 +887,19 @@ $save = function () {
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             @foreach ($this->admissionTypes() as $tipo)
                                 <button
                                     type="button"
                                     wire:click="$set('admissionTypeId', {{ $tipo->id }})"
                                     @class([
-                                        'rounded-lg border p-4 text-left transition',
-                                        'border-teal-600 bg-teal-50' => $admissionTypeId === $tipo->id,
-                                        'border-zinc-200' => $admissionTypeId !== $tipo->id,
+                                        'rounded-xl border p-4 text-left transition flex items-center gap-3',
+                                        'border-accent bg-mist dark:bg-accent/15 dark:border-accent' => $admissionTypeId === $tipo->id,
+                                        'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900' => $admissionTypeId !== $tipo->id,
                                     ])
                                 >
-                                    <span class="font-medium">{{ $tipo->name }}</span>
+                                    <span class="w-1.5 h-10 rounded-[3px] shrink-0 {{ $tipo->colorBarClass() }}"></span>
+                                    <span class="font-medium text-zinc-900 dark:text-zinc-50">{{ $tipo->name }}</span>
                                 </button>
                             @endforeach
                         </div>
@@ -882,38 +933,39 @@ $save = function () {
                                 <div class="text-xs text-zinc-500 px-1">{{ count($this->patientSuggestions) }} {{ __('coincidencias') }}</div>
                                 <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 overflow-hidden divide-y dark:divide-zinc-700">
                                     @foreach($this->patientSuggestions as $s)
-                                        <div class="grid grid-cols-[44px_1.6fr_1fr_1fr_auto] gap-4 items-center px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                                            <div class="size-10 rounded-full bg-accent text-white grid place-items-center text-sm font-semibold">
+                                        <div class="flex items-center gap-3 px-4 py-3 sm:grid sm:grid-cols-[44px_1.6fr_1fr_1fr_auto] sm:gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                                            <div class="size-10 rounded-full bg-accent text-white grid place-items-center text-sm font-semibold shrink-0">
                                                 {{ collect(explode(' ', $s['name']))->map(fn($w) => mb_substr($w,0,1))->take(2)->implode('') }}
                                             </div>
-                                            <div>
-                                                <div class="font-semibold text-sm">{{ $s['name'] }}</div>
-                                                <div class="text-xs text-zinc-500">
+                                            <div class="min-w-0 flex-1">
+                                                <div class="font-semibold text-sm truncate">{{ $s['name'] }}</div>
+                                                <div class="text-xs text-zinc-500 dark:text-zinc-400">
                                                     {{ $s['sexo'] ? ($s['sexo'] === 'M' ? 'Masculino' : 'Femenino') : '' }}
                                                     {{ $s['edad'] ? ' · ' . $s['edad'] : '' }}
+                                                    <span class="sm:hidden">{{ $s['dpi'] ? ' · '.$s['dpi'] : '' }}</span>
                                                 </div>
                                             </div>
-                                            <div class="text-sm font-variant-numeric tabular-nums">
+                                            <div class="hidden sm:block text-sm font-variant-numeric tabular-nums">
                                                 <div class="text-xs text-zinc-500">{{ __('Documento') }}</div>
                                                 {{ $s['dpi'] ?: '—' }}
                                             </div>
-                                            <div class="text-sm">
+                                            <div class="hidden sm:block text-sm">
                                                 <div class="text-xs text-zinc-500">{{ __('Último ingreso') }}</div>
                                                 —
                                             </div>
-                                            <flux:button size="sm" wire:click="selectPatient({{ $s['id'] }})">{{ __('Ingresar') }} →</flux:button>
+                                            <flux:button size="sm" class="shrink-0" wire:click="selectPatient({{ $s['id'] }})">{{ __('Ingresar') }} →</flux:button>
                                         </div>
                                     @endforeach
                                 </div>
                             @endif
                         </div>
 
-                        <div class="flex items-center justify-between p-4 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600">
                             <div>
                                 <div class="font-semibold text-sm">{{ __('¿No aparece?') }}</div>
                                 <div class="text-sm text-zinc-500">{{ __('Se creará el expediente automáticamente al guardar.') }}</div>
                             </div>
-                            <flux:button variant="outline" wire:click="newPatient">+ {{ __('Registrar paciente nuevo') }}</flux:button>
+                            <flux:button variant="outline" wire:click="newPatient" class="w-full sm:w-auto">+ {{ __('Registrar paciente nuevo') }}</flux:button>
                         </div>
 
                         @foreach ($this->customFieldsForStep(1) as $field)
@@ -1227,7 +1279,7 @@ $save = function () {
                         @endforeach
 
                         <div class="flex justify-between pt-2">
-                            <flux:button variant="ghost" wire:click="previousStep">← {{ __('Atrás') }}</flux:button>
+                            <flux:button variant="ghost" wire:click="previousStep" class="hidden lg:inline-flex">← {{ __('Atrás') }}</flux:button>
                             <flux:button variant="primary" wire:click="nextStep">{{ __('Siguiente: Ingreso clínico') }} →</flux:button>
                         </div>
                     </div>
@@ -1362,7 +1414,7 @@ $save = function () {
                         @endif
 
                         <div class="flex justify-between pt-2">
-                            <flux:button variant="ghost" wire:click="previousStep">← {{ __('Atrás') }}</flux:button>
+                            <flux:button variant="ghost" wire:click="previousStep" class="hidden lg:inline-flex">← {{ __('Atrás') }}</flux:button>
                             <flux:button variant="primary" wire:click="save">{{ __('Guardar ingreso') }}</flux:button>
                         </div>
                     </div>

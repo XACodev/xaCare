@@ -217,6 +217,7 @@ $removeModifier = function (int $id) {
 ?>
 
 <div class="max-w-6xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('settings.index')" :label="__('Configurations')" />
     <div class="mb-4">
         <flux:heading size="xl">
             {{ $this->targetUser ? __('Rate for :name', ['name' => $this->targetUser->name]) : __('Hospital Pricing Defaults') }}

@@ -117,8 +117,8 @@ $batches = computed(function () {
                                 Q{{ number_format((float) $b->total_amount, 2) }}
                             </td>
                             <td class="px-4 py-3">
-                                <flux:badge :variant="$b->status === 'paid' ? 'success' : 'warning'">
-                                    {{ ucfirst($b->status) }}
+                                <flux:badge :variant="$b->status === 'void' ? 'warning' : 'success'">
+                                    {{ __(ucfirst($b->status)) }}
                                 </flux:badge>
                             </td>
                             <td class="px-4 py-3 text-right">
@@ -158,8 +158,8 @@ $batches = computed(function () {
                         </div>
                         <div class="text-right">
                             <div class="font-semibold tabular-nums">Q{{ number_format((float) $b->total_amount, 2) }}</div>
-                            <flux:badge size="sm" :variant="$b->status === 'paid' ? 'success' : 'warning'">
-                                {{ ucfirst($b->status) }}
+                            <flux:badge size="sm" :variant="$b->status === 'void' ? 'warning' : 'success'">
+                                {{ __(ucfirst($b->status)) }}
                             </flux:badge>
                         </div>
                     </div>

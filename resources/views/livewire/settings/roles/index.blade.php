@@ -191,6 +191,7 @@ $deleteRole = function () {
 ?>
 
 <div class="max-w-7xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('settings.index')" :label="__('Configurations')" />
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
             <div class="text-xs text-zinc-500 dark:text-zinc-400 mb-1">{{ __('Configuraciones') }} / {{ __('Roles') }}</div>
@@ -205,7 +206,7 @@ $deleteRole = function () {
             <div class="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl space-y-4">
                 <flux:heading size="lg">{{ __('Crear Rol') }}</flux:heading>
                 <div class="flex gap-2">
-                    <flux:input wire:model="new_role" placeholder="e.g. supervisor_turno" class="flex-1" />
+                    <flux:input wire:model="new_role" placeholder="{{ __('e.g. supervisor_turno') }}" class="flex-1" />
                     <flux:button wire:click="createRole" variant="primary">{{ __('Agregar') }}</flux:button>
                 </div>
                 @error('new_role') <span class="text-xs text-red-500">{{ $message }}</span> @enderror

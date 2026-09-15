@@ -118,12 +118,13 @@ $save = function () {
 ?>
 
 <div class="max-w-5xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('patients.index')" :label="__('Pacientes')" />
     <div class="flex items-center justify-between">
         <div>
             <flux:heading size="xl">{{ __('Editar paciente') }}</flux:heading>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $patient?->nombreCompleto() }}</p>
         </div>
-        <flux:link href="{{ route('patients.index') }}" class="text-sm">{{ __('Volver') }}</flux:link>
+        <flux:link href="{{ route('patients.index') }}" class="text-sm hidden lg:inline">{{ __('Volver') }}</flux:link>
     </div>
 
     @if ($saved)

@@ -37,6 +37,7 @@ $issue = function () {
 ?>
 
 <div class="p-6 max-w-2xl space-y-4">
+    <x-mobile-back :href="route('quotes.index')" :label="__('Cotizaciones')" />
     <div class="flex items-center justify-between">
         <flux:heading size="lg">{{ $quote->patient->nombreCompleto() }}</flux:heading>
         <flux:badge>{{ __(ucfirst($quote->status)) }} · v{{ $quote->version }}</flux:badge>

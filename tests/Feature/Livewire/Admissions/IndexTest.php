@@ -48,3 +48,34 @@ test('period filter narrows the admissions list to today', function () {
         ->assertSee($todayPatient->nombreCompleto())
         ->assertDontSee($oldPatient->nombreCompleto());
 });
+
+test('mobile card meta omits empty separators when admission type is missing', function () {
+    $hospital = Hospital::factory()->create();
+    $user = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $user->assignRole('admin');
+    $patient = Patient::factory()->create([
+        'hospital_id' => $hospital->id,
+        'primer_nombre' => 'Sintipo',
+        'segundo_nombre' => null,
+        'primer_apellido' => 'Vacio',
+        'segundo_apellido' => null,
+        'dpi' => null,
+        'expediente_no' => null,
+    ]);
+
+    Admission::factory()->create([
+        'hospital_id' => $hospital->id,
+        'patient_id' => $patient->id,
+        'admission_type_id' => null,
+        'sala_ingreso' => null,
+        'fecha_ingreso' => now(),
+        'total_dias' => null,
+    ]);
+
+    $this->actingAs($user);
+
+    Volt::test('admissions.index')
+        ->set('period', 'month')
+        ->assertSee('Sintipo Vacio')
+        ->assertDontSee(' · · ');
+});

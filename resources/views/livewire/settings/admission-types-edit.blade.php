@@ -87,6 +87,7 @@ new class extends Component
 }; ?>
 
 <div class="max-w-3xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('settings.admission-types')" :label="__('Tipos de ingreso')" />
     <flux:heading size="lg">Editar: {{ $admissionType->name }}</flux:heading>
 
     <div class="space-y-2">
@@ -119,5 +120,5 @@ new class extends Component
         @endforeach
     </div>
 
-    <flux:button :href="route('settings.admission-types')" wire:navigate>Volver</flux:button>
+    <flux:button :href="route('settings.admission-types')" wire:navigate class="hidden lg:inline-flex">{{ __('Volver') }}</flux:button>
 </div>

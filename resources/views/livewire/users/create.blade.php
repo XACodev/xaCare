@@ -111,6 +111,7 @@ $save = function () {
 ?>
 
 <div class="max-w-2xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="Auth::user()->is_platform_admin ? route('platform.hospitals.edit', $hospital_id) : route('users.index')" :label="Auth::user()->is_platform_admin ? __('Hospitals') : __('Mi Staff')" />
     <div class="flex items-center justify-between">
         <div>
             <flux:heading size="xl">{{ __('New User') }}</flux:heading>
@@ -118,7 +119,7 @@ $save = function () {
         </div>
         <flux:link
             href="{{ Auth::user()->is_platform_admin ? route('platform.hospitals.edit', $hospital_id) : route('users.index') }}"
-            class="text-sm">{{ __('Back') }}</flux:link>
+            class="text-sm hidden lg:inline">{{ __('Back') }}</flux:link>
     </div>
 
     @if($success_message)

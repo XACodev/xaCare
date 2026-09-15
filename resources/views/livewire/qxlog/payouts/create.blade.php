@@ -154,6 +154,7 @@ $liquidate = function () {
 ?>
 
 <div class="max-w-6xl mx-auto p-4 space-y-4">
+    <x-mobile-back :href="route('payouts.index')" :label="__('Payouts')" />
     <div>
         <div class="text-xs text-zinc-500 dark:text-zinc-400 mb-1">{{ __('Pagos') }} / {{ __('Realizar pago') }}</div>
         <flux:heading size="xl">{{ __('Realizar pago') }}</flux:heading>

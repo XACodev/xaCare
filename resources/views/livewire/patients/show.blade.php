@@ -40,6 +40,7 @@ $estadoCivilLabel = function (?string $codigo) {
 ?>
 
 <div class="max-w-3xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('patients.index')" :label="__('Pacientes')" />
     <div class="flex items-center justify-between">
         <flux:heading size="xl">{{ $patient->nombreCompleto() }}</flux:heading>
         <x-back-link :fallback="route('patients.index')" />

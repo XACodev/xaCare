@@ -148,6 +148,7 @@ $savePolicy = function () {
 ?>
 
 <div class="max-w-5xl mx-auto p-4 space-y-8">
+    <x-mobile-back :href="route('settings.index')" :label="__('Configurations')" />
     <div>
         <flux:heading size="xl">{{ __('Aseguradoras') }}</flux:heading>
         <flux:subheading>{{ __('Gestiona las aseguradoras y las pólizas de tus pacientes.') }}</flux:subheading>

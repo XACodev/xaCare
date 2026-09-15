@@ -28,6 +28,7 @@ class PayoutBatch extends Model implements HasHospital, Payable
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'paid_at' => 'datetime',
     ];
 
     public function payee()

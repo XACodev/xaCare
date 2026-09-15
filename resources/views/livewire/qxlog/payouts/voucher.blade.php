@@ -374,13 +374,19 @@ mount(function (string|int $batch) {
     }
 </style>
 
+@php
+    $payoutsParentHref = Auth::user()?->hasRole('admin')
+        ? route('payouts.index')
+        : route('instrumentist.payouts');
+    $payoutsParentLabel = Auth::user()?->hasRole('admin') ? __('Payouts') : __('My Payouts');
+@endphp
 <div id="print-content" class="max-w-4xl mx-auto p-4 print-wrap print:text-black print:visible">
     <div
         class="no-print sticky top-0 z-10 -mx-4 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/90">
-        <a href="{{ route('payouts.index') }}"
-            class="text-md text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors flex items-center gap-1">
-            <flux:icon.arrow-left size="sm" class="mr-2" />
-            {{ __('Back') }}
+        <a href="{{ $payoutsParentHref }}" wire:navigate
+            class="inline-flex items-center gap-1 py-1 text-[15px] font-medium text-accent">
+            <span aria-hidden="true">←</span>
+            {{ $payoutsParentLabel }}
         </a>
 
         <div class="flex flex-wrap items-center gap-4">

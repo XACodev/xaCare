@@ -192,6 +192,7 @@ $save = function () {
 ?>
 
 <div class="p-6 max-w-2xl space-y-6">
+    <x-mobile-back :href="route('quotes.index')" :label="__('Cotizaciones')" />
     <flux:heading size="lg">{{ $quote ? __('Editar cotización') : __('Nueva cotización') }}</flux:heading>
 
     <flux:field class="relative">

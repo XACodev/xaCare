@@ -281,6 +281,7 @@ $save = function () {
 ?>
 
 <div class="max-w-6xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('procedures.index')" :label="__('Procedures')" />
     <x-back-link :fallback="route('procedures.index')" />
     <div>
         <flux:heading size="xl">{{ __('Edit Procedure') }}</flux:heading>

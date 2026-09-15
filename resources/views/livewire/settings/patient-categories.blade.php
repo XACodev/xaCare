@@ -63,10 +63,11 @@ $moveDown = function (int $id) {
 ?>
 
 <div class="max-w-3xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('settings.index')" :label="__('Configurations')" />
     <div class="mb-4 space-y-1">
         <flux:heading size="xl">{{ __('Categorías de paciente') }}</flux:heading>
         <flux:subheading>{{ __('Clasificación automática por edad. Puedes editar el nombre o desactivar las que no uses; el sistema sigue calculando la categoría por edad para mostrarla en el expediente.') }}</flux:subheading>
-        <x-back-link :fallback="route('settings.wards')" />
+        <x-back-link :fallback="route('settings.index')" />
     </div>
 
     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">

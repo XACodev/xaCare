@@ -24,6 +24,7 @@ mount(function (string $user) {
 ?>
 
 <div class="max-w-xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('users.index')" :label="__('Mi Staff')" />
     <div class="flex items-center justify-between">
         <x-back-link :fallback="route('users.index')" />
 

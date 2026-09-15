@@ -45,6 +45,7 @@ $toggle = function (int $id) {
 ?>
 
 <div class="max-w-6xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('settings.index')" :label="__('Configurations')" />
     <div class="mb-4">
         <flux:heading size="xl">{{ __('Instrumentists') }}</flux:heading>
         <flux:subheading>{{ __('Mark who uses special payment scheme') }}</flux:subheading>

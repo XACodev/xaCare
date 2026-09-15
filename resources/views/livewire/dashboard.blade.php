@@ -40,8 +40,17 @@ new #[Layout('components.layouts.app')] #[Title('Dashboard')] class extends Comp
                 'stats' => [],
                 'user' => null,
                 'hasQxlog' => false,
+                'greeting' => '',
             ];
         }
+
+        $firstName = \Illuminate\Support\Str::of($user->name)->before(' ')->toString();
+        $hour = now()->hour;
+        $greeting = match (true) {
+            $hour < 12 => __('Buenos días, :name', ['name' => $firstName]),
+            $hour < 19 => __('Buenas tardes, :name', ['name' => $firstName]),
+            default => __('Buenas noches, :name', ['name' => $firstName]),
+        };
 
         $hasQxlog = $user->hospital?->hasFeature('qxlog') || $user->is_platform_admin;
 
@@ -63,6 +72,7 @@ new #[Layout('components.layouts.app')] #[Title('Dashboard')] class extends Comp
             'stats' => $stats,
             'user' => $user,
             'hasQxlog' => $hasQxlog,
+            'greeting' => $greeting,
         ];
     }
 
@@ -73,9 +83,14 @@ new #[Layout('components.layouts.app')] #[Title('Dashboard')] class extends Comp
         <!-- Header -->
         <div class="flex flex-wrap items-end justify-between gap-4">
             <div>
-                <div class="text-xs text-zinc-500 dark:text-zinc-400 mb-1.5">{{ ucfirst(now()->translatedFormat('D d M Y')) }}</div>
+                <div class="text-xs text-zinc-500 dark:text-zinc-400 mb-1.5">
+                    {{ ucfirst(now()->translatedFormat('D d M Y')) }}
+                    @if ($user->shift_label)
+                        · {{ $user->shift_label }}
+                    @endif
+                </div>
                 <h1 class="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-                    {{ __('Buenos días, :name', ['name' => Str::of($user->name)->before(' ')]) }}
+                    {{ $greeting }}
                 </h1>
             </div>
             @if($hasQxlog && $user->hasRole('admin'))

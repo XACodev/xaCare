@@ -497,6 +497,7 @@ $dismissMatchedSurgery = function () {
 ?>
 
 <div class="max-w-6xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('procedures.index')" :label="__('Procedures')" />
     <div class="mb-4">
         <flux:heading size="xl">{{ __('Register Procedure') }}</flux:heading>
         <flux:subheading>xaCare • Registro de intervenciones quirúrgicas • (Instrumentista)</flux:subheading>

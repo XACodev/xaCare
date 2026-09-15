@@ -157,6 +157,7 @@ $toggleDelete = function () {
 ?>
 
 <div class="max-w-xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="Auth::user()->is_platform_admin ? ($hospital_id ? route('platform.hospitals.edit', $hospital_id) : route('platform.hospitals.index')) : route('users.index')" :label="Auth::user()->is_platform_admin ? __('Hospitals') : __('Mi Staff')" />
     <x-back-link :fallback="Auth::user()->is_platform_admin ? ($hospital_id ? route('platform.hospitals.edit', $hospital_id) : route('platform.hospitals.index')) : route('users.index')" />
 
     @if($success_message)

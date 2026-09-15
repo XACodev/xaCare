@@ -107,10 +107,11 @@ $removeRate = function (int $id) {
 ?>
 
 <div class="max-w-4xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('settings.index')" :label="__('Configurations')" />
     <div class="mb-4 space-y-1">
         <flux:heading size="xl">{{ __('Pricing by Procedure Type') }}</flux:heading>
         <flux:subheading>{{ __('Tarifas base por tipo de procedimiento y rol quirúrgico. Se usan para calcular pagos y presupuestos.') }}</flux:subheading>
-        <x-back-link :fallback="route('pricing.instrumentists')" />
+        <x-back-link :fallback="route('settings.index')" />
     </div>
 
     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-6">

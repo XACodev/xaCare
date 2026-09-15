@@ -36,6 +36,7 @@ $exportCsv = function () {
 ?>
 
 <div class="max-w-6xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('reports.index')" :label="__('Reports')" />
     <flux:heading size="xl">{{ __('Procedure Distribution') }}</flux:heading>
     <flux:subheading>{{ __('By doctor / role') }}</flux:subheading>
 

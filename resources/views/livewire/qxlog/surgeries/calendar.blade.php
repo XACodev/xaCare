@@ -72,13 +72,14 @@ $today = function () {
 ?>
 
 <div class="max-w-7xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('surgeries.board')" :label="__('Surgeries')" />
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
             <flux:heading size="xl">{{ __('Surgery Calendar') }}</flux:heading>
             <flux:subheading>{{ __('Weekly view by operating room') }}</flux:subheading>
         </div>
 
-        <flux:button :href="route('surgeries.board')" wire:navigate variant="subtle" size="sm">
+        <flux:button :href="route('surgeries.board')" wire:navigate variant="subtle" size="sm" class="hidden lg:inline-flex">
             {{ __('Back to board') }}
         </flux:button>
     </div>

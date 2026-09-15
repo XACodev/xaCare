@@ -5,6 +5,8 @@
         ? $previous
         : $fallback;
 @endphp
-<flux:button href="{{ $target }}" variant="subtle" size="sm" icon="arrow-left">
-    {{ $label ?? __('Back') }}
-</flux:button>
+<div class="hidden lg:block">
+    <flux:button href="{{ $target }}" variant="subtle" size="sm" icon="arrow-left">
+        {{ $label ?? __('Back') }}
+    </flux:button>
+</div>

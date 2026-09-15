@@ -5,12 +5,13 @@
 // $extraFieldsSlot es opcional: HTML crudo (ya escapado por el consumidor) para campos extra.
 ?>
 <div class="max-w-3xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('settings.index')" :label="__('Configurations')" />
     <div class="mb-4 space-y-1">
         <flux:heading size="xl">{{ $title }}</flux:heading>
         @if(! empty($description))
             <flux:subheading>{{ $description }}</flux:subheading>
         @endif
-        <x-back-link :fallback="route('pricing.instrumentists')" />
+        <x-back-link :fallback="route('settings.index')" />
     </div>
 
     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-4">

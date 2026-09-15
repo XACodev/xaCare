@@ -24,9 +24,10 @@ mount(function (Admission $admission) {
 ?>
 
 <div class="max-w-4xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('admissions.index')" :label="__('Ingresos')" class="no-print" />
     <div class="flex items-center justify-between no-print">
         <flux:heading size="xl">{{ __('Expediente de ingreso') }}</flux:heading>
-        <flux:link href="{{ route('patients.index') }}" class="text-sm">{{ __('Volver') }}</flux:link>
+        <flux:link href="{{ route('admissions.index') }}" class="text-sm hidden lg:inline">{{ __('Volver') }}</flux:link>
     </div>
 
     @if ($admission)

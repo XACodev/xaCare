@@ -52,9 +52,10 @@ $save = function () {
 ?>
 
 <div class="max-w-4xl mx-auto p-4 space-y-6">
+    <x-mobile-back :href="route('patients.index')" :label="__('Pacientes')" />
     <div class="flex items-center justify-between">
         <flux:heading size="xl">{{ __('Nuevo Paciente') }}</flux:heading>
-        <flux:link href="{{ route('patients.index') }}" class="text-sm">{{ __('Volver') }}</flux:link>
+        <flux:link href="{{ route('patients.index') }}" class="text-sm hidden lg:inline">{{ __('Volver') }}</flux:link>
     </div>
 
     @if($success_message)
