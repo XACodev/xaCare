@@ -41,7 +41,10 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function manageAdmin(App\Models\Hospital $hospital): App\Models\User
 {
-    // ..
+    $admin = App\Models\User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
+    $admin->givePermissionTo('surgeries.budget.manage');
+
+    return $admin;
 }

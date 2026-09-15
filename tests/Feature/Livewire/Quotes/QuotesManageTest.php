@@ -15,14 +15,6 @@ beforeEach(function () {
     Permission::firstOrCreate(['name' => 'surgeries.budget.manage', 'guard_name' => 'web']);
 });
 
-function manageAdmin(Hospital $hospital): User
-{
-    $admin = User::factory()->create(['hospital_id' => $hospital->id, 'role' => 'admin']);
-    $admin->givePermissionTo('surgeries.budget.manage');
-
-    return $admin;
-}
-
 test('crea una cotizacion nueva en draft con renglones de honorarios', function () {
     $hospital = Hospital::factory()->create();
     $patient = Patient::factory()->for($hospital, 'hospital')->create();
