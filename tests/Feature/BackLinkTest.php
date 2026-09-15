@@ -23,7 +23,8 @@ test('volver desde agendar cirugia apunta a la vista exacta del tablero previo',
     $response = $this->get(route('surgeries.schedule.edit', $case));
     $response->assertOk();
 
-    preg_match_all('/href="(https:\/\/xacare\.test\/surgeries\?[^"]*)"/', $response->getContent(), $matches);
+    $boardBase = route('surgeries.board');
+    preg_match_all('/href="('.preg_quote($boardBase, '/').'\?[^"]*)"/', $response->getContent(), $matches);
     expect($matches[1])->not->toBeEmpty();
     $backHref = html_entity_decode($matches[1][0]);
     parse_str(parse_url($backHref, PHP_URL_QUERY), $query);
