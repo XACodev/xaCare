@@ -146,6 +146,12 @@
                                 :current="request()->routeIs('settings.patient-categories')" wire:navigate>
                                 {{ __('Categorías de paciente') }}
                             </flux:navlist.item>
+                            @if($me?->hospital?->hasFeature('admissions_business_hours'))
+                                <flux:navlist.item icon="clock" :href="route('settings.business-hours')"
+                                    :current="request()->routeIs('settings.business-hours')" wire:navigate>
+                                    {{ __('Horarios hábiles') }}
+                                </flux:navlist.item>
+                            @endif
                         @endcan
                         <flux:navlist.item icon="shield-check" :href="route('settings.roles.index')"
                             :current="request()->routeIs('settings.roles.index')" wire:navigate>

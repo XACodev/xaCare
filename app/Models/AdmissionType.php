@@ -26,6 +26,8 @@ class AdmissionType extends Model
         'active',
         'sort_order',
         'es_ingreso_rapido_default',
+        'business_hour_type_slug',
+        'after_hours_type_slug',
         'visible_sections',
         'required_sections',
     ];
@@ -39,6 +41,16 @@ class AdmissionType extends Model
             'visible_sections' => 'array',
             'required_sections' => 'array',
         ];
+    }
+
+    /**
+     * Un tipo de ingreso se considera "base" para el selector simplificado
+     * cuando tiene configurado al menos uno de los slugs de resolución
+     * hábil/inhábil del addon admissions_business_hours.
+     */
+    public function isBusinessHourBase(): bool
+    {
+        return filled($this->business_hour_type_slug) || filled($this->after_hours_type_slug);
     }
 
     public function hospital(): BelongsTo

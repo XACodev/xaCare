@@ -17,6 +17,12 @@ new class extends Component
 
     public array $requiredSections = [];
 
+    public string $businessHourTypeSlug = '';
+
+    public string $afterHoursTypeSlug = '';
+
+    public bool $businessHourSlugsSaved = false;
+
     public function mount(AdmissionType $admissionType): void
     {
         abort_unless(Auth::check(), 401);
@@ -27,6 +33,8 @@ new class extends Component
         $this->admissionType = $admissionType;
         $this->visibleSections = $admissionType->visible_sections ?? [];
         $this->requiredSections = $admissionType->required_sections ?? [];
+        $this->businessHourTypeSlug = $admissionType->business_hour_type_slug ?? '';
+        $this->afterHoursTypeSlug = $admissionType->after_hours_type_slug ?? '';
     }
 
     /** @return array<int, array{value: string, label: string}> */
@@ -77,6 +85,41 @@ new class extends Component
         $field->update(['active' => false]);
     }
 
+    public function saveBusinessHourSlugs(): void
+    {
+        abort_unless((bool) Auth::user()->can('settings.manage'), 403);
+
+        $this->validate([
+            'businessHourTypeSlug' => ['nullable', 'string', 'max:255'],
+            'afterHoursTypeSlug' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $hospitalId = $this->admissionType->hospital_id;
+        $existingSlugs = AdmissionType::query()
+            ->where('hospital_id', $hospitalId)
+            ->pluck('slug')
+            ->all();
+
+        if (filled($this->businessHourTypeSlug) && ! in_array($this->businessHourTypeSlug, $existingSlugs, true)) {
+            $this->addError('businessHourTypeSlug', __('El slug de tipo hábil no existe en este hospital.'));
+
+            return;
+        }
+
+        if (filled($this->afterHoursTypeSlug) && ! in_array($this->afterHoursTypeSlug, $existingSlugs, true)) {
+            $this->addError('afterHoursTypeSlug', __('El slug de tipo inhábil no existe en este hospital.'));
+
+            return;
+        }
+
+        $this->admissionType->update([
+            'business_hour_type_slug' => $this->businessHourTypeSlug ?: null,
+            'after_hours_type_slug' => $this->afterHoursTypeSlug ?: null,
+        ]);
+
+        $this->businessHourSlugsSaved = true;
+    }
+
     private function save(): void
     {
         $this->admissionType->update([
@@ -86,11 +129,12 @@ new class extends Component
     }
 }; ?>
 
-<div class="max-w-3xl mx-auto p-4 space-y-6">
+<div class="max-w-3xl mx-auto p-4 space-y-8">
     <x-mobile-back :href="route('settings.admission-types')" :label="__('Tipos de ingreso')" />
     <flux:heading size="lg">Editar: {{ $admissionType->name }}</flux:heading>
 
     <div class="space-y-2">
+        <flux:heading size="md">{{ __('Secciones del formulario') }}</flux:heading>
         @foreach ($this->sections() as $section)
             <div class="flex items-center gap-4">
                 <flux:checkbox
@@ -108,16 +152,44 @@ new class extends Component
         @endforeach
     </div>
 
-    <flux:heading size="md">Campos personalizados</flux:heading>
-    <div class="space-y-2">
-        @foreach ($this->customFields() as $field)
-            <div class="flex items-center justify-between">
-                <span>{{ $field->label }} ({{ $field->field_type }}, paso {{ $field->step }})</span>
-                <flux:button wire:click="deleteCustomField({{ $field->id }})" variant="danger" size="sm">
-                    Desactivar
-                </flux:button>
+    @if (Auth::user()->hospital?->hasFeature('admissions_business_hours'))
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 space-y-4">
+            <div>
+                <flux:heading size="md">{{ __('Resolución de horario hábil/inhábil') }}</flux:heading>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                    {{ __('Si configuras estos slugs, este tipo aparecerá como opción base en el selector de nuevo ingreso y el sistema elegirá automáticamente la variante según la fecha/hora.') }}
+                </p>
             </div>
-        @endforeach
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <flux:input wire:model="businessHourTypeSlug" label="{{ __('Tipo en horario hábil (slug)') }}" placeholder="ej. emergencia-habil" />
+                <flux:input wire:model="afterHoursTypeSlug" label="{{ __('Tipo en horario inhábil (slug)') }}" placeholder="ej. emergencia-inhabil" />
+            </div>
+            @error('businessHourTypeSlug') <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+            @error('afterHoursTypeSlug') <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+            @if ($businessHourSlugsSaved)
+                <flux:callout variant="success" icon="check-circle" heading="{{ __('Mapeo guardado.') }}" />
+            @endif
+
+            <div class="flex justify-end">
+                <flux:button wire:click="saveBusinessHourSlugs" variant="primary">{{ __('Guardar mapeo') }}</flux:button>
+            </div>
+        </div>
+    @endif
+
+    <div class="space-y-2">
+        <flux:heading size="md">Campos personalizados</flux:heading>
+        <div class="space-y-2">
+            @foreach ($this->customFields() as $field)
+                <div class="flex items-center justify-between">
+                    <span>{{ $field->label }} ({{ $field->field_type }}, paso {{ $field->step }})</span>
+                    <flux:button wire:click="deleteCustomField({{ $field->id }})" variant="danger" size="sm">
+                        Desactivar
+                    </flux:button>
+                </div>
+            @endforeach
+        </div>
     </div>
 
     <flux:button :href="route('settings.admission-types')" wire:navigate class="hidden lg:inline-flex">{{ __('Volver') }}</flux:button>

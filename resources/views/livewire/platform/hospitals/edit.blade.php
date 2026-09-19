@@ -30,6 +30,7 @@ state([
     'enabled_roles' => [],
     'addonCustomForm' => false,
     'addonIdDocuments' => false,
+    'addonBusinessHours' => false,
 ]);
 
 mount(function (string|int $hospital) {
@@ -46,6 +47,7 @@ mount(function (string|int $hospital) {
     $this->enabled_roles = $h->enabled_roles ?? [];
     $this->addonCustomForm = in_array('admissions_custom_form', $h->addons ?? [], true);
     $this->addonIdDocuments = in_array('admissions_id_documents', $h->addons ?? [], true);
+    $this->addonBusinessHours = in_array('admissions_business_hours', $h->addons ?? [], true);
 
     $this->loadInvitations();
 });
@@ -114,6 +116,9 @@ $save = function () {
     }
     if ($this->addonIdDocuments) {
         $addons[] = 'admissions_id_documents';
+    }
+    if ($this->addonBusinessHours) {
+        $addons[] = 'admissions_business_hours';
     }
     $this->hospital->update(['addons' => $addons]);
 
@@ -254,6 +259,7 @@ $restoreStaff = function (int $id) {
 
         <flux:checkbox wire:model="addonCustomForm" label="Formulario de ingreso personalizable" />
         <flux:checkbox wire:model="addonIdDocuments" label="Documentos de identidad (DPI y firma)" />
+        <flux:checkbox wire:model="addonBusinessHours" label="Horarios hábiles e inhábiles para ingresos" />
 
         <div class="pt-2 flex justify-end">
             <flux:button variant="primary" wire:click="save" class="w-full sm:w-auto">

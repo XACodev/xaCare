@@ -109,6 +109,10 @@ Route::middleware(['auth', 'admin', 'hospital.subscribed'])->group(function () {
         ->name('settings.admission-types.edit')
         ->middleware('hospital.feature:admissions_custom_form');
 
+    Volt::route('settings/business-hours', 'settings.business-hours')
+        ->name('settings.business-hours')
+        ->middleware('hospital.feature:admissions_business_hours');
+
     Volt::route('seguros', 'insurance.index')
         ->middleware('hospital.feature:insurance')
         ->name('modules.insurance');

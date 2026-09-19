@@ -150,10 +150,42 @@ $admissionTypes = function () {
         ->get();
 };
 
+$admissionTypesForSelector = function () {
+    $types = $this->admissionTypes();
+
+    if (! Auth::user()->hospital?->hasFeature('admissions_business_hours')) {
+        return $types;
+    }
+
+    return $types->filter(fn ($type) => $type->isBusinessHourBase())->values();
+};
+
 $selectedAdmissionType = function (): ?\App\Models\AdmissionType {
     return $this->admissionTypeId
         ? \App\Models\AdmissionType::find($this->admissionTypeId)
         : null;
+};
+
+$resolveAdmissionTypeId = function (): ?int {
+    if ($this->isRapidMode) {
+        return \App\Models\AdmissionType::query()
+            ->where('es_ingreso_rapido_default', true)
+            ->where('active', true)
+            ->value('id');
+    }
+
+    $baseType = \App\Models\AdmissionType::find($this->admissionTypeId);
+
+    if (! $baseType || ! Auth::user()->hospital?->hasFeature('admissions_business_hours') || ! $baseType->isBusinessHourBase()) {
+        return \App\Models\AdmissionType::whereKey($this->admissionTypeId)->value('id');
+    }
+
+    $datetime = \Carbon\Carbon::parse(trim("{$this->a_fecha_ingreso} {$this->a_hora_ingreso}"));
+
+    return app(\App\Services\BusinessHoursService::class)
+            ->resolveAdmissionType($baseType, $datetime)
+            ?->id
+        ?? \App\Models\AdmissionType::whereKey($this->admissionTypeId)->value('id');
 };
 
 $customFieldsForStep = function (int $step) {
@@ -594,9 +626,7 @@ $save = function () {
         return Admission::create([
             'hospital_id' => $hospitalId,
             'patient_id' => $patient->id,
-            'admission_type_id' => $this->isRapidMode
-                ? \App\Models\AdmissionType::where('es_ingreso_rapido_default', true)->where('active', true)->value('id')
-                : \App\Models\AdmissionType::whereKey($this->admissionTypeId)->value('id'),
+            'admission_type_id' => $this->resolveAdmissionTypeId(),
             'va_a_quirofano' => (bool) $this->a_va_a_quirofano,
             'fecha_ingreso' => $this->a_fecha_ingreso,
             'hora_ingreso' => $this->a_hora_ingreso ?: null,
@@ -888,7 +918,7 @@ $save = function () {
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            @foreach ($this->admissionTypes() as $tipo)
+                            @foreach ($this->admissionTypesForSelector() as $tipo)
                                 <button
                                     type="button"
                                     wire:click="$set('admissionTypeId', {{ $tipo->id }})"
